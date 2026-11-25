@@ -104,11 +104,13 @@
             <div class="col-md-6">
               <div class="detail-item text-center">
                 <label class="detail-label">
-                  <i class="fas fa-money-bill-wave me-2"></i>Moneda
+                  <i class="fas fa-tags me-2"></i>Precio por hora
                 </label>
                 <div class="detail-value">
-                  <span class="badge bg-secondary fs-5">{{ rate.currency }}</span>
-                  <small class="d-block text-muted mt-1">{{ getCurrencyName(rate.currency) }}</small>
+                  <div class="rate-amount-display">
+                    <span class="amount">S/ {{ rate.amount | number:'1.2-2' }}</span>
+                    <span class="period">/hora</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -116,50 +118,38 @@
             <div class="col-md-6">
               <div class="detail-item text-center">
                 <label class="detail-label">
-                  <i class="fas fa-tags me-2"></i>Tarifa por Hora
+                  <i class="fas fa-calculator me-2"></i>Cómo se cobra
                 </label>
                 <div class="detail-value">
-                  <div class="rate-amount-display">
-                    <span class="amount">{{ formatCurrency(rate.amount, rate.currency) }}</span>
-                    <span class="period">/hora</span>
-                  </div>
+                  <strong>{{ billingLabel(rate) }}</strong>
+                  <small class="d-block text-muted mt-1">
+                    Cada fracción: S/ {{ rate.fractionAmount | number:'1.2-2' }}
+                  </small>
                 </div>
               </div>
             </div>
 
-            <!-- Ejemplos de Cálculo -->
+            <!-- Simulación con las reglas guardadas (la calcula el backend) -->
             <div class="col-12">
               <div class="calculation-examples">
                 <h6 class="mb-3">
-                  <i class="fas fa-calculator me-2"></i>
-                  Ejemplos de Cálculo
+                  <i class="fas fa-receipt me-2"></i>
+                  Ejemplos de cobro
                 </h6>
+                @if (simulation) {
                 <div class="row g-2">
+                  @for (row of simulation.rows; track row.minutes) {
                   <div class="col-md-3 col-6">
                     <div class="example-card">
-                      <div class="example-duration">1 hora</div>
-                      <div class="example-amount">{{ formatCurrency(rate.amount * 1, rate.currency) }}</div>
+                      <div class="example-duration">{{ formatMinutes(row.minutes) }}</div>
+                      <div class="example-amount">S/ {{ row.amount | number:'1.2-2' }}</div>
                     </div>
                   </div>
-                  <div class="col-md-3 col-6">
-                    <div class="example-card">
-                      <div class="example-duration">2 horas</div>
-                      <div class="example-amount">{{ formatCurrency(rate.amount * 2, rate.currency) }}</div>
-                    </div>
-                  </div>
-                  <div class="col-md-3 col-6">
-                    <div class="example-card">
-                      <div class="example-duration">4 horas</div>
-                      <div class="example-amount">{{ formatCurrency(rate.amount * 4, rate.currency) }}</div>
-                    </div>
-                  </div>
-                  <div class="col-md-3 col-6">
-                    <div class="example-card">
-                      <div class="example-duration">8 horas</div>
-                      <div class="example-amount">{{ formatCurrency(rate.amount * 8, rate.currency) }}</div>
-                    </div>
-                  </div>
+                  }
                 </div>
+                } @else {
+                <small class="text-muted">Calculando...</small>
+                }
               </div>
             </div>
 
@@ -185,8 +175,30 @@
             {{ rate.status ? 'ACTIVA' : 'INACTIVA' }}
           </span>
           <p class="mt-3 mb-0 text-muted small">
-            {{ rate.status ? 'Esta tarifa está disponible para ser asignada' : 'Esta tarifa no está disponible' }}
+            {{ rate.status ? 'Se puede asignar a los turnos de un parqueo' : 'No se ofrece en nuevas configuraciones' }}
           </p>
+        </div>
+      </div>
+
+      <!-- Parqueos que la usan -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <strong>
+            <i class="fas fa-square-parking me-2"></i>
+            Usada por
+          </strong>
+        </div>
+        <div class="card-body">
+          @if (rate.usedByParkings?.length) {
+          <ul class="list-unstyled mb-2">
+            @for (parking of rate.usedByParkings; track parking) {
+            <li><i class="fas fa-check text-success me-2"></i>{{ parking }}</li>
+            }
+          </ul>
+          <small class="text-muted">No se puede eliminar mientras la use un parqueo; sí desactivar.</small>
+          } @else {
+          <small class="text-muted">Ningún parqueo la usa todavía.</small>
+          }
         </div>
       </div>
 

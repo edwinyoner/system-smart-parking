@@ -1,0 +1,103 @@
+<div class="billing-section" [formGroup]="form">
+  <h6 class="section-title">
+    <i class="fas fa-calculator me-2"></i>Cómo se cobra el tiempo
+  </h6>
+
+  <div class="row g-3">
+    <!-- Fracción de cobro -->
+    <div class="col-12">
+      <label class="form-label required" for="billingUnitMinutes">Fracción de cobro</label>
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        @for (preset of presets; track preset.minutes) {
+        <button type="button" class="btn btn-sm"
+          [class.btn-success]="unit === preset.minutes" [class.btn-outline-secondary]="unit !== preset.minutes"
+          (click)="setUnit(preset.minutes)">
+          {{ preset.label }}
+        </button>
+        }
+      </div>
+      <div class="input-group input-group-narrow">
+        <input id="billingUnitMinutes" type="number" class="form-control" formControlName="billingUnitMinutes"
+          min="1" max="1440" step="1" [class.is-invalid]="isInvalid('billingUnitMinutes')">
+        <span class="input-group-text">min</span>
+      </div>
+      <small class="form-text text-muted">
+        Cada fracción iniciada se cobra completa. Con 60 min y 5 de tolerancia: 5 min a 1 h 05 se cobra 1 h; 1 h 06, 2 h.
+      </small>
+    </div>
+
+    <!-- Mínimo -->
+    <div class="col-md-4">
+      <label class="form-label" for="minimumMinutes">Tiempo mínimo cobrado</label>
+      <div class="input-group">
+        <input id="minimumMinutes" type="number" class="form-control" formControlName="minimumMinutes"
+          min="0" max="1440" step="1" [class.is-invalid]="isInvalid('minimumMinutes')">
+        <span class="input-group-text">min</span>
+      </div>
+      <small class="form-text text-muted">0 = sin mínimo. Ej.: fracciones de 15 min con mínimo de 60.</small>
+    </div>
+
+    <!-- Gracia -->
+    <div class="col-md-4">
+      <label class="form-label" for="graceMinutes">Sin costo si sale antes de</label>
+      <div class="input-group">
+        <input id="graceMinutes" type="number" class="form-control" formControlName="graceMinutes"
+          min="0" max="120" step="1" [class.is-invalid]="isInvalid('graceMinutes')">
+        <span class="input-group-text">min</span>
+      </div>
+      <small class="form-text text-muted">Para quien entró por error. Por defecto 5; 0 = siempre se cobra.</small>
+    </div>
+
+    <!-- Tolerancia -->
+    <div class="col-md-4">
+      <label class="form-label" for="toleranceMinutes">Tolerancia entre fracciones</label>
+      <div class="input-group">
+        <input id="toleranceMinutes" type="number" class="form-control" formControlName="toleranceMinutes"
+          min="0" step="1" [class.is-invalid]="isInvalid('toleranceMinutes') || !!form.errors?.['toleranceTooLarge']">
+        <span class="input-group-text">min</span>
+      </div>
+      @if (form.errors?.['toleranceTooLarge']) {
+      <div class="text-danger small mt-1">Debe ser menor que la fracción ({{ unit }} min)</div>
+      } @else {
+      <small class="form-text text-muted">Por defecto 5: hasta 1 h 05 se cobra como 1 h. 0 = sin tolerancia.</small>
+      }
+    </div>
+  </div>
+
+  <!-- Simulación -->
+  <div class="simulation mt-4">
+    <h6 class="section-title">
+      <i class="fas fa-receipt me-2"></i>Simulación de cobro
+    </h6>
+    @if (simulation) {
+    <p class="small text-muted mb-2">
+      Precio de cada fracción: <strong>S/ {{ simulation.fractionAmount | number:'1.2-2' }}</strong>.
+      Calculado con las mismas reglas que se aplican al registrar la salida.
+    </p>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Estadía</th>
+            <th class="text-center">Fracciones cobradas</th>
+            <th class="text-end">Paga</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of simulation.rows; track row.minutes) {
+          <tr>
+            <td>{{ formatMinutes(row.minutes) }}</td>
+            <td class="text-center">{{ row.fractions === 0 ? 'Sin costo' : row.fractions }}</td>
+            <td class="text-end fw-semibold">S/ {{ row.amount | number:'1.2-2' }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    } @else if (simulationError) {
+    <div class="text-danger small">{{ simulationError }}</div>
+    } @else {
+    <p class="small text-muted mb-0">Ingresa el precio por hora para ver cuánto se cobraría.</p>
+    }
+  </div>
+</div>

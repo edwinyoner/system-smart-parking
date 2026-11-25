@@ -62,7 +62,7 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Tarifas",
     url: "/rates",
     icon: "fa-solid fa-coins",
-    // requiredPermissions: ["rates.read"],
+    requiredPermissions: ["rates.read"],
   },
   {
     name: "Parqueos",

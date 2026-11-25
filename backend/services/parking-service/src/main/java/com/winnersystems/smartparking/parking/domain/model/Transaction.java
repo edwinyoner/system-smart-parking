@@ -263,18 +263,16 @@ public class Transaction {
    // ========================= MÉTODOS DE NEGOCIO - CÁLCULO DE MONTOS =========================
 
    /**
-    * Calcula el monto a pagar basado en tarifa y duración.
+    * Aplica el monto calculado por la tarifa (Rate.calculateCost), que decide cómo se
+    * cobra el tiempo: por fracción, mínimo, gracia y tolerancia.
     *
-    * @param hourlyRate tarifa por hora
+    * @param amount monto de la estadía
     */
-   public void calculateAmount(BigDecimal hourlyRate) {
-      if (durationMinutes == null || hourlyRate == null) {
+   public void applyCalculatedAmount(BigDecimal amount) {
+      if (amount == null) {
          return;
       }
-
-      double hours = durationMinutes / 60.0;
-      this.calculatedAmount = hourlyRate.multiply(BigDecimal.valueOf(hours))
-            .setScale(2, BigDecimal.ROUND_HALF_UP);
+      this.calculatedAmount = amount;
       this.calculateTotal();
    }
 

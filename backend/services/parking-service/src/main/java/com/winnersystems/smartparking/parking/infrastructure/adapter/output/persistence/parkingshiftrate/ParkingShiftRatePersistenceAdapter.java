@@ -105,4 +105,9 @@ public class ParkingShiftRatePersistenceAdapter implements ParkingShiftRatePersi
    public List<String> findParkingNamesUsingShift(Long shiftId) {
       return repository.findParkingNamesUsingShift(shiftId);
    }
+
+   @Override
+   public List<String> findParkingNamesUsingRate(Long rateId) {
+      return repository.findParkingNamesUsingRate(rateId);
+   }
 }

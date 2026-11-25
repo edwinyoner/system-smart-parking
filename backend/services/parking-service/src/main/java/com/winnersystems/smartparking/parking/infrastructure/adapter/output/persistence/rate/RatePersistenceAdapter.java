@@ -3,6 +3,7 @@ package com.winnersystems.smartparking.parking.infrastructure.adapter.output.per
 import com.winnersystems.smartparking.parking.application.dto.query.PageRequest;
 import com.winnersystems.smartparking.parking.application.dto.query.PageResult;
 import com.winnersystems.smartparking.parking.application.port.output.RatePersistencePort;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
 import com.winnersystems.smartparking.parking.domain.model.Rate;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.rate.entity.RateEntity;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.rate.mapper.RatePersistenceMapper;
@@ -40,9 +41,7 @@ public class RatePersistenceAdapter implements RatePersistencePort {
       if (rate.getId() != null) {
          // Actualizar existente
          entity = repository.findById(rate.getId())
-               .orElseThrow(() -> new IllegalArgumentException(
-                     "Tarifa no encontrada con ID: " + rate.getId()
-               ));
+               .orElseThrow(() -> new ResourceNotFoundException("Tarifa", rate.getId()));
          mapper.updateEntity(entity, rate);
       } else {
          // Crear nueva
@@ -57,42 +56,42 @@ public class RatePersistenceAdapter implements RatePersistencePort {
 
    @Override
    public Optional<Rate> findById(Long id) {
-      return repository.findByIdAndDeletedAtIsNull(id)
-            .map(mapper::toDomain);
+      return repository.findByIdAndDeletedAtIsNull(id).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Rate> findByIdIncludingDeleted(Long id) {
+      return repository.findById(id).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Rate> findDeletedById(Long id) {
+      return repository.findByIdAndDeletedAtIsNotNull(id).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Rate> findByNameIncludingDeleted(String name) {
+      return repository.findFirstByNameIgnoreCase(name).map(mapper::toDomain);
    }
 
    // ========================= LIST =========================
 
+   /** De la más barata a la más cara: así se muestran al configurar un parqueo */
    @Override
    public List<Rate> findAllActive() {
-      // FIX: OrderByIdAsc en lugar de OrderByNameAsc
-      return repository.findByStatusTrueAndDeletedAtIsNullOrderByIdAsc()
-            .stream()
+      return repository.findByStatusTrueAndDeletedAtIsNullOrderByAmountAsc().stream()
             .map(mapper::toDomain)
             .toList();
    }
 
    @Override
-   public PageResult<Rate> findAll(PageRequest pageRequest, String search, Boolean status) {
-      Pageable pageable = buildPageable(pageRequest);
-
-      boolean hasSearch = search != null && !search.trim().isEmpty();
-      boolean hasStatus = status != null;
-
-      Page<RateEntity> page;
-
-      if (hasSearch && hasStatus) {
-         page = repository.findByDeletedAtIsNullAndNameContainingIgnoreCaseAndStatus(
-               search.trim(), status, pageable);
-      } else if (hasSearch) {
-         page = repository.findByDeletedAtIsNullAndNameContainingIgnoreCase(
-               search.trim(), pageable);
-      } else if (hasStatus) {
-         page = repository.findByDeletedAtIsNullAndStatus(status, pageable);
-      } else {
-         page = repository.findByDeletedAtIsNull(pageable);
+   public PageResult<Rate> findAll(PageRequest pageRequest, String search, Boolean status, boolean deleted) {
+      String text = search == null || search.isBlank() ? null : search.trim().toLowerCase();
+      // %, _ y \ escritos por el usuario se buscan como texto, no como comodines
+      if (text != null) {
+         text = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
       }
-
+      Page<RateEntity> page = repository.search(text, status, deleted, buildPageable(pageRequest));
       return PageResult.of(
             page.getContent().stream().map(mapper::toDomain).toList(),
             page.getNumber(),
@@ -101,38 +100,10 @@ public class RatePersistenceAdapter implements RatePersistencePort {
       );
    }
 
-   // Método privado reutilizable (reemplaza el bloque if/else duplicado)
    private Pageable buildPageable(PageRequest req) {
-      if (req.hasSorting()) {
-         return org.springframework.data.domain.PageRequest.of(
-               req.page(), req.size(),
-               Sort.by(Sort.Direction.fromString(req.sortDirection()), req.sortBy())
-         );
-      }
-      return org.springframework.data.domain.PageRequest.of(
-            req.page(), req.size(),
-            Sort.by(Sort.Direction.ASC, "id")
-      );
-   }
-
-   // ========================= VALIDATION =========================
-
-   @Override
-   public boolean existsByName(String name) {
-      return repository.existsByNameAndDeletedAtIsNull(name);
-   }
-
-   @Override
-   public boolean existsByNameAndIdNot(String name, Long id) {
-      Optional<RateEntity> existing = repository.findByNameAndDeletedAtIsNull(name);
-      return existing.isPresent() && !existing.get().getId().equals(id);
-   }
-
-   // ========================= DELETE =========================
-
-   @Override
-   public void delete(Long id) {
-      // Hard delete (eliminar físicamente de la BD)
-      repository.deleteById(id);
+      Sort sort = req.hasSorting()
+            ? Sort.by(Sort.Direction.fromString(req.sortDirection()), req.sortBy())
+            : Sort.by(Sort.Direction.ASC, "id");
+      return org.springframework.data.domain.PageRequest.of(req.page(), req.size(), sort);
    }
 }

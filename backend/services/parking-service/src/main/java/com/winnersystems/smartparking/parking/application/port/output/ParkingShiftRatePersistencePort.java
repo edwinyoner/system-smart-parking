@@ -40,4 +40,7 @@ public interface ParkingShiftRatePersistencePort {
     * Sirve para impedir eliminar un turno en uso y para avisar antes de desactivarlo.
     */
    List<String> findParkingNamesUsingShift(Long shiftId);
+
+   /** Nombres de los parqueos (no eliminados) que usan la tarifa en algún turno */
+   List<String> findParkingNamesUsingRate(Long rateId);
 }

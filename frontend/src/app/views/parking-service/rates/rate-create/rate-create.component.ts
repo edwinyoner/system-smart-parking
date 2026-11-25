@@ -8,6 +8,8 @@ import { Router } from '@angular/router';
 import { RateService } from '../../../../core/services/parking-service/rate.service';
 
 // Components
+import { RateBillingComponent } from '../rate-billing/rate-billing.component';
+import { rateBillingControls, toleranceValidator } from '../../../../core/utils/rate.util';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 
 @Component({
@@ -16,7 +18,8 @@ import { AlertMessageComponent } from '../../../../shared/components/alert-messa
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    AlertMessageComponent
+    AlertMessageComponent,
+    RateBillingComponent
   ],
   templateUrl: './rate-create.component.html',
   styleUrls: ['./rate-create.component.css']
@@ -27,11 +30,6 @@ export class RateCreateComponent implements OnInit {
   isSubmitting = false;
   errorMessage: string | null = null;
 
-  currencies = [
-    { code: 'PEN', name: 'Soles Peruanos (S/.)', symbol: 'S/.' },
-    { code: 'USD', name: 'Dólares Americanos ($)', symbol: '$' },
-    { code: 'EUR', name: 'Euros (€)', symbol: '€' }
-  ];
 
   constructor(
     private fb: FormBuilder,
@@ -44,13 +42,13 @@ export class RateCreateComponent implements OnInit {
   }
 
   private initForm(): void {
+    // La moneda no se elige: el sistema cobra siempre en soles
     this.rateForm = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
-      description: [''],
-      amount: ['', [Validators.required, Validators.min(0.01)]],
-      currency: ['PEN', Validators.required],
+      description: ['', Validators.maxLength(500)],
+      ...rateBillingControls(this.fb),
       status: [true]
-    });
+    }, { validators: toleranceValidator });
   }
 
   onSubmit(): void {
@@ -91,16 +89,13 @@ export class RateCreateComponent implements OnInit {
     const field = this.rateForm.get(fieldName);
     if (field?.errors) {
       if (field.errors['required']) return 'Este campo es obligatorio';
-      if (field.errors['maxLength']) return `Máximo ${field.errors['maxLength'].requiredLength} caracteres`;
-      if (field.errors['min']) return `El monto debe ser mayor a ${field.errors['min'].min}`;
+      if (field.errors['maxlength']) return `Máximo ${field.errors['maxlength'].requiredLength} caracteres`;
+      if (field.errors['min']) return `Debe ser al menos ${field.errors['min'].min}`;
+      if (field.errors['decimals']) return 'Como máximo 2 decimales';
     }
     return '';
   }
 
-  getCurrencySymbol(): string {
-    const currency = this.rateForm.get('currency')?.value;
-    return this.currencies.find(c => c.code === currency)?.symbol || '';
-  }
 
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.keys(formGroup.controls).forEach(key => {

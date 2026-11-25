@@ -59,49 +59,21 @@
             }
           </div>
 
-          <!-- Moneda -->
+          <!-- Precio por hora (siempre en soles) -->
           <div class="col-md-6">
-            <label class="form-label required">
-              <i class="fas fa-money-bill me-2"></i>Moneda
-            </label>
-            <select class="form-select" formControlName="currency" [class.is-invalid]="isFieldInvalid('currency')">
-              @for (curr of currencies; track curr.code) {
-              <option [value]="curr.code">{{ curr.name }}</option>
-              }
-            </select>
-            @if (isFieldInvalid('currency')) {
-            <div class="invalid-feedback">{{ getFieldError('currency') }}</div>
-            }
-          </div>
-
-          <!-- Monto -->
-          <div class="col-md-6">
-            <label class="form-label required">
-              <i class="fas fa-dollar-sign me-2"></i>Tarifa por Hora
+            <label class="form-label required" for="amount">
+              <i class="fas fa-coins me-2"></i>Precio por hora
             </label>
             <div class="input-group">
-              <span class="input-group-text">{{ getCurrencySymbol() }}</span>
-              <input type="number" class="form-control" formControlName="amount" placeholder="0.00" step="0.01"
-                min="0.01" [class.is-invalid]="isFieldInvalid('amount')">
+              <span class="input-group-text">S/</span>
+              <input id="amount" type="number" class="form-control" formControlName="amount"
+                placeholder="0.00" step="0.01" min="0.01" [class.is-invalid]="isFieldInvalid('amount')">
               <span class="input-group-text">/hora</span>
             </div>
             @if (isFieldInvalid('amount')) {
             <div class="invalid-feedback d-block">{{ getFieldError('amount') }}</div>
             }
-            <small class="form-text text-muted">Ingrese el monto que se cobrará por hora</small>
-          </div>
-
-          <!-- Preview del Monto -->
-          <div class="col-md-6">
-            <label class="form-label">
-              <i class="fas fa-eye me-2"></i>Vista Previa
-            </label>
-            <div class="amount-preview">
-              <span class="preview-amount">
-                {{ getCurrencySymbol() }} {{ rateForm.get('amount')?.value || '0.00' }}
-              </span>
-              <small class="text-muted d-block">por hora de estacionamiento</small>
-            </div>
+            <small class="form-text text-muted">En soles (PEN), la moneda del sistema</small>
           </div>
 
           <!-- Descripción -->
@@ -140,13 +112,30 @@
 
         </div>
 
+        @if (priceChangeWarning) {
+        <div class="alert alert-warning mt-4 mb-0">
+          <i class="fas fa-triangle-exclamation me-2"></i>
+          La usa: <strong>{{ priceChangeWarning }}</strong>. El cambio se aplica también a los vehículos
+          que ya están dentro, porque el monto se calcula al salir.
+        </div>
+        }
+        @if (deactivationWarning) {
+        <div class="alert alert-warning mt-3 mb-0">
+          <i class="fas fa-triangle-exclamation me-2"></i>
+          La usa: <strong>{{ deactivationWarning }}</strong>. Desactivada, no se podrá elegir en nuevas configuraciones.
+        </div>
+        }
+
+        <!-- Reglas de cobro y simulación -->
+        <app-rate-billing class="d-block mt-4" [form]="rateForm"></app-rate-billing>
+
         <!-- Botones -->
         <div class="d-flex gap-2 justify-content-end mt-4">
           <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="isSubmitting">
             <i class="fas fa-times me-2"></i>
             Cancelar
           </button>
-          <button type="submit" class="btn btn-success" [disabled]="isSubmitting" style="color: aliceblue;">
+          <button type="submit" class="btn btn-success" [disabled]="isSubmitting" >
             @if (isSubmitting) {
             <span class="spinner-border spinner-border-sm me-2"></span>
             }

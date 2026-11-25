@@ -46,6 +46,19 @@ public class RateEntity {
    @Column(name = "CURRENCY", nullable = false, length = 3)
    private String currency;
 
+   // Reglas de cobro (ver Rate)
+   @Column(name = "BILLING_UNIT_MINUTES", nullable = false)
+   private Integer billingUnitMinutes;
+
+   @Column(name = "MINIMUM_MINUTES", nullable = false)
+   private Integer minimumMinutes;
+
+   @Column(name = "GRACE_MINUTES", nullable = false)
+   private Integer graceMinutes;
+
+   @Column(name = "TOLERANCE_MINUTES", nullable = false)
+   private Integer toleranceMinutes;
+
    @Column(name = "STATUS", nullable = false)
    private Boolean status;
 
@@ -79,6 +92,12 @@ public class RateEntity {
       if (this.updatedAt == null) {
          this.updatedAt = LocalDateTime.now();
       }
+      // Reglas de cobro por defecto: por hora o fracción, 5 min sin costo y 5 min de tolerancia
+      if (this.billingUnitMinutes == null) this.billingUnitMinutes = 60;
+      if (this.minimumMinutes == null)     this.minimumMinutes = 0;
+      if (this.graceMinutes == null)       this.graceMinutes = 5;
+      if (this.toleranceMinutes == null)   this.toleranceMinutes = 5;
+      if (this.currency == null)           this.currency = "PEN";
       if (this.status == null) {
          this.status = false;  // Inactivo por defecto (consistente con dominio)
       }

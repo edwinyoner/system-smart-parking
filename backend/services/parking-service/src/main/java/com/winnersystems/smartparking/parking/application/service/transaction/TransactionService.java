@@ -332,8 +332,9 @@ public class TransactionService implements
             .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado: " + customerId));
    }
 
+   /** Incluye eliminadas: una transacción conserva su tarifa aunque luego se elimine */
    private Rate loadRate(Long rateId) {
-      return ratePersistencePort.findById(rateId)
+      return ratePersistencePort.findByIdIncludingDeleted(rateId)
             .orElseThrow(() -> new IllegalArgumentException("Tarifa no encontrada: " + rateId));
    }
 
@@ -523,8 +524,10 @@ public class TransactionService implements
       }
    }
 
+   /** La tarifa decide cómo se cobra el tiempo (fracción, mínimo, gracia, tolerancia) */
    private void calculateTransactionAmount(Transaction transaction, Rate rate) {
-      transaction.calculateAmount(rate.getAmount());
+      int minutes = transaction.getDurationMinutes() == null ? 0 : transaction.getDurationMinutes();
+      transaction.applyCalculatedAmount(rate.calculateCost(minutes));
    }
 
    private Payment buildPayment(ProcessPaymentCommand command) {
@@ -752,9 +755,8 @@ public class TransactionService implements
 
       // Calcular tiempo transcurrido y monto actual
       int elapsedMinutes = (int) Duration.between(t.getEntryTime(), LocalDateTime.now()).toMinutes();
-      BigDecimal currentAmount = rate.getAmount()
-            .multiply(BigDecimal.valueOf(elapsedMinutes / 60.0))
-            .setScale(2, RoundingMode.HALF_UP);
+      // Lo que pagaría si saliera ahora, con las mismas reglas que al registrar la salida
+      BigDecimal currentAmount = rate.calculateCost(elapsedMinutes);
 
       boolean isOverdue = elapsedMinutes > MAX_RECOMMENDED_MINUTES;
 

@@ -11,6 +11,8 @@ import { RateService } from '../../../../core/services/parking-service/rate.serv
 import { Rate } from '../../../../core/models/parking-service/rate.model';
 
 // Components
+import { RateBillingComponent } from '../rate-billing/rate-billing.component';
+import { rateBillingControls, toleranceValidator } from '../../../../core/utils/rate.util';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 
 @Component({
@@ -19,7 +21,8 @@ import { AlertMessageComponent } from '../../../../shared/components/alert-messa
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    AlertMessageComponent
+    AlertMessageComponent,
+    RateBillingComponent
   ],
   templateUrl: './rate-edit.component.html',
   styleUrls: ['./rate-edit.component.css']
@@ -33,11 +36,6 @@ export class RateEditComponent implements OnInit {
   errorMessage: string | null = null;
   currentRate: Rate | null = null;
 
-  currencies = [
-    { code: 'PEN', name: 'Soles Peruanos (S/.)', symbol: 'S/.' },
-    { code: 'USD', name: 'Dólares Americanos ($)', symbol: '$' },
-    { code: 'EUR', name: 'Euros (€)', symbol: '€' }
-  ];
 
   constructor(
     private fb: FormBuilder,
@@ -53,13 +51,13 @@ export class RateEditComponent implements OnInit {
   }
 
   private initForm(): void {
+    // La moneda no se elige: el sistema cobra siempre en soles
     this.rateForm = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
-      description: [''],
-      amount: ['', [Validators.required, Validators.min(0.01)]],
-      currency: ['PEN', Validators.required],
+      description: ['', Validators.maxLength(500)],
+      ...rateBillingControls(this.fb),
       status: [true]
-    });
+    }, { validators: toleranceValidator });
   }
 
   private loadRate(): void {
@@ -72,7 +70,10 @@ export class RateEditComponent implements OnInit {
           name: rate.name,
           description: rate.description,
           amount: rate.amount,
-          currency: rate.currency,
+          billingUnitMinutes: rate.billingUnitMinutes,
+          minimumMinutes: rate.minimumMinutes,
+          graceMinutes: rate.graceMinutes,
+          toleranceMinutes: rate.toleranceMinutes,
           status: rate.status
         });
         this.isLoading = false;
@@ -109,6 +110,26 @@ export class RateEditComponent implements OnInit {
     });
   }
 
+  /** Desactivar una tarifa en uso: avisa qué parqueos la usan */
+  get deactivationWarning(): string | null {
+    const parkings = this.currentRate?.usedByParkings ?? [];
+    const willDeactivate = this.currentRate?.status && !this.rateForm.get('status')?.value;
+    return willDeactivate && parkings.length > 0 ? parkings.join(', ') : null;
+  }
+
+  /** Cambiar el precio afecta también a los vehículos que ya están dentro */
+  get priceChangeWarning(): string | null {
+    const parkings = this.currentRate?.usedByParkings ?? [];
+    if (!this.currentRate || parkings.length === 0) return null;
+    const v = this.rateForm.getRawValue();
+    const changed = Number(v.amount) !== Number(this.currentRate.amount)
+      || Number(v.billingUnitMinutes) !== this.currentRate.billingUnitMinutes
+      || Number(v.minimumMinutes) !== this.currentRate.minimumMinutes
+      || Number(v.graceMinutes) !== this.currentRate.graceMinutes
+      || Number(v.toleranceMinutes) !== this.currentRate.toleranceMinutes;
+    return changed ? parkings.join(', ') : null;
+  }
+
   toggleStatus(): void {
     const currentStatus = this.rateForm.get('status')?.value;
     this.rateForm.patchValue({ status: !currentStatus });
@@ -128,16 +149,13 @@ export class RateEditComponent implements OnInit {
     const field = this.rateForm.get(fieldName);
     if (field?.errors) {
       if (field.errors['required']) return 'Este campo es obligatorio';
-      if (field.errors['maxLength']) return `Máximo ${field.errors['maxLength'].requiredLength} caracteres`;
-      if (field.errors['min']) return `El monto debe ser mayor a ${field.errors['min'].min}`;
+      if (field.errors['maxlength']) return `Máximo ${field.errors['maxlength'].requiredLength} caracteres`;
+      if (field.errors['min']) return `Debe ser al menos ${field.errors['min'].min}`;
+      if (field.errors['decimals']) return 'Como máximo 2 decimales';
     }
     return '';
   }
 
-  getCurrencySymbol(): string {
-    const currency = this.rateForm.get('currency')?.value;
-    return this.currencies.find(c => c.code === currency)?.symbol || '';
-  }
 
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.keys(formGroup.controls).forEach(key => {

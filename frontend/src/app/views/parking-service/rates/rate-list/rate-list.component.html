@@ -4,14 +4,16 @@
     <div class="page-header mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <h2 class="page-title mb-0">
-                <i class="fas fa-tags me-2"></i>
+                <i class="fas fa-coins me-2"></i>
                 Gestión de Tarifas
             </h2>
 
-            <button class="btn btn-success" (click)="createRate()" style="color: aliceblue;">
+            @if (hasPermission('rates.create')) {
+            <button class="btn btn-success" (click)="createRate()">
                 <i class="fas fa-plus-circle me-2"></i>
                 Crear Nueva Tarifa
             </button>
+            }
         </div>
     </div>
 
@@ -67,10 +69,23 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>
-                <i class="fas fa-list me-2"></i>
-                Lista de Tarifas ({{ totalItems }} tarifas)
+                <i class="fas me-2" [class.fa-list]="!showDeleted" [class.fa-trash-restore]="showDeleted"></i>
+                {{ showDeleted ? 'Tarifas Eliminadas' : 'Lista de Tarifas' }} ({{ totalItems }} {{ totalItems === 1 ? 'tarifa' : 'tarifas' }})
             </strong>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- La papelera exige rates.restore -->
+                @if (hasPermission('rates.restore') || showDeleted) {
+                <div class="btn-group btn-group-sm me-2" role="group" aria-label="Vigentes o eliminados">
+                    <button type="button" class="btn" [class.btn-success]="!showDeleted" [class.btn-outline-secondary]="showDeleted"
+                        [attr.aria-pressed]="!showDeleted" (click)="setShowDeleted(false)">
+                        <i class="fas fa-coins me-1"></i>Vigentes
+                    </button>
+                    <button type="button" class="btn" [class.btn-danger]="showDeleted" [class.btn-outline-secondary]="!showDeleted"
+                        [attr.aria-pressed]="showDeleted" (click)="setShowDeleted(true)">
+                        <i class="fas fa-trash me-1"></i>Eliminadas
+                    </button>
+                </div>
+                }
                 <label class="mb-0 me-2 fw-semibold">Mostrar:</label>
                 <select class="form-select form-select-sm" style="width: auto;" [value]="pageSize"
                     (change)="onPageSizeChange($event)">
@@ -99,8 +114,8 @@
                             <th style="width: 50px;">N°</th>
                             <th>Nombre</th>
                             <th>Descripción</th>
-                            <th class="text-center">Monto por Hora</th>
-                            <th class="text-center">Moneda</th>
+                            <th class="text-center">Precio por hora</th>
+                            <th>Cómo se cobra</th>
                             <th class="text-center">Estado</th>
                             <th class="text-center" style="width: 200px;">Acciones</th>
                         </tr>
@@ -119,44 +134,58 @@
                             </td>
 
                             <td class="text-center">
-                                <span class="badge bg-info fs-6">
-                                    <!-- <i class="fas fa-dollar-sign me-1"></i> -->
-                                    {{ formatCurrency(rate.amount, rate.currency) }}
-                                </span>
+                                <span class="fw-semibold">S/ {{ rate.amount | number:'1.2-2' }}</span>
+                            </td>
+
+                            <td>
+                                <small>{{ billingLabel(rate) }}</small>
                             </td>
 
                             <td class="text-center">
-                                <span class="badge bg-secondary">
-                                    {{ rate.currency }}
+                                @if (showDeleted) {
+                                <span class="badge bg-secondary" title="Fecha de eliminación">
+                                    <i class="fas fa-trash me-1"></i>Eliminada {{ rate.deletedAt | date:'dd/MM/yyyy HH:mm' }}
                                 </span>
-                            </td>
-
-                            <td class="text-center">
+                                } @else {
                                 <span class="badge" [class.bg-success]="rate.status" [class.bg-danger]="!rate.status">
                                     <i class="fas me-1" [class.fa-check-circle]="rate.status"
                                         [class.fa-times-circle]="!rate.status">
                                     </i>
                                     {{ rate.status ? 'Activo' : 'Inactivo' }}
                                 </span>
+                                }
                             </td>
 
                             <td class="text-center">
+                                @if (showDeleted) {
+                                <button class="btn btn-success btn-sm" (click)="confirmRestore(rate)" title="Restaurar">
+                                    <i class="fas fa-trash-restore me-1"></i>Restaurar
+                                </button>
+                                } @else {
                                 <div class="btn-group btn-group-sm" role="group">
                                     <button class="btn btn-outline-info" (click)="viewRate(rate.id!)"
                                         title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </button>
 
+                                    @if (hasPermission('rates.update')) {
                                     <button class="btn btn-outline-warning" (click)="editRate(rate.id!)"
                                         title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                    }
 
-                                    <button class="btn btn-outline-danger" (click)="confirmDelete(rate)"
-                                        title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    @if (hasPermission('rates.delete')) {
+                                    <!-- El span recibe el title: un botón deshabilitado no muestra tooltip -->
+                                    <span class="d-inline-block" [title]="isInUse(rate) ? deleteBlockedReason(rate) : 'Eliminar'">
+                                        <button class="btn btn-outline-danger btn-sm" (click)="confirmDelete(rate)"
+                                            [disabled]="isInUse(rate)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </span>
+                                    }
                                 </div>
+                                }
                             </td>
                         </tr>
                         }
@@ -195,12 +224,14 @@
 
             @if (!isLoading && rates.length === 0) {
             <div class="text-center py-5">
-                <i class="fas fa-tags fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">No se encontraron tarifas</h5>
+                <i class="fas fa-coins fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">{{ showDeleted ? 'No hay tarifas eliminadas' : 'No se encontraron tarifas' }}</h5>
+                @if (hasPermission('rates.create') && !showDeleted) {
                 <button class="btn btn-success" (click)="createRate()">
                     <i class="fas fa-plus-circle me-2"></i>
                     Crear Tarifa
                 </button>
+                }
             </div>
             }
         </div>
@@ -221,13 +252,9 @@
                 </div>
                 <div class="modal-body p-4">
                     <p>¿Estás seguro de eliminar la tarifa <strong>"{{ rateToDelete.name }}"</strong>?</p>
-                    <p class="text-muted mb-2">
-                        <i class="fas fa-dollar-sign me-2"></i>
-                        Monto: {{ formatCurrency(rateToDelete.amount, rateToDelete.currency) }} / hora
-                    </p>
-                    <p class="text-danger mb-0">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        Esta acción no se puede deshacer.
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ningún parqueo la usa. Podrás restaurarla desde <strong>Eliminadas</strong>.
                     </p>
                 </div>
                 <div class="modal-footer bg-light">
@@ -244,3 +271,31 @@
     }
 
 </div>
+
+<!-- Confirmación de restauración -->
+@if (showRestoreConfirm && rateToRestore) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-trash-restore me-2"></i>Restaurar Tarifa</h5>
+                <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" (click)="cancelRestore()"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p>¿Restaurar la tarifa <strong>"{{ rateToRestore.name }}"</strong>?</p>
+                <ul class="mb-0 small text-body-secondary">
+                    <li>Vuelve <strong>activa</strong> con su mismo precio (S/ {{ rateToRestore.amount | number:'1.2-2' }}/hora) y sus reglas de cobro.</li>
+                    <li>Podrá asignarse otra vez a los turnos de los parqueos.</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="cancelRestore()">Cancelar</button>
+                <button type="button" class="btn btn-success" (click)="restoreRate()" [disabled]="isLoading">
+                    <i class="fas fa-trash-restore me-2"></i>Restaurar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+}

@@ -187,6 +187,7 @@ public class DataSeeder implements CommandLineRunner {
             {"rates.read", "Ver tarifas configuradas"},
             {"rates.update", "Actualizar tarifas existentes"},
             {"rates.delete", "Eliminar tarifas"},
+            {"rates.restore", "Ver tarifas eliminadas y restaurarlas"},
 
             // ========== REPORTES ==========
             {"reports.view", "Ver reportes y estadísticas del sistema"},
@@ -264,7 +265,7 @@ public class DataSeeder implements CommandLineRunner {
                   // Gestión de Infracciones
                   "infractions.create", "infractions.read", "infractions.update", "infractions.delete", "infractions.resolve",
                   // Gestión completa de tarifas
-                  "rates.create", "rates.read", "rates.update", "rates.delete",
+                  "rates.create", "rates.read", "rates.update", "rates.delete", "rates.restore",
                   // Reportes
                   "reports.view", "reports.export"
             ))

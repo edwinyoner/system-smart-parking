@@ -67,4 +67,12 @@ public interface ParkingShiftRateRepository extends JpaRepository<ParkingShiftRa
          ORDER BY p.name
          """)
    List<String> findParkingNamesUsingShift(@Param("shiftId") Long shiftId);
+
+   /** Nombres de los parqueos no eliminados que usan la tarifa */
+   @Query("""
+         SELECT DISTINCT p.name FROM ParkingShiftRateEntity r, ParkingEntity p
+         WHERE r.rateId = :rateId AND p.id = r.parkingId AND p.deletedAt IS NULL
+         ORDER BY p.name
+         """)
+   List<String> findParkingNamesUsingRate(@Param("rateId") Long rateId);
 }

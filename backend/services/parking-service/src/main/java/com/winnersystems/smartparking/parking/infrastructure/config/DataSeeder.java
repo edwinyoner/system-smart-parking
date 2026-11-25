@@ -27,7 +27,7 @@ import java.util.List;
  * - Tipos de documento (DNI, CE, Pasaporte, RUC)
  * - Tipos de pago (Efectivo, Tarjeta, QR, Yape, POS)
  * - Turnos (Mañana, Tarde, Noche)
- * - Tarifas (Estándar, Nocturna, Preferencial, Cortesía, Mensual)
+ * - Tarifas (Estándar, Nocturna, Preferencial)
  * - Relación Zona-Turno-Tarifa
  *
  * NOTA: Parking, Zones y Spaces se crean mediante el STEPPER de configuración.
@@ -212,38 +212,36 @@ public class DataSeeder implements CommandLineRunner {
 
       log.info("→ Cargando tarifas...");
 
-      rateRepository.save(RateEntity.builder()
-            .name("Tarifa Estándar")
-            .description("Tarifa estándar por hora según Ordenanza Municipal N° 011-MPH de Huaraz")
-            .amount(new BigDecimal("2.50"))
-            .currency("PEN")
-            .status(true)
-            .build());
+      // Por hora o fracción, 5 min sin costo (entró por error) y 5 min de tolerancia:
+      // 4 min = gratis; 5 min a 1 h 05 = 1 h; 1 h 06 = 2 h
+      rateRepository.save(rate("Tarifa Estándar",
+            "Tarifa estándar por hora o fracción",
+            "2.50", 60, 0, 5, 5));
 
-      rateRepository.save(RateEntity.builder()
-            .name("Tarifa Nocturna")
-            .description("Tarifa reducida para el turno nocturno (10:00 PM - 6:00 AM)")
-            .amount(new BigDecimal("5.00"))
-            .currency("PEN")
-            .status(true)
-            .build());
+      rateRepository.save(rate("Tarifa Nocturna",
+            "Tarifa del turno nocturno, por hora o fracción",
+            "5.00", 60, 0, 5, 5));
 
-      rateRepository.save(RateEntity.builder()
-            .name("Tarifa Preferencial")
-            .description("Tarifa con descuento para personas con discapacidad y adultos mayores (50%)")
-            .amount(new BigDecimal("2.50"))
-            .currency("PEN")
-            .status(true)
-            .build());
+      rateRepository.save(rate("Tarifa Preferencial",
+            "Tarifa con descuento para personas con discapacidad y adultos mayores (50%)",
+            "1.25", 60, 0, 5, 5));
 
-      rateRepository.save(RateEntity.builder()
-            .name("Tarifa Cortesía")
-            .description("Aplicable a vehículos de carga y descarga rápida (hasta 15 minutos sin costo)")
-            .amount(new BigDecimal("0.00"))
-            .currency("PEN")
-            .status(true)
-            .build());
+      log.info("3 tarifas cargadas");
+   }
 
-      log.info("4 tarifas cargadas");
+   /** Tarifa activa en soles con sus reglas de cobro (ver Rate) */
+   private static RateEntity rate(String name, String description, String amount,
+                                  int unitMinutes, int minimumMinutes, int graceMinutes, int toleranceMinutes) {
+      return RateEntity.builder()
+            .name(name)
+            .description(description)
+            .amount(new BigDecimal(amount))
+            .currency("PEN")
+            .billingUnitMinutes(unitMinutes)
+            .minimumMinutes(minimumMinutes)
+            .graceMinutes(graceMinutes)
+            .toleranceMinutes(toleranceMinutes)
+            .status(true)
+            .build();
    }
 }

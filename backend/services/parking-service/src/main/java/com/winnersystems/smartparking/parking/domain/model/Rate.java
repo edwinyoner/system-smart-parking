@@ -1,42 +1,59 @@
 package com.winnersystems.smartparking.parking.domain.model;
 
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
+
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 /**
  * Entidad de dominio que representa una TARIFA de estacionamiento.
  *
- * Una tarifa define el precio por hora que se cobra por estacionar en un turno específico.
- * Las tarifas están asociadas a un turno (mañana, tarde o noche) y pueden ser reutilizadas
- * por múltiples zonas de estacionamiento.
+ * Una tarifa define el precio por hora y CÓMO se cobra el tiempo. Cada parqueo elige qué tarifa
+ * aplica en cada turno mediante ParkingShiftRate. El precio que se usa es el vigente al salir.
  *
- * Ejemplos:
- * - "Mañana Económica" - S/. 2.00/hora para turno Mañana
- * - "Tarde Premium" - S/. 5.00/hora para turno Tarde
- * - "Noche Estándar" - S/. 3.00/hora para turno Noche
+ * Reglas de cobro (todas configurables desde el panel):
+ * - amount:             precio por hora en PEN (ej: 2.00)
+ * - billingUnitMinutes: tamaño de la fracción de cobro. 60 = por hora o fracción,
+ *                       30 = por media hora, 1 = al minuto. Cada fracción iniciada se cobra completa.
+ * - minimumMinutes:     tiempo mínimo que se cobra (ej: fracciones de 15 min, pero mínimo 1 h)
+ * - graceMinutes:       si sale ANTES de este tiempo no paga nada: entró por error (0 = siempre se cobra)
+ * - toleranceMinutes:   cortesía antes de empezar a cobrar la fracción siguiente
+ *                       (con 5: hasta 1 h 05 se cobra como 1 h)
  *
- * El sistema mantiene histórico de tarifas mediante los campos validFrom y validTo,
- * permitiendo ver qué tarifa se aplicó en cada momento histórico sin perder información.
- *
- * Las zonas seleccionan qué tarifa usar para cada turno mediante la configuración
- * en ZoneShiftRate.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Valores por defecto (regla de Edwin para todas las tarifas): fracción de 60 min, sin mínimo,
+ * 5 min sin costo y 5 min de tolerancia. Con S/ 2.00 la hora:
+ * 4 min = gratis, 5 min = S/ 2.00, 1 h 05 = S/ 2.00, 1 h 06 = S/ 4.00, 2 h 05 = S/ 4.00.
+ * Cargar o descargar no tiene trato especial: se cobra como cualquier estadía.
  */
 public class Rate {
+
+   /** Moneda única del sistema (regla de negocio: soles) */
+   public static final String CURRENCY_PEN = "PEN";
+
+   public static final int DEFAULT_BILLING_UNIT_MINUTES = 60;
+   public static final int DEFAULT_GRACE_MINUTES = 5;
+   public static final int DEFAULT_TOLERANCE_MINUTES = 5;
+   public static final int MAX_BILLING_UNIT_MINUTES = 1440;     // un día
+   public static final int MAX_MINIMUM_MINUTES = 1440;
+   public static final int MAX_GRACE_MINUTES = 120;
+
+   private static final BigDecimal MINUTES_PER_HOUR = BigDecimal.valueOf(60);
 
    // ========================= CAMPOS DE IDENTIDAD =========================
 
    private Long id;
-   private String name;                                   // Nombre de la tarifa
-   private String description;                            // Descripción adicional (opcional)
+   private String name;                                   // Nombre (ej: "Auto - Día")
+   private String description;                            // Descripción (opcional)
 
-   // ========================= CAMPOS DE PRECIO =========================
+   // ========================= CAMPOS DE PRECIO Y COBRO =========================
 
-   private BigDecimal amount;                             // Monto por hora
-   private String currency;                               // Moneda (default: "PEN")
+   private BigDecimal amount;                             // Precio por hora
+   private String currency;                               // Siempre PEN
+   private int billingUnitMinutes;                        // Fracción de cobro en minutos
+   private int minimumMinutes;                            // Tiempo mínimo cobrado
+   private int graceMinutes;                              // Sale antes de esto: sin costo
+   private int toleranceMinutes;                          // Cortesía entre fracciones
 
    // ========================= CAMPOS DE ESTADO =========================
 
@@ -54,88 +71,109 @@ public class Rate {
    // ========================= CONSTRUCTORES =========================
 
    /**
-    * Constructor vacío - Inicializa con valores por defecto.
-    * Tarifa empieza INACTIVA hasta ser configurada completamente.
+    * Constructor vacío: lo usan los mappers al reconstruir desde la base de datos.
+    * Valores por defecto: por hora o fracción, sin mínimo, 5 min sin costo y 5 min de tolerancia.
     */
    public Rate() {
       this.status = false;
-      this.currency = "PEN";
+      this.currency = CURRENCY_PEN;
+      this.billingUnitMinutes = DEFAULT_BILLING_UNIT_MINUTES;
+      this.graceMinutes = DEFAULT_GRACE_MINUTES;
+      this.toleranceMinutes = DEFAULT_TOLERANCE_MINUTES;
       this.createdAt = LocalDateTime.now();
-      this.updatedAt = LocalDateTime.now();
+      this.updatedAt = this.createdAt;
    }
 
    /**
-    * Constructor con campos básicos.
+    * Crea una tarifa nueva validando sus datos.
     *
-    * @param name nombre de la tarifa
-    * @param amount monto por hora
+    * @param active    si nace activa
+    * @param createdBy usuario que la crea (auditoría)
+    * @throws ParkingDomainException si algún dato no es válido
     */
-   public Rate(String name, BigDecimal amount) {
-      this();
-      this.name = name;
-      this.amount = amount;
+   public static Rate create(String name, String description, BigDecimal amount, BillingRules rules,
+                             boolean active, Long createdBy) {
+      Rate rate = new Rate();
+      rate.name = requireName(name);
+      rate.description = blankToNull(description);
+      rate.applyAmount(amount);
+      rate.applyRules(rules);
+      rate.status = active;
+      rate.createdBy = createdBy;
+      rate.updatedBy = createdBy;
+      return rate;
    }
 
    /**
-    * Constructor completo.
-    *
-    * @param name nombre de la tarifa
-    * @param amount monto por hora
-    * @param description descripción
+    * Reglas de cobro. null en un campo = valor por defecto.
     */
-   public Rate(String name, BigDecimal amount, String description) {
-      this(name, amount);
-      this.description = description;
+   public record BillingRules(Integer billingUnitMinutes, Integer minimumMinutes,
+                              Integer graceMinutes, Integer toleranceMinutes) {
+      public static BillingRules defaults() {
+         return new BillingRules(null, null, null, null);
+      }
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - INFORMACIÓN =========================
+   // ========================= MÉTODOS DE NEGOCIO - COBRO =========================
 
    /**
-    * Obtiene un identificador legible de la tarifa.
+    * Calcula el monto a cobrar por una estadía.
     *
-    * @return descripción formateada (ej: "Mañana Económica - S/. 2.00/hora")
-    */
-   public String getDisplayName() {
-      return name + " - " + currency + " " + amount + "/hora";
-   }
-
-   /**
-    * Calcula el costo para una duración dada en minutos.
+    * 1. Si sale antes del tiempo sin costo (entró por error), es gratis.
+    * 2. Se cobra al menos el tiempo mínimo.
+    * 3. Se descuenta la tolerancia y se cuentan las fracciones iniciadas (redondeo hacia arriba),
+    *    con un mínimo de una fracción.
+    * 4. Monto = precio por hora × minutos de las fracciones / 60, redondeado a 2 decimales.
     *
-    * @param durationMinutes duración en minutos
-    * @return costo total calculado
+    * @param durationMinutes minutos de estadía
+    * @return monto en PEN (0.00 si es gratis)
     */
    public BigDecimal calculateCost(int durationMinutes) {
-      if (amount == null || durationMinutes <= 0) {
-         return BigDecimal.ZERO;
+      int fractions = billableFractions(durationMinutes);
+      if (fractions == 0 || amount == null) {
+         return BigDecimal.ZERO.setScale(2);
       }
-
-      double hours = durationMinutes / 60.0;
-      return amount.multiply(BigDecimal.valueOf(hours))
-            .setScale(2, BigDecimal.ROUND_HALF_UP);
+      return amount
+            .multiply(BigDecimal.valueOf((long) fractions * billingUnitMinutes))
+            .divide(MINUTES_PER_HOUR, 2, RoundingMode.HALF_UP);
    }
 
    /**
-    * Calcula el costo por hora fraccionada (redondeo hacia arriba).
-    * Si usa 1 minuto, cobra la hora completa.
-    *
-    * @param durationMinutes duración en minutos
-    * @return costo total calculado
+    * Número de fracciones que se cobran por una estadía (0 si es gratis).
     */
-   public BigDecimal calculateCostRoundedUp(int durationMinutes) {
-      if (amount == null || durationMinutes <= 0) {
-         return BigDecimal.ZERO;
+   public int billableFractions(int durationMinutes) {
+      if (durationMinutes < 0) {
+         return 0;
       }
+      if (durationMinutes < graceMinutes) {
+         return 0;
+      }
+      int billable = Math.max(durationMinutes, minimumMinutes) - toleranceMinutes;
+      return Math.max(1, Math.ceilDiv(billable, billingUnitMinutes));
+   }
 
-      int hours = (int) Math.ceil(durationMinutes / 60.0);
-      return amount.multiply(BigDecimal.valueOf(hours));
+   /**
+    * Precio de una fracción (ej: S/ 2.00 la hora con fracción de 15 min = S/ 0.50).
+    */
+   public BigDecimal getFractionAmount() {
+      if (amount == null) {
+         return BigDecimal.ZERO.setScale(2);
+      }
+      return amount.multiply(BigDecimal.valueOf(billingUnitMinutes))
+            .divide(MINUTES_PER_HOUR, 2, RoundingMode.HALF_UP);
+   }
+
+   /**
+    * @return descripción legible (ej: "Auto - Día - PEN 2.00/hora")
+    */
+   public String getFullDescription() {
+      return name + " - " + currency + " " + amount + "/hora";
    }
 
    // ========================= MÉTODOS DE NEGOCIO - GESTIÓN DE ESTADO =========================
 
    /**
-    * Activa la tarifa.
-    * Permite que sea usada en la configuración de zonas.
+    * Activa la tarifa: puede usarse en la configuración de los parqueos.
     */
    public void activate() {
       this.status = true;
@@ -143,29 +181,17 @@ public class Rate {
    }
 
    /**
-    * Desactiva la tarifa.
-    * No se podrá configurar en nuevas zonas.
-    * Las configuraciones existentes NO se ven afectadas.
+    * Desactiva la tarifa. No se ofrece en nuevas configuraciones.
     */
    public void deactivate() {
       this.status = false;
       this.updatedAt = LocalDateTime.now();
    }
 
-   /**
-    * Verifica si la tarifa está activa.
-    *
-    * @return true si status = true
-    */
    public boolean isActive() {
       return status;
    }
 
-   /**
-    * Verifica si la tarifa está inactiva.
-    *
-    * @return true si status = false
-    */
    public boolean isInactive() {
       return !status;
    }
@@ -173,221 +199,203 @@ public class Rate {
    // ========================= MÉTODOS DE NEGOCIO - SOFT DELETE =========================
 
    /**
-    * Marca la tarifa como eliminada (soft delete).
-    * También la desactiva automáticamente.
-    * Las configuraciones existentes en ZoneShiftRate NO se eliminan.
-    *
-    * @param deletedByUserId ID del usuario administrador que elimina
+    * Marca la tarifa como eliminada (soft delete) y la desactiva.
+    * El servicio verifica antes que ningún parqueo la use.
     */
    public void markAsDeleted(Long deletedByUserId) {
-      this.deletedAt = LocalDateTime.now();
+      LocalDateTime now = LocalDateTime.now();
+      this.deletedAt = now;
       this.deletedBy = deletedByUserId;
+      this.updatedBy = deletedByUserId;
       this.status = false;
-      this.updatedAt = LocalDateTime.now();
+      this.updatedAt = now;
    }
 
    /**
-    * Restaura una tarifa previamente eliminada.
-    * Queda inactiva, debe ser activada manualmente.
+    * Restaura una tarifa eliminada (deshace la eliminación). Vuelve activa: solo se pudo
+    * eliminar porque ningún parqueo la usaba.
+    *
+    * @throws ParkingDomainException si no está eliminada
     */
-   public void restore() {
+   public void restore(Long restoredBy) {
+      if (!isDeleted()) {
+         throw new ParkingDomainException("La tarifa no está eliminada");
+      }
       this.deletedAt = null;
       this.deletedBy = null;
-      this.status = false;
+      this.status = true;
+      this.updatedBy = restoredBy;
       this.updatedAt = LocalDateTime.now();
    }
 
-   /**
-    * Verifica si la tarifa está eliminada.
-    *
-    * @return true si deletedAt no es null
-    */
    public boolean isDeleted() {
       return deletedAt != null;
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - ACTUALIZACIÓN DE DATOS =========================
+   // ========================= MÉTODOS DE NEGOCIO - ACTUALIZACIÓN =========================
 
    /**
-    * Actualiza la información básica de la tarifa.
-    *
-    * @param name nuevo nombre
-    * @param description nueva descripción
+    * Actualiza nombre, descripción, precio y reglas de cobro.
+    * Regla del negocio: el precio nuevo se aplica también a los vehículos que ya están dentro,
+    * porque el monto se calcula al salir.
     */
-   public void updateBasicInfo(String name, String description) {
-      this.name = name;
-      this.description = description;
+   public void update(String name, String description, BigDecimal amount, BillingRules rules) {
+      this.name = requireName(name);
+      this.description = blankToNull(description);
+      applyAmount(amount);
+      applyRules(rules);
       this.updatedAt = LocalDateTime.now();
    }
 
-   /**
-    * Actualiza el monto de la tarifa.
-    *
-    * @param amount nuevo monto
-    */
-   public void updateAmount(BigDecimal amount) {
-      this.amount = amount;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Actualiza el usuario que modificó este registro.
-    *
-    * @param userId ID del usuario que modifica
-    */
    public void updateModifiedBy(Long userId) {
       this.updatedBy = userId;
       this.updatedAt = LocalDateTime.now();
    }
 
-   // ========================= MÉTODOS DE VALIDACIÓN =========================
+   // ========================= VALIDACIÓN =========================
 
-   /**
-    * Verifica si la tarifa tiene precio configurado.
-    *
-    * @return true si amount no es null y es mayor a cero
-    */
    public boolean hasValidAmount() {
       return amount != null && amount.compareTo(BigDecimal.ZERO) > 0;
    }
 
    /**
-    * Verifica si la tarifa puede ser usada.
-    * Debe estar activa, no eliminada y con monto válido.
-    *
-    * @return true si puede ser usada
+    * Puede usarse si está activa, no eliminada y con precio.
     */
    public boolean isUsable() {
       return isActive() && !isDeleted() && hasValidAmount();
    }
 
+   private void applyAmount(BigDecimal value) {
+      if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
+         throw new ParkingDomainException("El precio por hora debe ser mayor a 0");
+      }
+      if (value.stripTrailingZeros().scale() > 2) {
+         throw new ParkingDomainException("El precio admite como máximo 2 decimales");
+      }
+      this.amount = value.setScale(2, RoundingMode.UNNECESSARY);
+   }
+
+   private void applyRules(BillingRules rules) {
+      BillingRules r = rules == null ? BillingRules.defaults() : rules;
+      int unit = orDefault(r.billingUnitMinutes(), DEFAULT_BILLING_UNIT_MINUTES);
+      int minimum = orDefault(r.minimumMinutes(), 0);
+      int grace = orDefault(r.graceMinutes(), DEFAULT_GRACE_MINUTES);
+      // La tolerancia por defecto no puede igualar a una fracción muy corta (ej: al minuto)
+      int tolerance = orDefault(r.toleranceMinutes(), Math.min(DEFAULT_TOLERANCE_MINUTES, unit - 1));
+
+      if (unit < 1 || unit > MAX_BILLING_UNIT_MINUTES) {
+         throw new ParkingDomainException("La fracción de cobro debe estar entre 1 y " + MAX_BILLING_UNIT_MINUTES + " minutos");
+      }
+      if (minimum < 0 || minimum > MAX_MINIMUM_MINUTES) {
+         throw new ParkingDomainException("El tiempo mínimo debe estar entre 0 y " + MAX_MINIMUM_MINUTES + " minutos");
+      }
+      if (grace < 0 || grace > MAX_GRACE_MINUTES) {
+         throw new ParkingDomainException("El tiempo de gracia debe estar entre 0 y " + MAX_GRACE_MINUTES + " minutos");
+      }
+      if (tolerance < 0 || tolerance >= unit) {
+         throw new ParkingDomainException("La tolerancia debe ser menor que la fracción de cobro (" + unit + " min)");
+      }
+      this.billingUnitMinutes = unit;
+      this.minimumMinutes = minimum;
+      this.graceMinutes = grace;
+      this.toleranceMinutes = tolerance;
+   }
+
+   private static int orDefault(Integer value, int defaultValue) {
+      return value == null ? defaultValue : value;
+   }
+
+   private static String requireName(String value) {
+      if (value == null || value.isBlank()) {
+         throw new ParkingDomainException("El nombre de la tarifa es obligatorio");
+      }
+      return value.trim();
+   }
+
+   private static String blankToNull(String value) {
+      return value == null || value.isBlank() ? null : value.trim();
+   }
+
    // ========================= GETTERS Y SETTERS =========================
+   // Los setters los usan los mappers de persistencia para reconstruir el objeto.
 
-   public Long getId() {
-      return id;
-   }
+   public Long getId() { return id; }
+   public void setId(Long id) { this.id = id; }
 
-   public void setId(Long id) {
-      this.id = id;
-   }
+   public String getName() { return name; }
+   public void setName(String name) { this.name = name; }
 
-   public String getName() {
-      return name;
-   }
+   public String getDescription() { return description; }
+   public void setDescription(String description) { this.description = description; }
 
-   public void setName(String name) {
-      this.name = name;
-   }
+   public BigDecimal getAmount() { return amount; }
+   public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-   public String getDescription() {
-      return description;
-   }
+   public String getCurrency() { return currency; }
+   public void setCurrency(String currency) { this.currency = currency; }
 
-   public void setDescription(String description) {
-      this.description = description;
-   }
+   public int getBillingUnitMinutes() { return billingUnitMinutes; }
+   public void setBillingUnitMinutes(int billingUnitMinutes) { this.billingUnitMinutes = billingUnitMinutes; }
 
-   public BigDecimal getAmount() {
-      return amount;
-   }
+   public int getMinimumMinutes() { return minimumMinutes; }
+   public void setMinimumMinutes(int minimumMinutes) { this.minimumMinutes = minimumMinutes; }
 
-   public void setAmount(BigDecimal amount) {
-      this.amount = amount;
-   }
+   public int getGraceMinutes() { return graceMinutes; }
+   public void setGraceMinutes(int graceMinutes) { this.graceMinutes = graceMinutes; }
 
-   public String getCurrency() {
-      return currency;
-   }
+   public int getToleranceMinutes() { return toleranceMinutes; }
+   public void setToleranceMinutes(int toleranceMinutes) { this.toleranceMinutes = toleranceMinutes; }
 
-   public void setCurrency(String currency) {
-      this.currency = currency;
-   }
+   public boolean getStatus() { return status; }
+   // No hay setStatus() público: usar activate() o deactivate()
 
-   public boolean getStatus() {
-      return status;
-   }
+   public LocalDateTime getCreatedAt() { return createdAt; }
+   public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-   // NO HAY setStatus() público - usar activate() o deactivate()
+   public Long getCreatedBy() { return createdBy; }
+   public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
 
-   public LocalDateTime getCreatedAt() {
-      return createdAt;
-   }
+   public LocalDateTime getUpdatedAt() { return updatedAt; }
+   public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-   public void setCreatedAt(LocalDateTime createdAt) {
-      this.createdAt = createdAt;
-   }
+   public Long getUpdatedBy() { return updatedBy; }
+   public void setUpdatedBy(Long updatedBy) { this.updatedBy = updatedBy; }
 
-   public Long getCreatedBy() {
-      return createdBy;
-   }
+   public LocalDateTime getDeletedAt() { return deletedAt; }
+   public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 
-   public void setCreatedBy(Long createdBy) {
-      this.createdBy = createdBy;
-   }
-
-   public LocalDateTime getUpdatedAt() {
-      return updatedAt;
-   }
-
-   public void setUpdatedAt(LocalDateTime updatedAt) {
-      this.updatedAt = updatedAt;
-   }
-
-   public Long getUpdatedBy() {
-      return updatedBy;
-   }
-
-   public void setUpdatedBy(Long updatedBy) {
-      this.updatedBy = updatedBy;
-   }
-
-   public LocalDateTime getDeletedAt() {
-      return deletedAt;
-   }
-
-   public void setDeletedAt(LocalDateTime deletedAt) {
-      this.deletedAt = deletedAt;
-   }
-
-   public Long getDeletedBy() {
-      return deletedBy;
-   }
-
-   public void setDeletedBy(Long deletedBy) {
-      this.deletedBy = deletedBy;
-   }
+   public Long getDeletedBy() { return deletedBy; }
+   public void setDeletedBy(Long deletedBy) { this.deletedBy = deletedBy; }
 
    // ========================= EQUALS, HASHCODE Y TOSTRING =========================
 
    /**
-    * Dos tarifas son iguales si tienen el mismo ID.
+    * Dos tarifas son iguales si tienen el mismo ID. Sin ID (aún no guardada), solo es igual a sí misma.
+    * Antes dos tarifas nuevas (ID null) se consideraban iguales.
     */
    @Override
    public boolean equals(Object o) {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
-      Rate rate = (Rate) o;
-      return Objects.equals(id, rate.id);
+      Rate other = (Rate) o;
+      return id != null && id.equals(other.id);
    }
 
-   /**
-    * HashCode basado en ID únicamente.
-    */
    @Override
    public int hashCode() {
-      return Objects.hash(id);
+      return id != null ? id.hashCode() : System.identityHashCode(this);
    }
 
-   /**
-    * ToString para logging y debugging.
-    */
    @Override
    public String toString() {
       return "Rate{" +
             "id=" + id +
             ", name='" + name + '\'' +
-            ", amount=" + amount +
-            ", currency='" + currency + '\'' +
+            ", amount=" + amount + " " + currency +
+            ", billingUnitMinutes=" + billingUnitMinutes +
+            ", minimumMinutes=" + minimumMinutes +
+            ", graceMinutes=" + graceMinutes +
+            ", toleranceMinutes=" + toleranceMinutes +
             ", status=" + (status ? "ACTIVA" : "INACTIVA") +
             '}';
    }

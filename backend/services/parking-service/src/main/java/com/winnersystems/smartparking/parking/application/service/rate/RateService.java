@@ -6,264 +6,266 @@ import com.winnersystems.smartparking.parking.application.dto.query.PageRequest;
 import com.winnersystems.smartparking.parking.application.dto.query.PageResult;
 import com.winnersystems.smartparking.parking.application.dto.query.PagedResponse;
 import com.winnersystems.smartparking.parking.application.dto.query.RateDto;
+import com.winnersystems.smartparking.parking.application.dto.query.RateSimulationDto;
 import com.winnersystems.smartparking.parking.application.port.input.rate.*;
+import com.winnersystems.smartparking.parking.application.port.output.CurrentUserPort;
+import com.winnersystems.smartparking.parking.application.port.output.ParkingShiftRatePersistencePort;
 import com.winnersystems.smartparking.parking.application.port.output.RatePersistencePort;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceConflictException;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
 import com.winnersystems.smartparking.parking.domain.model.Rate;
-import lombok.RequiredArgsConstructor;
+import com.winnersystems.smartparking.parking.domain.model.Rate.BillingRules;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Servicio de aplicación para gestión de tarifas.
- * Implementa todos los casos de uso relacionados con Rate.
+ * Casos de uso de las tarifas.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Reglas:
+ * - El nombre es único sin distinguir mayúsculas, también frente a las eliminadas (409).
+ * - Una tarifa que usa algún parqueo no se elimina (409 con los parqueos); sí se desactiva.
+ * - Una tarifa eliminada se restaura desde la papelera.
+ * - La auditoría (createdBy, updatedBy, deletedBy) es el usuario del JWT.
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@Transactional
 public class RateService implements
       CreateRateUseCase,
       UpdateRateUseCase,
       DeleteRateUseCase,
       GetRateUseCase,
       ListRatesUseCase,
-      ToggleRateStatusUseCase {
+      ToggleRateStatusUseCase,
+      RestoreRateUseCase,
+      SimulateRateUseCase {
+
+   private static final String RESOURCE = "Tarifa";
 
    private final RatePersistencePort ratePersistencePort;
+   private final ParkingShiftRatePersistencePort parkingShiftRatePersistencePort;
+   private final CurrentUserPort currentUserPort;
+
+   public RateService(
+         RatePersistencePort ratePersistencePort,
+         ParkingShiftRatePersistencePort parkingShiftRatePersistencePort,
+         CurrentUserPort currentUserPort) {
+      this.ratePersistencePort = ratePersistencePort;
+      this.parkingShiftRatePersistencePort = parkingShiftRatePersistencePort;
+      this.currentUserPort = currentUserPort;
+   }
 
    // ========================= CREATE =========================
 
    @Override
-   @Transactional
    public RateDto createRate(CreateRateCommand command) {
-      log.info("Creando tarifa: {}", command.getName());
+      Long userId = currentUserPort.requireCurrentUserId();
 
-      // Validar nombre único
-      if (ratePersistencePort.existsByName(command.getName())) {
-         throw new IllegalArgumentException(
-               "Ya existe una tarifa con el nombre: " + command.getName()
-         );
-      }
+      // El dominio valida el nombre, el precio y las reglas de cobro
+      Rate rate = Rate.create(
+            command.name(),
+            command.description(),
+            command.amount(),
+            new BillingRules(command.billingUnitMinutes(), command.minimumMinutes(),
+                  command.graceMinutes(), command.toleranceMinutes()),
+            command.status() == null || command.status(),
+            userId);
 
-      // Crear entidad de dominio usando constructor
-      Rate rate = new Rate(
-            command.getName(),
-            command.getAmount(),
-            command.getDescription()
-      );
+      ensureNameIsAvailable(rate.getName(), null);
 
-      // Configurar moneda si viene en el comando
-      if (command.getCurrency() != null && !command.getCurrency().isBlank()) {
-         rate.setCurrency(command.getCurrency());
-      }
-
-      // Configurar estado inicial
-//      if (Boolean.FALSE.equals(command.getStatus())) {
-//         rate.deactivate();
-//      } else {
-//         rate.activate();  // Por defecto activa
-//      }
-
-      // Persistir
-      Rate savedRate = ratePersistencePort.save(rate);
-
-      log.info("Tarifa creada con ID: {}", savedRate.getId());
-      return mapToDto(savedRate);
+      Rate saved = ratePersistencePort.save(rate);
+      log.info("Tarifa creada: id={}, usuario={}", saved.getId(), userId);
+      return mapToDto(saved);
    }
 
    // ========================= UPDATE =========================
 
    @Override
-   @Transactional
    public RateDto updateRate(Long rateId, UpdateRateCommand command) {
-      log.info("Actualizando tarifa ID: {}", rateId);
+      Rate rate = findRate(rateId);
 
-      // Buscar entidad existente
-      Rate rate = ratePersistencePort.findById(rateId)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Tarifa no encontrada con ID: " + rateId
-            ));
+      rate.update(
+            command.name(),
+            command.description(),
+            command.amount(),
+            new BillingRules(command.billingUnitMinutes(), command.minimumMinutes(),
+                  command.graceMinutes(), command.toleranceMinutes()));
+      ensureNameIsAvailable(rate.getName(), rateId);
 
-      // Validar nombre único excluyendo el actual
-      if (ratePersistencePort.existsByNameAndIdNot(command.getName(), rateId)) {
-         throw new IllegalArgumentException(
-               "Ya existe otra tarifa con el nombre: " + command.getName()
-         );
+      if (command.status() != null && command.status() != rate.isActive()) {
+         changeStatus(rate, command.status());
       }
 
-      // Actualizar información básica usando método de dominio
-      rate.updateBasicInfo(command.getName(), command.getDescription());
-
-      // Actualizar monto usando método de dominio
-      if (command.getAmount() != null) {
-         rate.updateAmount(command.getAmount());
-      }
-
-      // Actualizar moneda
-      if (command.getCurrency() != null && !command.getCurrency().isBlank()) {
-         rate.setCurrency(command.getCurrency());
-      }
-
-      // Actualizar estado
-      if (command.getStatus() != null) {
-         if (command.getStatus()) {
-            rate.activate();
-         } else {
-            rate.deactivate();
-         }
-      }
-
-      // Persistir cambios
-      Rate updatedRate = ratePersistencePort.save(rate);
-
-      log.info("Tarifa actualizada");
-      return mapToDto(updatedRate);
+      rate.updateModifiedBy(currentUserPort.requireCurrentUserId());
+      return mapToDto(ratePersistencePort.save(rate));
    }
 
    // ========================= DELETE =========================
 
    @Override
-   @Transactional
    public void deleteRate(Long id) {
-      log.info("Eliminando tarifa ID: {}", id);
+      Rate rate = findRate(id);
 
-      // Buscar entidad existente
-      Rate rate = ratePersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Tarifa no encontrada con ID: " + id
-            ));
+      // Una tarifa en uso no se elimina: el parqueo se quedaría sin precio en ese turno
+      List<String> parkings = parkingShiftRatePersistencePort.findParkingNamesUsingRate(id);
+      if (!parkings.isEmpty()) {
+         throw new ResourceConflictException(
+               "No se puede eliminar la tarifa " + rate.getName() + ": la usa " + describe(parkings)
+                     + ". Cámbiala en esos parqueos o desactívala.");
+      }
 
-      // Soft delete (marcar como eliminado)
-      rate.markAsDeleted(null);  // TODO: Obtener userId del contexto de seguridad
-
-      // Persistir cambios
+      rate.markAsDeleted(currentUserPort.requireCurrentUserId());
       ratePersistencePort.save(rate);
-
-      log.info("Tarifa eliminada (soft delete)");
+      log.info("Tarifa eliminada (soft delete): id={}", id);
    }
 
-   // ========================= GET =========================
+   // ========================= RESTORE =========================
+
+   @Override
+   public RateDto restoreRate(Long id) {
+      Rate rate = ratePersistencePort.findDeletedById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Tarifa eliminada no encontrada con ID: " + id));
+      rate.restore(currentUserPort.requireCurrentUserId());
+      Rate saved = ratePersistencePort.save(rate);
+      log.info("Tarifa restaurada: id={}", id);
+      return mapToDto(saved);
+   }
+
+   // ========================= SIMULACIÓN =========================
+
+   @Override
+   @Transactional(readOnly = true)
+   public RateSimulationDto simulate(BigDecimal amount, BillingRules rules, List<Integer> durations) {
+      // Tarifa temporal, validada como una real, que no se guarda
+      Rate rate = Rate.create("Simulación", null, amount, rules, true, null);
+      List<Integer> minutes = durations == null || durations.isEmpty() ? DEFAULT_DURATIONS : durations;
+      return new RateSimulationDto(
+            rate.getFractionAmount(),
+            minutes.stream()
+                  .distinct()
+                  .sorted()
+                  .map(m -> new RateSimulationDto.Row(m, rate.billableFractions(m), rate.calculateCost(m)))
+                  .toList());
+   }
+
+   // ========================= GET Y LIST =========================
 
    @Override
    @Transactional(readOnly = true)
    public RateDto getRateById(Long id) {
-      log.debug("Buscando tarifa ID: {}", id);
-
-      Rate rate = ratePersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Tarifa no encontrada con ID: " + id
-            ));
-
-      return mapToDto(rate);
+      return mapToDto(findRate(id));
    }
-
-   // ========================= LIST =========================
 
    @Override
    @Transactional(readOnly = true)
-   public PagedResponse<RateDto> listAllRates(int page, int size, String search, Boolean status) {
-      log.debug("Listando tarifas - página: {}, tamaño: {}, search: {}, status: {}", page, size, search, status);
-
-      PageRequest pageRequest = PageRequest.of(page, size, "id", "ASC");
-      PageResult<Rate> pageResult = ratePersistencePort.findAll(pageRequest, search, status);
-
-      return pageResult.toPagedResponse(this::mapToDto);
+   public PagedResponse<RateDto> listAllRates(int page, int size, String search, Boolean status, boolean deleted) {
+      // La papelera muestra primero lo último que se eliminó
+      PageRequest pageRequest = deleted
+            ? PageRequest.of(page, size, "deletedAt", "DESC")
+            : PageRequest.of(page, size, "id", "ASC");
+      PageResult<Rate> result = ratePersistencePort.findAll(pageRequest, search, deleted ? null : status, deleted);
+      return result.toPagedResponse(this::mapToDto);
    }
 
    @Override
    @Transactional(readOnly = true)
    public List<RateDto> listAllActiveRates() {
-      log.debug("Listando tarifas activas");
-
-      List<Rate> activeRates = ratePersistencePort.findAllActive();
-
-      return activeRates.stream()
+      return ratePersistencePort.findAllActive().stream()
             .map(this::mapToDto)
             .toList();
    }
 
-   // ========================= TOGGLE STATUS =========================
+   // ========================= ESTADO =========================
 
    @Override
-   @Transactional
    public RateDto toggleRateStatus(Long id) {
-      log.info("Cambiando estado de tarifa ID: {}", id);
-
-      Rate rate = ratePersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Tarifa no encontrada con ID: " + id
-            ));
-
-      // Toggle usando lógica de dominio
-      if (rate.isActive()) {
-         rate.deactivate();
-      } else {
-         rate.activate();
-      }
-
-      Rate updatedRate = ratePersistencePort.save(rate);
-
-      log.info("Estado cambiado a: {}", updatedRate.getStatus() ? "ACTIVA" : "INACTIVA");
-      return mapToDto(updatedRate);
+      Rate rate = findRate(id);
+      return saveStatus(rate, !rate.isActive());
    }
 
    @Override
-   @Transactional
    public RateDto activateRate(Long id) {
-      log.info("Activando tarifa ID: {}", id);
-
-      Rate rate = ratePersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Tarifa no encontrada con ID: " + id
-            ));
-
-      rate.activate();
-      Rate updatedRate = ratePersistencePort.save(rate);
-
-      log.info("Tarifa activada");
-      return mapToDto(updatedRate);
+      return saveStatus(findRate(id), true);
    }
 
    @Override
-   @Transactional
    public RateDto deactivateRate(Long id) {
-      log.info("Desactivando tarifa ID: {}", id);
-
-      Rate rate = ratePersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Tarifa no encontrada con ID: " + id
-            ));
-
-      rate.deactivate();
-      Rate updatedRate = ratePersistencePort.save(rate);
-
-      log.info("Tarifa desactivada");
-      return mapToDto(updatedRate);
+      return saveStatus(findRate(id), false);
    }
 
-   // ========================= MAPPER =========================
+   private RateDto saveStatus(Rate rate, boolean active) {
+      changeStatus(rate, active);
+      rate.updateModifiedBy(currentUserPort.requireCurrentUserId());
+      return mapToDto(ratePersistencePort.save(rate));
+   }
 
-   /**
-    * Mapea una entidad de dominio Rate a RateDto.
-    *
-    * @param rate entidad de dominio
-    * @return DTO para capa de presentación
-    */
+   /** Desactivar una tarifa en uso está permitido; queda registrado en el log */
+   private void changeStatus(Rate rate, boolean active) {
+      if (active) {
+         rate.activate();
+         return;
+      }
+      List<String> parkings = parkingShiftRatePersistencePort.findParkingNamesUsingRate(rate.getId());
+      if (!parkings.isEmpty()) {
+         log.warn("Tarifa {} desactivada estando en uso por: {}", rate.getId(), parkings);
+      }
+      rate.deactivate();
+   }
+
+   // ========================= AUXILIARES =========================
+
+   private Rate findRate(Long id) {
+      return ratePersistencePort.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException(RESOURCE, id));
+   }
+
+   /** @param currentId tarifa que se edita (puede conservar su propio nombre); null al crear */
+   private void ensureNameIsAvailable(String name, Long currentId) {
+      ratePersistencePort.findByNameIncludingDeleted(name)
+            .filter(owner -> !owner.getId().equals(currentId))
+            .ifPresent(owner -> {
+               throw new ResourceConflictException(owner.isDeleted()
+                     ? "El nombre " + name + " pertenece a una tarifa eliminada. Restáurala desde Eliminadas o usa otro nombre."
+                     : "Ya existe una tarifa con el nombre " + name);
+            });
+   }
+
+   /** "el parqueo San Martín" o "los parqueos San Martín y Las Banderas" */
+   private static String describe(List<String> parkings) {
+      if (parkings.size() == 1) {
+         return "el parqueo " + parkings.get(0);
+      }
+      String last = parkings.get(parkings.size() - 1);
+      return "los parqueos " + String.join(", ", parkings.subList(0, parkings.size() - 1)) + " y " + last;
+   }
+
    private RateDto mapToDto(Rate rate) {
+      List<String> usedBy = rate.getId() == null || rate.isDeleted()
+            ? List.of()
+            : parkingShiftRatePersistencePort.findParkingNamesUsingRate(rate.getId());
       return new RateDto(
             rate.getId(),
             rate.getName(),
             rate.getDescription(),
             rate.getAmount(),
             rate.getCurrency(),
+            rate.getBillingUnitMinutes(),
+            rate.getMinimumMinutes(),
+            rate.getGraceMinutes(),
+            rate.getToleranceMinutes(),
+            rate.getFractionAmount(),
             rate.getStatus(),
+            usedBy,
             rate.getCreatedAt(),
-            rate.getUpdatedAt()
+            rate.getCreatedBy(),
+            rate.getUpdatedAt(),
+            rate.getUpdatedBy(),
+            rate.getDeletedAt(),
+            rate.getDeletedBy()
       );
    }
 }
