@@ -17,7 +17,7 @@
 
 .form-header .icon-container i {
   font-size: 4rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -32,7 +32,7 @@
   transform: translate(-50%, -50%);
   width: 80px;
   height: 80px;
-  background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(25, 135, 84, 0.3) 0%, transparent 70%);
   border-radius: 50%;
   z-index: 1;
   animation: pulse 2s ease-in-out infinite;
@@ -66,7 +66,7 @@
 }
 
 .form-group label i {
-  color: #667eea;
+  color: #198754;
 }
 
 .form-group .input-wrapper {
@@ -86,12 +86,12 @@
 
 .form-group .input-wrapper .form-control:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  border-color: #198754;
+  box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.1);
 }
 
 .form-group .input-wrapper .form-control.error {
-  border-color: #e74c3c;
+  border-color: #dc3545;
 }
 
 .form-group .input-wrapper .form-control:read-only {
@@ -106,7 +106,7 @@
   left: 0;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #198754 0%, #146c43 100%);
   transition: width 0.3s ease;
 }
 
@@ -118,7 +118,7 @@
   display: block;
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  color: #e74c3c;
+  color: #dc3545;
 }
 
 .form-group .info-text {
@@ -137,14 +137,14 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(102, 126, 234, 0.1);
-  border-left: 4px solid #667eea;
+  background: rgba(25, 135, 84, 0.1);
+  border-left: 4px solid #198754;
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
 
 .info-box i {
-  color: #667eea;
+  color: #198754;
   font-size: 1.25rem;
   flex-shrink: 0;
   margin-top: 0.125rem;
@@ -167,7 +167,7 @@
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #667eea;
+  border: 4px solid #198754;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -204,13 +204,13 @@
 }
 
 .button-group .btn-submit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%);
   color: white;
 }
 
 .button-group .btn-submit:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 20px rgba(25, 135, 84, 0.4);
 }
 
 .button-group .btn-submit .btn-glow {
@@ -251,9 +251,7 @@
   }
 }
 
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .form-group .input-wrapper .form-control {
-    background: rgba(255, 255, 255, 0.05);
-  }
+/* Modo oscuro de la aplicación (botón de tema de CoreUI), no el del sistema operativo */
+:host-context([data-coreui-theme=dark]) .form-group .input-wrapper .form-control {
+  background: rgba(255, 255, 255, 0.05);
 }
