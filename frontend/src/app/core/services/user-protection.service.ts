@@ -34,6 +34,23 @@ export class UserProtectionService {
     return null;
   }
 
+  /**
+   * Motivo por el que no se pueden editar los datos (nombre, teléfono...).
+   * La cuenta propia sí se edita: lo bloqueado ahí son el estado, los roles y el correo.
+   * @returns null si la edición está permitida
+   */
+  getEditBlockedReason(user: User): string | null {
+    const isAdmin = user.roles?.some(role => role.name === 'ADMIN');
+    return isAdmin && !this.canManageAdmins()
+      ? 'Este usuario tiene el rol ADMIN: solo otro usuario con el rol ADMIN activo puede editarlo.'
+      : null;
+  }
+
+  /** Misma regla que el backend: a un ADMIN solo lo edita quien entró como ADMIN */
+  canEdit(user: User): boolean {
+    return this.getEditBlockedReason(user) === null;
+  }
+
   /** Solo quien inició sesión como ADMIN puede administrar o conceder ADMIN */
   canManageAdmins(): boolean {
     return this.authContext.isActiveRole('ADMIN');

@@ -223,7 +223,7 @@
                         </button>
                       }
 
-                      @if (hasPermission('users.update')) {
+                      @if (hasPermission('users.update') && canEdit(user)) {
                         <button class="btn btn-outline-warning" (click)="editUser(user.id)" title="Editar" aria-label="Editar">
                           <i class="fas fa-edit"></i>
                         </button>

@@ -107,6 +107,9 @@ public class UserService implements
       User user = userPersistencePort.findById(command.userId())
             .orElseThrow(() -> new UserNotFoundException(command.userId()));
 
+      // 1b. A un ADMIN solo lo edita quien entró como ADMIN (antes de cambiar cualquier campo)
+      user.ensureCanBeEditedBy(command.actorActiveRole());
+
       // 2. Actualizar estado. Va antes que los roles para evaluar el ADMIN original
       if (command.status() != null && command.status() != user.getStatus()) {
          user.ensureStatusCanBeChangedBy(command.updatedBy(), command.actorActiveRole());

@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../../../core/services/user.service';
 import { UserProtectionService } from '../../../core/services/user-protection.service';
+import { AuthContextService } from '../../../core/services/auth-context.service';
 import { User } from '../../../core/models/user.model';
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
 
@@ -27,11 +28,17 @@ export class UserDetailComponent implements OnInit {
   showDeleteConfirm = false;
   deleteBlockedReason: string | null = null;
 
+  /** A un ADMIN solo lo edita quien entró como ADMIN y con el permiso users.update */
+  get canEdit(): boolean {
+    return !!this.user && this.authContext.hasPermission('users.update') && this.userProtection.canEdit(this.user);
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private userService: UserService,
-    private userProtection: UserProtectionService
+    private userProtection: UserProtectionService,
+    private authContext: AuthContextService
   ) {}
 
   private destroyRef = inject(DestroyRef);

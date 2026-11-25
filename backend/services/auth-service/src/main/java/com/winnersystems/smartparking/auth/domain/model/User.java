@@ -155,6 +155,16 @@ public class User {
    // ========================= REGLAS DE PROTECCIÓN =========================
 
    /**
+    * Valida que el actor pueda editar los datos de este usuario (nombre, teléfono, foto...).
+    * A un ADMIN solo lo edita quien entró como ADMIN; los propios datos se cambian en Mi Perfil.
+    *
+    * @param actorActiveRole rol con el que inició sesión
+    */
+   public void ensureCanBeEditedBy(String actorActiveRole) {
+      ensureAdminIsManagedByAdmin(actorActiveRole);
+   }
+
+   /**
     * Valida que el actor pueda desactivar o activar a este usuario.
     *
     * @param actorId ID de quien realiza la acción

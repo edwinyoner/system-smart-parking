@@ -15,10 +15,12 @@
       </div>
       @if (user) {
         <div class="btn-group">
-          <button class="btn btn-warning" (click)="editUser()">
-            <i class="fas fa-edit me-2"></i>
-            Editar
-          </button>
+          @if (canEdit) {
+            <button class="btn btn-warning" (click)="editUser()">
+              <i class="fas fa-edit me-2"></i>
+              Editar
+            </button>
+          }
           <button class="btn btn-danger" (click)="confirmDelete()">
             <i class="fas fa-trash me-2"></i>
             Eliminar

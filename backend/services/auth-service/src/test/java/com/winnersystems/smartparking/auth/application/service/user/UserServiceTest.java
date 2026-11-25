@@ -221,6 +221,23 @@ class UserServiceTest {
       }
 
       @Test
+      @DisplayName("sin ADMIN activo no se edita el nombre de un ADMIN y no se guarda nada")
+      void nonAdminCannotEditAdminName() {
+         when(users.findById(1L)).thenReturn(Optional.of(user(1, "admin@x.pe", "ADMIN", false)));
+         UpdateUserCommand rename = new UpdateUserCommand(1L, "Otro", "Nombre", null, null, null, null, null, 20L, "AUTORIDAD");
+         assertThatThrownBy(() -> service.execute(rename)).isInstanceOf(ProtectedUserException.class);
+         verify(users, never()).save(any());
+      }
+
+      @Test
+      @DisplayName("AUTORIDAD sí edita el nombre de un OPERADOR")
+      void authorityEditsOperator() {
+         when(users.findById(8L)).thenReturn(Optional.of(user(8, "op@x.pe", "OPERADOR", false)));
+         UpdateUserCommand rename = new UpdateUserCommand(8L, "Luis", "Rojas", null, null, null, null, null, 20L, "AUTORIDAD");
+         assertThat(service.execute(rename).firstName()).isEqualTo("Luis");
+      }
+
+      @Test
       @DisplayName("correo null: no cambia nada")
       void nullEmail() {
          when(users.findById(7L)).thenReturn(Optional.of(user(7, "null@x.pe", "OPERADOR", false)));

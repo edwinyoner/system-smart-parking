@@ -103,6 +103,11 @@ export class UserListComponent implements OnInit {
     return this.authContext.hasPermission(permission);
   }
 
+  /** A un ADMIN solo lo edita quien entró como ADMIN */
+  canEdit(user: User): boolean {
+    return this.userProtection.canEdit(user);
+  }
+
   private initFilterForm(): void {
     this.filterForm = this.fb.group({
       search: [""],

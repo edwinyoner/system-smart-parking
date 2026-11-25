@@ -35,6 +35,8 @@ export class UserEditComponent implements OnInit {
   user: User | null = null;
   roles: Role[] = [];
   blockedReason: string | null = null;
+  /** Motivo por el que no se puede editar nada (ADMIN protegido) */
+  editBlockedReason: string | null = null;
   isLoading = false;
   isLoadingData = false;
   successMessage: string | null = null;
@@ -128,6 +130,10 @@ export class UserEditComponent implements OnInit {
           status: user.status,
         });
         this.blockedReason = this.userProtection.getBlockedReason(user);
+        this.editBlockedReason = this.userProtection.getEditBlockedReason(user);
+        if (this.editBlockedReason) {
+          this.userForm.disable();
+        }
         if (this.blockedReason) {
           this.userForm.get("email")?.disable();
         }
@@ -234,6 +240,9 @@ export class UserEditComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.editBlockedReason) {
+      return;
+    }
     if (this.userForm.invalid) {
       this.userForm.markAllAsTouched();
       return;
