@@ -1,17 +1,18 @@
-// src/app/layout/default-layout/default-footer/default-footer.component.scss
 .footer-custom {
   position: fixed;
   bottom: 0;
-  z-index: 1030; // debajo del sidebar (1031)
+  z-index: 1030; /* debajo del sidebar (1031) */
   left: 0;
   width: 100%;
   transition: all 0.3s ease-in-out;
 }
+
 a {
-    text-decoration: none;
-    color: var(--sp-success-strong);
-    font-weight: bold;
+  text-decoration: none;
+  color: var(--sp-success-strong);
+  font-weight: bold;
 }
+
 /* Cuando el sidebar está visible (normal ancho) */
 body.sidebar-show .footer-custom {
   left: 256px;

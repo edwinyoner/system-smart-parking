@@ -1,0 +1,35 @@
+.user-dropdown-menu {
+  min-width: 300px;
+  max-width: 350px;
+}
+
+.dropdown-item-custom {
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item-custom:hover {
+  background-color: var(--cui-secondary-bg);
+}
+
+.dropdown-item-custom.text-danger:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.dropdown-item-custom svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Avatar personalizado */
+c-avatar {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+c-avatar:hover {
+  transform: scale(1.05);
+}

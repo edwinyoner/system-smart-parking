@@ -29,7 +29,7 @@ import { AuthContextService } from '../../../core/services/auth-context.service'
 @Component({
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
-  styleUrls: ['./default-header.component.scss'],
+  styleUrls: ['./default-header.component.css'],
   imports: [
     ContainerComponent,
     HeaderTogglerDirective,

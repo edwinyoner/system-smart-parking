@@ -16,7 +16,7 @@ import { PHONE_ERROR_MESSAGE, PHONE_PATTERN, keepPhoneDigits, normalizePhone } f
     AlertMessageComponent
   ],
   templateUrl: './profile-edit.component.html',
-  styleUrls: ['./profile-edit.component.scss']
+  styleUrls: ['./profile-edit.component.css']
 })
 export class ProfileEditComponent implements OnInit {
 

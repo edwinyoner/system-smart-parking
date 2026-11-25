@@ -26,7 +26,7 @@ import { PermissionService } from '../../core/services/permission.service';
 @Component({
   selector: 'app-dashboard',
   templateUrl: './default-layout.component.html',
-  styleUrls: ['./default-layout.component.scss'],
+  styleUrls: ['./default-layout.component.css'],
   imports: [
     CommonModule,
     SidebarComponent,

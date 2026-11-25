@@ -1,21 +1,47 @@
-//src/scss/_custom.scss
-// Here you can add other styles
+/*
+ * Estilos globales propios de Smart Parking (CSS puro).
+ * Se cargan después del tema de CoreUI (src/scss/styles.scss), así que pueden ajustarlo.
+ * Los colores base (primary, success, info...) se definen en ese tema, no aquí.
+ */
 
-// custom .chartjs-tooltip-body-item padding
-@use "charts";
+/* Tooltips de Chart.js más compactos */
+.chartjs-tooltip-body-item > td {
+  padding-bottom: 0 !important;
+  padding-top: 0 !important;
+  font-size: smaller;
+}
 
-// custom tweaks for scrollbar styling (wip)
-@use "scrollbar";
+/* Barras de desplazamiento finas */
+@supports (scrollbar-width: thin) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #444 transparent;
+  }
+}
 
-// ============================================
-// SMART PARKING - PERSONALIZACIÓN DE COLORES
-// ============================================
+::-webkit-scrollbar-track {
+  background: var(--cui-body-bg, #fff);
+  border-radius: 100vw;
+  margin-block: 0.2em;
+}
 
-// Los colores base (primary, success, info, ...) se definen en styles.scss (variables Sass).
+::-webkit-scrollbar-thumb {
+  background: #999;
+  border: 0.15em solid var(--cui-body-bg, #fff);
+  border-radius: 100vw;
+}
 
-// Tonos suaves propios para ambos modos. CoreUI usa en modo oscuro los mismos
-// valores claros para --cui-success-bg-subtle / --cui-success-text-emphasis,
-// así que los componentes usan estas variables (--sp-*) en su lugar.
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* ============================================ */
+/* SMART PARKING - PERSONALIZACIÓN DE COLORES */
+/* ============================================ */
+/* Los colores base (primary, success, info, ...) se definen en styles.scss (variables Sass). */
+/* Tonos suaves propios para ambos modos. CoreUI usa en modo oscuro los mismos */
+/* valores claros para --cui-success-bg-subtle / --cui-success-text-emphasis, */
+/* así que los componentes usan estas variables (--sp-*) en su lugar. */
 :root,
 [data-coreui-theme=light] {
   --sp-success-soft-bg: #d1f0dd;
@@ -41,7 +67,7 @@
   --sp-danger-strong: #ea868f;
 }
 
-// Asegurar que el spinner/preloader use el nuevo color primary
+/* Asegurar que el spinner/preloader use el nuevo color primary */
 .spinner-border {
   border-color: var(--cui-primary);
   border-right-color: transparent !important;
@@ -51,9 +77,9 @@
   background-color: var(--cui-primary);
 }
 
-// Botones de crear/guardar: verde con texto blanco EN AMBOS MODOS.
-// En modo oscuro CoreUI aplica "[data-coreui-theme=dark] .btn-success" (texto casi negro),
-// que es más específico que ".btn-success"; por eso se repite el selector del tema oscuro.
+/* Botones de crear/guardar: verde con texto blanco EN AMBOS MODOS. */
+/* En modo oscuro CoreUI aplica "[data-coreui-theme=dark] .btn-success" (texto casi negro), */
+/* que es más específico que ".btn-success"; por eso se repite el selector del tema oscuro. */
 .btn-success,
 [data-coreui-theme=dark] .btn-success {
   --cui-btn-color: #fff;
@@ -70,7 +96,7 @@
   --cui-btn-disabled-border-color: #198754;
 }
 
-// Botones de eliminar/peligro: rojo con texto blanco en ambos modos (mismo motivo)
+/* Botones de eliminar/peligro: rojo con texto blanco en ambos modos (mismo motivo) */
 .btn-danger,
 [data-coreui-theme=dark] .btn-danger {
   --cui-btn-color: #fff;
@@ -87,7 +113,7 @@
   --cui-btn-disabled-border-color: #dc3545;
 }
 
-// Avisos informativos (.alert-info sueltos): gris neutro en ambos modos, sin azul
+/* Avisos informativos (.alert-info sueltos): gris neutro en ambos modos, sin azul */
 .alert-info,
 [data-coreui-theme=dark] .alert-info {
   --cui-alert-color: var(--cui-body-color);
@@ -96,7 +122,7 @@
   --cui-alert-link-color: var(--cui-body-color);
 }
 
-// Paginación: número visible también en la página actual
+/* Paginación: número visible también en la página actual */
 .pagination,
 [data-coreui-theme=dark] .pagination {
   --cui-pagination-color: var(--cui-body-color);
@@ -106,18 +132,19 @@
   --cui-pagination-active-color: #fff;
   --cui-pagination-active-bg: #198754;
   --cui-pagination-active-border-color: #198754;
-
-  .page-item:not(.disabled) .page-link {
-    cursor: pointer;
-  }
 }
 
-// custom calendar today cell color
+.pagination .page-item:not(.disabled) .page-link,
+[data-coreui-theme=dark] .pagination .page-item:not(.disabled) .page-link {
+  cursor: pointer;
+}
+
+/* custom calendar today cell color */
 .calendar-cell.today {
   --cui-calendar-cell-today-color: var(--cui-info) !important;
 }
 
-// custom select week cursor pointer
+/* custom select week cursor pointer */
 .select-week .calendar-row.current {
   cursor: pointer;
 }
@@ -136,51 +163,52 @@
   vertical-align: baseline;
   border-radius: 0.375rem;
   transition: all 0.2s ease;
-
-  // Success (verde)
-  &.badge-success {
-    background-color: #dcfce7;
-    color: #166534;
-    border: 1px solid #86efac;
-  }
-
-  // Danger (rojo)
-  &.badge-danger {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fca5a5;
-  }
-
-  // Warning (amarillo)
-  &.badge-warning {
-    background-color: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fcd34d;
-  }
-
-  // Info (gris neutro)
-  &.badge-info {
-    background-color: #f1f3f4;
-    color: #3c4043;
-    border: 1px solid #dadce0;
-  }
-
-  // Secondary (gris)
-  &.badge-secondary {
-    background-color: #f1f5f9;
-    color: #475569;
-    border: 1px solid #cbd5e1;
-  }
-
-  // Primary (verde de marca)
-  &.badge-primary {
-    background-color: #198754;
-    color: #ffffff;
-    border: none;
-  }
+  /* Success (verde) */
+  /* Danger (rojo) */
+  /* Warning (amarillo) */
+  /* Info (gris neutro) */
+  /* Secondary (gris) */
+  /* Primary (verde de marca) */
 }
-// Tipo de acción de un permiso (lista y detalle de permisos): ver gris, crear verde,
-// editar ámbar, eliminar rojo y las propias del módulo con borde punteado.
+
+.badge.badge-success {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.badge.badge-danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.badge.badge-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.badge.badge-info {
+  background-color: #f1f3f4;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+}
+
+.badge.badge-secondary {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.badge.badge-primary {
+  background-color: #198754;
+  color: #ffffff;
+  border: none;
+}
+
+/* Tipo de acción de un permiso (lista y detalle de permisos): ver gris, crear verde, */
+/* editar ámbar, eliminar rojo y las propias del módulo con borde punteado. */
 .action-pill {
   display: inline-block;
   min-width: 5.5rem;
@@ -194,26 +222,25 @@
   color: var(--cui-body-color);
 }
 
-.action-pill[data-kind='create'] {
+.action-pill[data-kind=create] {
   background: var(--sp-success-soft-bg);
   border-color: var(--sp-success-soft-border);
   color: var(--sp-success-strong);
 }
 
-.action-pill[data-kind='update'] {
+.action-pill[data-kind=update] {
   background: var(--sp-warning-soft-bg);
   border-color: var(--sp-warning-soft-border);
   color: var(--sp-warning-strong);
 }
 
-.action-pill[data-kind='delete'] {
+.action-pill[data-kind=delete] {
   background: var(--sp-danger-soft-bg);
   border-color: var(--sp-danger-soft-border);
   color: var(--sp-danger-strong);
 }
 
-.action-pill[data-kind='other'] {
+.action-pill[data-kind=other] {
   background: transparent;
   border-style: dashed;
 }
-

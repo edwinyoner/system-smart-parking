@@ -3,11 +3,9 @@ c-avatar {
   font-weight: 600;
 }
 
-.table-borderless {
-  td {
-    padding: 0.75rem 0;
-    vertical-align: middle;
-  }
+.table-borderless td {
+  padding: 0.75rem 0;
+  vertical-align: middle;
 }
 
 c-card-header {

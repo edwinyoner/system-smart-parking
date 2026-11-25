@@ -30,7 +30,7 @@ import { environment } from '../../../../environments/environment';
     AlertMessageComponent
   ],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
+  styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit {
   

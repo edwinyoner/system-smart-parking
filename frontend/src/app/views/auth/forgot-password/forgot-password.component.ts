@@ -25,7 +25,7 @@ import { environment } from '../../../../environments/environment';
     AlertMessageComponent
   ],
   templateUrl: './forgot-password.component.html',
-  styleUrls: ['./forgot-password.component.scss']
+  styleUrls: ['./forgot-password.component.css']
 })
 export class ForgotPasswordComponent implements OnInit {
   

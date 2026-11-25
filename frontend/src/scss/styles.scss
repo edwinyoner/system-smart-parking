@@ -1,7 +1,7 @@
-//src/scss/styles.scss
-/* You can add global styles to this file, and also import other style files */
+// src/scss/styles.scss
+// Tema de CoreUI. Es lo único que sigue en Sass, porque CoreUI está escrito en Sass
+// y sus colores se configuran con variables Sass. Los estilos propios van en CSS.
 
-// Import styles with default layout.
 // Paleta Smart Parking: sin azules ni morados.
 // Se define aquí (y no solo con variables CSS) porque CoreUI calcula muchos tonos al
 // compilar: foco de campos, checkbox, enlaces, menús activos y los tonos del modo oscuro.
@@ -16,19 +16,10 @@
   $danger:    #dc3545    // Rojo: eliminar, errores
 );
 
-// Import Chart.js custom tooltips styles
+// Estilos de Chart.js de CoreUI
 @use "@coreui/chartjs/scss/coreui-chartjs";
 
-// Custom styles for this theme
+// Ajustes del layout de la plantilla (usa mixins de CoreUI, por eso sigue en Sass)
 @use "theme";
 
-// Some temp fixes
-//@use "fixes";
-
-// If you want to add custom CSS you can put it here.
-@use "custom";
-
-// Examples
-// We use those styles to show code examples, you should remove them in your application.
-@use "examples";
-
+// Los estilos propios del proyecto están en src/styles/global.css (CSS puro).

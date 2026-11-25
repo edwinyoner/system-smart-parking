@@ -6,7 +6,7 @@ import { FooterComponent, FooterModule } from '@coreui/angular';
   standalone: true,
   imports: [FooterComponent, FooterModule],
   templateUrl: './default-footer.component.html',
-  styleUrls: ['./default-footer.component.scss']
+  styleUrls: ['./default-footer.component.css']
 })
 export class DefaultFooterComponent extends FooterComponent {
   public currentYear: number;

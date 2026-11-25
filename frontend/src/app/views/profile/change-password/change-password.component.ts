@@ -21,7 +21,7 @@ import { environment } from '../../../../environments/environment';
     AlertMessageComponent
   ],
   templateUrl: './change-password.component.html',
-  styleUrls: ['./change-password.component.scss']
+  styleUrls: ['./change-password.component.css']
 })
 export class ChangePasswordComponent implements OnInit {
   

@@ -17,7 +17,7 @@ import { CommonModule } from "@angular/common";
   standalone: true,
   imports: [CommonModule, RouterOutlet],
   templateUrl: "./auth-layout.component.html",
-  styleUrls: ["./auth-layout.component.scss"],
+  styleUrls: ["./auth-layout.component.css"],
 })
 export class AuthLayoutComponent {
   currentYear: number = new Date().getFullYear();
