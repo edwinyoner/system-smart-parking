@@ -9,6 +9,8 @@ export interface CurrentUserProfile {
   lastName: string;
   phoneNumber?: string | null;
   profilePicture?: string | null;
+  /** Permisos vigentes del rol activo (solo los trae GET /users/me) */
+  activePermissions?: string[];
 }
 
 /**
@@ -62,8 +64,9 @@ export class CurrentUserService {
   }
 
   /**
-   * Aplica los datos personales devueltos por el backend tras una edición.
-   * Los roles y permisos se conservan: pertenecen a la sesión (token).
+   * Aplica los datos devueltos por el backend (tras una edición o en la sincronización).
+   * Si vienen los permisos vigentes, reemplazan a los del token: así los botones y el menú
+   * cambian en cuanto un administrador modifica los permisos del rol, sin volver a entrar.
    */
   applyProfile(profile: CurrentUserProfile): void {
     const user = this.getCurrentUser();
@@ -75,11 +78,14 @@ export class CurrentUserService {
     const phoneNumber = profile.phoneNumber || undefined;
     const profilePicture = profile.profilePicture || undefined;
 
+    const permissions = profile.activePermissions ?? user.permissions;
+
     // Sin cambios no se emite: evita refrescar la pantalla en cada sincronización
     if (user.firstName === profile.firstName
       && user.lastName === profile.lastName
       && (user.phoneNumber || undefined) === phoneNumber
-      && (user.profilePicture || undefined) === profilePicture) {
+      && (user.profilePicture || undefined) === profilePicture
+      && this.samePermissions(user.permissions, permissions)) {
       return;
     }
 
@@ -88,8 +94,18 @@ export class CurrentUserService {
       firstName: profile.firstName,
       lastName: profile.lastName,
       phoneNumber,
-      profilePicture
+      profilePicture,
+      permissions
     });
+  }
+
+  /** Mismos permisos sin importar el orden */
+  private samePermissions(a: string[], b: string[]): boolean {
+    if (a.length !== b.length) {
+      return false;
+    }
+    const set = new Set(a);
+    return b.every(permission => set.has(permission));
   }
 
   /**

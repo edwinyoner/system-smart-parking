@@ -23,6 +23,15 @@ export interface User {
 }
 
 /**
+ * Respuesta de GET /users/me: además de los datos, los permisos vigentes del rol activo
+ * (leídos de la BD en cada consulta, no del token).
+ */
+export interface CurrentUserResponse extends User {
+  activeRole: string | null;
+  activePermissions: string[];
+}
+
+/**
  * DTO para crear un nuevo usuario
  * Backend espera: roles como string[] (nombres de roles)
  */

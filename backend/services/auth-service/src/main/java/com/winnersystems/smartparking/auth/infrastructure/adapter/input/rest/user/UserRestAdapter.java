@@ -11,6 +11,7 @@ import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.aut
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.request.CreateUserRequest;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.request.ResendCredentialsRequest;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.request.UpdateUserRequest;
+import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.response.CurrentUserResponse;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.response.UserResponse;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.mapper.UserRestMapper;
 import com.winnersystems.smartparking.auth.infrastructure.config.security.CustomUserDetails;
@@ -23,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -185,9 +187,21 @@ public class UserRestAdapter {
     * El cliente lo consulta para detectar cambios y sesiones cerradas.
     */
    @GetMapping("/me")
-   public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
+   public ResponseEntity<CurrentUserResponse> getCurrentUser(Authentication authentication) {
       UserDto userDto = getUserUseCase.execute(getUserIdFromAuthentication(authentication));
-      return ResponseEntity.ok(mapper.toResponse(userDto));
+
+      // El filtro JWT cargó las autoridades desde la BD: son las vigentes del rol activo.
+      // Se quitan las de rol ("ROLE_ADMIN") y quedan solo los permisos ("users.create").
+      List<String> activePermissions = authentication.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .filter(authority -> !authority.startsWith("ROLE_"))
+            .sorted()
+            .toList();
+
+      return ResponseEntity.ok(new CurrentUserResponse(
+            mapper.toResponse(userDto),
+            getActiveRoleFromAuthentication(authentication),
+            activePermissions));
    }
 
    // ========== GET USER BY ID ==========

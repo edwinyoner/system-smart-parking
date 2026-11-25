@@ -1,6 +1,7 @@
 import { Directive, Input, TemplateRef, ViewContainerRef, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { PermissionService } from '../../core/services/permission.service';
+import { CurrentUserService } from '../../core/services/current-user.service';
 
 /**
  * Directiva estructural para mostrar/ocultar elementos según permisos
@@ -25,15 +26,18 @@ import { PermissionService } from '../../core/services/permission.service';
   selector: '[appHasPermission]',
   standalone: true
 })
-export class HasPermissionDirective implements OnInit {
+export class HasPermissionDirective implements OnInit, OnDestroy {
   
   private permissions: string[] = [];
   private requireAll = false;
+  private hasView = false;
+  private subscription?: Subscription;
 
   constructor(
     private templateRef: TemplateRef<any>,
     private viewContainer: ViewContainerRef,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private currentUserService: CurrentUserService
   ) {}
 
   @Input()
@@ -49,7 +53,12 @@ export class HasPermissionDirective implements OnInit {
   }
 
   ngOnInit(): void {
-    this.updateView();
+    // Se reevalúa cuando cambian los permisos (sincronización de sesión)
+    this.subscription = this.currentUserService.currentUser$.subscribe(() => this.updateView());
+  }
+
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
   }
 
   private updateView(): void {
@@ -57,10 +66,13 @@ export class HasPermissionDirective implements OnInit {
       ? this.permissionService.hasAllPermissions(this.permissions)
       : this.permissionService.hasAnyPermission(this.permissions);
 
-    if (hasPermission) {
+    // Solo se crea o se quita la vista cuando cambia el resultado: evita duplicar el contenido
+    if (hasPermission && !this.hasView) {
       this.viewContainer.createEmbeddedView(this.templateRef);
-    } else {
+      this.hasView = true;
+    } else if (!hasPermission && this.hasView) {
       this.viewContainer.clear();
+      this.hasView = false;
     }
   }
 }

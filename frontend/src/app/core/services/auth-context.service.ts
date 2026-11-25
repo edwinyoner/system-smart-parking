@@ -1,6 +1,7 @@
 import { getRoleIconClass, getRoleLabel } from '../utils/role.util';
 import { Injectable } from '@angular/core';
 import { TokenService } from './token.service';
+import { CurrentUserService } from './current-user.service';
 
 /**
  * Servicio para manejar el contexto de autenticación del usuario actual.
@@ -16,7 +17,10 @@ import { TokenService } from './token.service';
 })
 export class AuthContextService {
 
-  constructor(private tokenService: TokenService) {}
+  constructor(
+    private tokenService: TokenService,
+    private currentUserService: CurrentUserService
+  ) {}
 
   // ========== INFORMACIÓN DEL USUARIO ==========
 
@@ -118,8 +122,8 @@ export class AuthContextService {
    * Obtiene todos los permisos del usuario
    */
   getAllPermissions(): string[] {
-    const user = this.getCurrentUser();
-    return user?.permissions || [];
+    // Permisos vigentes: los del token al entrar, actualizados por la sincronización de sesión
+    return this.currentUserService.getCurrentUser()?.permissions ?? [];
   }
 
   /**

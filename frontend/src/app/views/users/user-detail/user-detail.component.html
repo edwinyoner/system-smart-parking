@@ -21,10 +21,12 @@
               Editar
             </button>
           }
-          <button class="btn btn-danger" (click)="confirmDelete()">
-            <i class="fas fa-trash me-2"></i>
-            Eliminar
-          </button>
+          @if (canDelete) {
+            <button class="btn btn-danger" (click)="confirmDelete()">
+              <i class="fas fa-trash me-2"></i>
+              Eliminar
+            </button>
+          }
         </div>
       }
     </div>

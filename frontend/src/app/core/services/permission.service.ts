@@ -9,6 +9,7 @@ import {
   PermissionGroup 
 } from '../models/permission.model';
 import { PaginatedResponse } from '../models/pagination.model';
+import { CurrentUserService } from './current-user.service';
 import { TokenService } from './token.service';
 import { groupPermissionsByModule } from '../utils/permission-module.util';
 
@@ -25,7 +26,8 @@ export class PermissionService {
 
   constructor(
     private http: HttpClient,
-    private tokenService: TokenService
+    private tokenService: TokenService,
+    private currentUserService: CurrentUserService
   ) {}
 
   // ========== LISTAR PERMISOS ==========
@@ -88,13 +90,8 @@ export class PermissionService {
    * Verifica si el usuario actual tiene un permiso específico
    */
   hasPermission(permission: string): boolean {
-    const userData = this.tokenService.getUserFromToken();
-    
-    if (!userData || !userData.permissions) {
-      return false;
-    }
-
-    return userData.permissions.includes(permission);
+    // Permisos vigentes: los del token al entrar, actualizados por la sincronización de sesión
+    return this.currentUserService.hasPermission(permission);
   }
 
   /**

@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { ActivatedRouteSnapshot, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { CommonModule } from '@angular/common';
 
@@ -78,10 +78,56 @@ export class DefaultLayoutComponent implements OnInit {
   ) {
     // Activa solo mientras el dashboard está abierto
     sessionSync.sync().pipe(takeUntilDestroyed()).subscribe();
+
+    // Si un administrador cambia los permisos del rol, el menú se actualiza sin volver a entrar
+    // y, si la página abierta ya no está permitida, se sale de ella
+    this.currentUserService.currentUser$.pipe(takeUntilDestroyed()).subscribe(user => {
+      const key = (user?.permissions ?? []).slice().sort().join(',');
+      if (key === this.permissionsKey) {
+        return;
+      }
+      const changed = this.permissionsKey !== null;
+      this.permissionsKey = key;
+      this.filterNavItems();
+      if (changed) {
+        this.leaveIfNotAllowed();
+      }
+    });
   }
 
   ngOnInit(): void {
     this.filterNavItems();
+  }
+
+  /** Permisos con los que se filtró el menú por última vez (null antes de la primera vez) */
+  private permissionsKey: string | null = null;
+  private router = inject(Router);
+
+  /**
+   * Misma comprobación que RoleGuard sobre la página abierta: si ya no se tiene
+   * el permiso que pide su ruta (data.requiredPermissions), se vuelve al dashboard.
+   */
+  private leaveIfNotAllowed(): void {
+    if (this.authContext.isActiveRole('ADMIN')) {
+      return;
+    }
+    let route: ActivatedRouteSnapshot | null = this.router.routerState.snapshot.root;
+    while (route) {
+      const required = route.data?.['requiredPermissions'] as string[] | undefined;
+      const requireAll = route.data?.['requireAllPermissions'] === true;
+      if (required?.length) {
+        const allowed = requireAll
+          ? this.permissionService.hasAllPermissions(required)
+          : this.permissionService.hasAnyPermission(required);
+        if (!allowed) {
+          this.router.navigate(['/dashboard'], {
+            queryParams: { error: 'unauthorized', message: 'Ya no tienes permiso para esta página' }
+          });
+          return;
+        }
+      }
+      route = route.firstChild;
+    }
   }
 
   /**

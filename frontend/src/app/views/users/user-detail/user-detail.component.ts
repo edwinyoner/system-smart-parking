@@ -28,6 +28,11 @@ export class UserDetailComponent implements OnInit {
   showDeleteConfirm = false;
   deleteBlockedReason: string | null = null;
 
+  /** Con el permiso users.delete; las reglas de protección se explican al confirmar */
+  get canDelete(): boolean {
+    return this.authContext.hasPermission('users.delete');
+  }
+
   /** A un ADMIN solo lo edita quien entró como ADMIN y con el permiso users.update */
   get canEdit(): boolean {
     return !!this.user && this.authContext.hasPermission('users.update') && this.userProtection.canEdit(this.user);

@@ -4,6 +4,7 @@ import { Observable, catchError, throwError } from "rxjs";
 import { SKIP_LOADING } from "../interceptors/loading.interceptor";
 import { environment } from "../../../environments/environment";
 import {
+  CurrentUserResponse,
   User,
   CreateUserRequest,
   UpdateUserRequest,
@@ -60,8 +61,8 @@ export class UserService {
   /**
    * Obtiene los datos actuales del usuario autenticado, sin mostrar el spinner
    */
-  getMe(): Observable<User> {
-    return this.http.get<User>(`${this.API_URL}/me`, {
+  getMe(): Observable<CurrentUserResponse> {
+    return this.http.get<CurrentUserResponse>(`${this.API_URL}/me`, {
       context: new HttpContext().set(SKIP_LOADING, true),
     });
   }
