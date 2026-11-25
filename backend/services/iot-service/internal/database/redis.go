@@ -15,7 +15,7 @@ var ctx = context.Background()
 
 // InitRedis inicializa la conexión a Redis
 func InitRedis(cfg *config.Config) error {
-	logrus.Info("🔌 Conectando a Redis...")
+	logrus.Info("Conectando a Redis...")
 
 	// Crear cliente Redis
 	client := redis.NewClient(&redis.Options{
@@ -32,15 +32,15 @@ func InitRedis(cfg *config.Config) error {
 
 	// Verificar conexión
 	if err := client.Ping(ctx).Err(); err != nil {
-		logrus.Errorf("❌ Error conectando a Redis: %v", err)
+		logrus.Errorf("Error conectando a Redis: %v", err)
 		return fmt.Errorf("error conectando a Redis: %w", err)
 	}
 
 	RedisClient = client
 
-	logrus.Info("✅ Conexión a Redis establecida exitosamente")
-	logrus.Infof("📊 Redis DB: %d", cfg.Redis.DB)
-	logrus.Infof("🔧 Pool Size: %d", cfg.Redis.PoolSize)
+	logrus.Info("Conexión a Redis establecida exitosamente")
+	logrus.Infof("Redis DB: %d", cfg.Redis.DB)
+	logrus.Infof("Pool Size: %d", cfg.Redis.PoolSize)
 
 	return nil
 }
@@ -51,7 +51,7 @@ func CloseRedis() error {
 		return nil
 	}
 
-	logrus.Info("🔌 Cerrando conexión a Redis...")
+	logrus.Info("Cerrando conexión a Redis...")
 	return RedisClient.Close()
 }
 

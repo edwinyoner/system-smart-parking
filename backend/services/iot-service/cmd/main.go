@@ -28,7 +28,7 @@ func main() {
 
 	// Configurar logger
 	logger := setupLogger(cfg.Logging.Level)
-	logger.Info("🚀 Iniciando iot-service...")
+	logger.Info("Iniciando iot-service...")
 	logger.WithFields(logrus.Fields{
 		"environment": cfg.Server.GinMode,
 		"port":        cfg.Server.Port,
@@ -40,15 +40,15 @@ func main() {
 	// ========================================================================
 
 	// Conectar a MySQL
-	logger.Info("📊 Conectando a MySQL...")
+	logger.Info("Conectando a MySQL...")
 	if err := database.InitMySQL(cfg); err != nil {
 		logger.Fatalf("Error al conectar a MySQL: %v", err)
 	}
 	db := database.GetDB()
-	logger.Info("✅ MySQL conectado exitosamente")
+	logger.Info("MySQL conectado exitosamente")
 
 	// Conectar a Redis
-	logger.Info("📊 Conectando a Redis...")
+	logger.Info("Conectando a Redis...")
 	if err := database.InitRedis(cfg); err != nil {
 		logger.Fatalf("Error al conectar a Redis: %v", err)
 	}
@@ -58,33 +58,33 @@ func main() {
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
 		logger.Fatalf("Error al hacer ping a Redis: %v", err)
 	}
-	logger.Info("✅ Redis conectado exitosamente")
+	logger.Info("Redis conectado exitosamente")
 
 	// ========================================================================
 	// INICIALIZAR REPOSITORIOS
 	// ========================================================================
 
-	logger.Info("📦 Inicializando repositorios...")
+	logger.Info("Inicializando repositorios...")
 	deviceRepo := repository.NewDeviceRepository(db)
 	captureRepo := repository.NewCaptureRepository(db)
 	// snapshotRepo := repository.NewSnapshotRepository(db)      // Comentado (no usado aún)
 	// detectionRepo := repository.NewDetectionRepository(db)    // Comentado (no usado aún)
 	displayLogRepo := repository.NewDisplayLogRepository(db)
-	logger.Info("✅ Repositorios inicializados")
+	logger.Info("Repositorios inicializados")
 
 	// ========================================================================
 	// INICIALIZAR SERVICIOS EXTERNOS
 	// ========================================================================
 
-	logger.Info("🔌 Inicializando clientes de servicios externos...")
+	logger.Info("Inicializando clientes de servicios externos...")
 
 	// Cliente ia-service
 	iaClient := services.NewIaClient(cfg.Services.IaServiceURL)
-	logger.WithField("url", cfg.Services.IaServiceURL).Info("✅ ia-service client configurado")
+	logger.WithField("url", cfg.Services.IaServiceURL).Info("ia-service client configurado")
 
 	// Cliente parking-service
 	parkingClient := services.NewParkingClient(cfg.Services.ParkingServiceURL)
-	logger.WithField("url", cfg.Services.ParkingServiceURL).Info("✅ parking-service client configurado")
+	logger.WithField("url", cfg.Services.ParkingServiceURL).Info("parking-service client configurado")
 
 	// Servicio S3/MinIO
 	s3Service, err := services.NewS3Service(services.S3Config{
@@ -102,14 +102,14 @@ func main() {
 	if err := s3Service.EnsureBucket(context.Background()); err != nil {
 		logger.Warnf("Error al crear bucket (puede ya existir): %v", err)
 	} else {
-		logger.Info("✅ S3/MinIO bucket verificado")
+		logger.Info("S3/MinIO bucket verificado")
 	}
 
 	// ========================================================================
 	// INICIALIZAR HANDLERS
 	// ========================================================================
 
-	logger.Info("🎯 Inicializando handlers...")
+	logger.Info("Inicializando handlers...")
 	captureHandler := handlers.NewCaptureHandler(
 		deviceRepo,
 		captureRepo,
@@ -134,13 +134,13 @@ func main() {
 		parkingClient,
 		logger,
 	)
-	logger.Info("✅ Handlers inicializados")
+	logger.Info("Handlers inicializados")
 
 	// ========================================================================
 	// CONFIGURAR ROUTER
 	// ========================================================================
 
-	logger.Info("🛣️  Configurando router...")
+	logger.Info("Configurando router...")
 	router := api.SetupRouter(api.RouterConfig{
 		CaptureHandler: captureHandler,
 		DisplayHandler: displayHandler,
@@ -149,7 +149,7 @@ func main() {
 		Logger:         logger,
 		Environment:    cfg.Server.GinMode,
 	})
-	logger.Info("✅ Router configurado")
+	logger.Info("Router configurado")
 
 	// ========================================================================
 	// INICIAR SERVIDOR HTTP
@@ -169,7 +169,7 @@ func main() {
 
 	// Iniciar servidor en goroutine
 	go func() {
-		logger.WithField("address", serverAddr).Info("🌐 Servidor HTTP iniciado")
+		logger.WithField("address", serverAddr).Info("Servidor HTTP iniciado")
 		serverErrors <- srv.ListenAndServe()
 	}()
 
@@ -187,32 +187,32 @@ func main() {
 		logger.Fatalf("Error al iniciar servidor: %v", err)
 
 	case sig := <-shutdown:
-		logger.WithField("signal", sig.String()).Info("🛑 Señal de shutdown recibida")
+		logger.WithField("signal", sig.String()).Info("Señal de shutdown recibida")
 
 		// Timeout para graceful shutdown
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		// Cerrar servidor HTTP
-		logger.Info("⏳ Cerrando servidor HTTP...")
+		logger.Info("Cerrando servidor HTTP...")
 		if err := srv.Shutdown(ctx); err != nil {
 			logger.Errorf("Error durante shutdown del servidor: %v", err)
 			srv.Close()
 		}
 
 		// Cerrar conexión MySQL
-		logger.Info("⏳ Cerrando conexión MySQL...")
+		logger.Info("Cerrando conexión MySQL...")
 		if err := database.CloseMySQL(); err != nil {
 			logger.Errorf("Error al cerrar MySQL: %v", err)
 		}
 
 		// Cerrar conexión Redis
-		logger.Info("⏳ Cerrando conexión Redis...")
+		logger.Info("Cerrando conexión Redis...")
 		if err := database.CloseRedis(); err != nil {
 			logger.Errorf("Error al cerrar Redis: %v", err)
 		}
 
-		logger.Info("✅ Shutdown completado exitosamente")
+		logger.Info("Shutdown completado exitosamente")
 	}
 }
 

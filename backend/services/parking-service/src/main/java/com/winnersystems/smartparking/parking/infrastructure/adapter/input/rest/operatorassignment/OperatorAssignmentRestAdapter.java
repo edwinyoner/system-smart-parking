@@ -185,7 +185,7 @@ public class OperatorAssignmentRestAdapter {
    @GetMapping("/operator-assignments/{id}")
    @PreAuthorize("hasAnyRole('ADMIN', 'AUTORIDAD', 'OPERADOR')")
    public ResponseEntity<OperatorAssignmentDetailResponse> getAssignment(@PathVariable Long id) {
-      log.debug("🔍 GET /operator-assignments/{} - Obteniendo asignación", id);
+      log.debug("GET /operator-assignments/{} - Obteniendo asignación", id);
 
       OperatorAssignmentDetailDto assignment = getOperatorAssignmentUseCase.getAssignment(id);
 

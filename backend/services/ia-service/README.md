@@ -1,10 +1,10 @@
-# 🤖 IA Service - System Smart Parking
+# IA Service - System Smart Parking
 
 Servicio de Inteligencia Artificial para el reconocimiento automático de placas vehiculares utilizando Deep Learning (YOLO26 + EasyOCR).
 
 ---
 
-## 📋 Descripción
+## Descripción
 
 Este microservicio implementa algoritmos de **Deep Learning** para:
 
@@ -14,7 +14,7 @@ Este microservicio implementa algoritmos de **Deep Learning** para:
 
 ---
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 ### Deep Learning Models
 ```
@@ -36,7 +36,7 @@ app/ml/dl/
 
 ---
 
-## 🚀 Instalación
+## Instalación
 
 ### 1. Crear entorno virtual
 ```bash
@@ -63,7 +63,7 @@ python scripts/download_models.py
 
 ---
 
-## ▶️ Ejecución
+## ▶Ejecución
 
 ### Desarrollo
 ```bash
@@ -77,14 +77,14 @@ uvicorn app.main:app --host 0.0.0.0 --port 8084
 
 ---
 
-## 🧪 Tests
+## Tests
 ```bash
 pytest tests/ -v
 ```
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Reconocimiento de Placas
 ```http
@@ -103,7 +103,7 @@ GET /api/analytics/metrics
 
 ---
 
-## 🎓 Tesis
+## Tesis
 
 **Proyecto:** Plataforma Inteligente de Estacionamiento  
 **Universidad:** [Tu Universidad]  
@@ -112,6 +112,6 @@ GET /api/analytics/metrics
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Winner Systems Corporation © 2026

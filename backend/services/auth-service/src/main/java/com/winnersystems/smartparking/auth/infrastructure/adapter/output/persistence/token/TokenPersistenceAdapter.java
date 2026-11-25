@@ -70,7 +70,7 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
    @Override
    public Optional<VerificationToken> findVerificationTokenByUserId(Long userId) {
       return verificationTokenRepository.findByUserId(userId)
-            .map(mapper::toDomain);  // ✅ CORRECTO
+            .map(mapper::toDomain);
    }
 
    @Override

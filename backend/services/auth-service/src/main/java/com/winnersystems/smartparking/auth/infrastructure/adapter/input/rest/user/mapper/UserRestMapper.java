@@ -50,10 +50,10 @@ public class UserRestMapper {
             request.email(),
             request.password(),
             request.phoneNumber(),
-            roleIds,                              // ✅ Set<Long>
+            roleIds,                              // Set<Long>
             request.captchaToken(),
-            extractIpAddress(httpRequest),        // ✅ ipAddress
-            createdBy,                             // ✅ createdBy
+            extractIpAddress(httpRequest),        // ipAddress
+            createdBy,                             // createdBy
             actorActiveRole
       );
    }
@@ -83,8 +83,8 @@ public class UserRestMapper {
             request.phoneNumber(),
             null,                       // profilePicture (por ahora null)
             request.status(),
-            roleIds,                    // ✅ Set<Long>
-            updatedBy,                  // ✅ updatedBy
+            roleIds,                    // Set<Long>
+            updatedBy,                  // updatedBy
             actorActiveRole
       );
    }

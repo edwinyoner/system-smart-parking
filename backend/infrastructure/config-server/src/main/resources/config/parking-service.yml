@@ -73,7 +73,7 @@ eureka:
       description: "Parking Management Microservice"
 
 # ========== JWT CONFIGURATION ==========
-# ⚠️ IMPORTANTE: Debe ser el MISMO secret que en auth-service
+# IMPORTANTE: Debe ser el MISMO secret que en auth-service
 jwt:
   secret: ${JWT_SECRET}   # Definido en backend/.env (no versionado)
   access-token-expiration: 1800000  # 30 minutos (debe coincidir con auth-service)

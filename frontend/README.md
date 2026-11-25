@@ -150,26 +150,26 @@ npm run analyze              # Analizar tamaño del bundle
 npm run format               # Formatear código con Prettier
 ```
 
-## 📄 Licencia
+## Licencia
 
 Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.
 
 ---
 
-## 📞 Contacto
+## Contacto
 
 **Winner Systems Corporation S.A.C.**
 
-- 🌐 Website: [www.winner-systems.com](https://www.winner-systems.com)
-- 📧 Email: contacto@winner-systems.com
-- 📱 WhatsApp: +51 931 741 355
-- 📍 Dirección: Jangas, Huaraz, Áncash, Perú
+- Website: [www.winner-systems.com](https://www.winner-systems.com)
+- Email: contacto@winner-systems.com
+- WhatsApp: +51 931 741 355
+- Dirección: Jangas, Huaraz, Áncash, Perú
 
 **Desarrollador Principal:**
-- 👨‍💻 Edwin Yoner
-- 📧 edwinyoner@winner-systems.com
-- 💼 LinkedIn: [linkedin.com/in/edwinyoner](https://linkedin.com/in/edwinyoner)
-- 🐙 GitHub: [@edwinyoner](https://github.com/edwinyoner)
+- Edwin Yoner
+- edwinyoner@winner-systems.com
+- LinkedIn: [linkedin.com/in/edwinyoner](https://linkedin.com/in/edwinyoner)
+- GitHub: [@edwinyoner](https://github.com/edwinyoner)
 
 ---
 
@@ -184,7 +184,7 @@ Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.
 
 <div align="center">
 
-**Hecho en Perú 🇵🇪**
+**Hecho en Perú**
 
 [![Winner Systems](https://img.shields.io/badge/Winner_Systems-0066CC?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiAyMkgyMkwxMiAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+&logoColor=white)](https://www.winner-systems.com)
 

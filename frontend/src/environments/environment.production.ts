@@ -10,7 +10,7 @@ export const environment = {
   apiUrl: 'https://api.smartparking.winner-systems.com',
   authServiceUrl: 'https://api.smartparking.winner-systems.com/auth',
   
-  // reCAPTCHA v3 (⚠️ DEBES OBTENER TU PROPIA CLAVE EN: https://www.google.com/recaptcha/admin)
+  // reCAPTCHA v3 (DEBES OBTENER TU PROPIA CLAVE EN: https://www.google.com/recaptcha/admin)
   recaptchaSiteKey: 'TU_RECAPTCHA_SITE_KEY_PRODUCCION_AQUI',
   
   // Información de la aplicación

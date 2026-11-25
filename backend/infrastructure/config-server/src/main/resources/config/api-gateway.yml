@@ -49,7 +49,7 @@ spring:
             - Path=/api/parking-service/v1/**
           filters:
             - RewritePath=/api/parking-service/v1(?<segment>/.*|), ${segment}
-            # ✅ Quita /api/parking-service/v1/ completamente
+            # Quita /api/parking-service/v1/ completamente
             # Ejemplo: /api/parking-service/v1/shifts → /shifts
 
       discovery:

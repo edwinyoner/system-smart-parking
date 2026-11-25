@@ -23,7 +23,7 @@ Winner Systems - Smart Parking Platform
 
 ---
 
-## 📋 Tabla de Contenidos
+## Tabla de Contenidos
 
 - [Acerca del Proyecto](#acerca-del-proyecto)
 - [Arquitectura](#arquitectura)
@@ -41,7 +41,7 @@ Winner Systems - Smart Parking Platform
 
 ---
 
-## 📖 Acerca del Proyecto
+## Acerca del Proyecto
 
 **Smart Parking Platform - Backend** es la capa de servicios backend desarrollada por [Winner Systems Corporation S.A.C.](https://www.winner-systems.com) utilizando una arquitectura de microservicios moderna y escalable.
 
@@ -51,20 +51,20 @@ Proporcionar una infraestructura robusta, escalable y mantenible para la gestió
 
 ### Características Principales
 
-- ✅ **Arquitectura de Microservicios** con Spring Cloud
-- ✅ **Service Discovery** con Eureka Server
-- ✅ **Configuración Centralizada** con Config Server
-- ✅ **API Gateway** para enrutamiento inteligente
-- ✅ **Arquitectura Hexagonal** en cada microservicio
-- ✅ **Servicios IoT** en Go para alto rendimiento
-- ✅ **Procesamiento AI/ML** con Python
-- ✅ **Componentes críticos** en C/C++ para máxima eficiencia
-- ✅ **Contenedorización** con Docker
-- ✅ **Orquestación** con Kubernetes
+- **Arquitectura de Microservicios** con Spring Cloud
+- **Service Discovery** con Eureka Server
+- **Configuración Centralizada** con Config Server
+- **API Gateway** para enrutamiento inteligente
+- **Arquitectura Hexagonal** en cada microservicio
+- **Servicios IoT** en Go para alto rendimiento
+- **Procesamiento AI/ML** con Python
+- **Componentes críticos** en C/C++ para máxima eficiencia
+- **Contenedorización** con Docker
+- **Orquestación** con Kubernetes
 
 ---
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -109,7 +109,7 @@ Proporcionar una infraestructura robusta, escalable y mantenible para la gestió
 
 ---
 
-## 🚀 Tecnologías
+## Tecnologías
 
 ### Backend Core
 
@@ -126,11 +126,11 @@ Proporcionar una infraestructura robusta, escalable y mantenible para la gestió
 
 | Servicio | Puerto | Tecnología | Estado |
 |----------|--------|-----------|--------|
-| **Config Server** | 8888 | Spring Cloud Config | ✅ Implementado |
-| **Eureka Server** | 8761 | Netflix Eureka | ✅ Implementado |
-| **API Gateway** | 8080 | Spring Cloud Gateway | ✅ Implementado |
-| **Auth Service** | 8081 | Spring Boot + JWT | 🔄 En desarrollo |
-| **User Service** | 8082 | Spring Boot | 📋 Planificado |
+| **Config Server** | 8888 | Spring Cloud Config | Implementado |
+| **Eureka Server** | 8761 | Netflix Eureka | Implementado |
+| **API Gateway** | 8080 | Spring Cloud Gateway | Implementado |
+| **Auth Service** | 8081 | Spring Boot + JWT | En desarrollo |
+| **User Service** | 8082 | Spring Boot | Planificado |
 
 ### Bases de Datos
 
@@ -148,7 +148,7 @@ Proporcionar una infraestructura robusta, escalable y mantenible para la gestió
 
 ---
 
-## 📋 Requisitos Previos
+## Requisitos Previos
 
 ### Java Development
 
@@ -242,7 +242,7 @@ docker-compose --version # Docker Compose version 2.x
 
 ---
 
-## 💻 Instalación
+## Instalación
 
 ### 1. Clonar el Repositorio
 
@@ -439,7 +439,7 @@ GET http://localhost:8080/actuator/gateway/routes
 
 ---
 
-## 🐳 Despliegue
+## Despliegue
 
 ### Docker
 
@@ -474,7 +474,7 @@ kubectl get services
 
 ---
 
-## 🔧 Configuración
+## Configuración
 
 ### application.yml
 
@@ -583,26 +583,26 @@ pip install flask
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.
 
 ---
 
-## 📞 Contacto
+## Contacto
 
 **Winner Systems Corporation S.A.C.**
 
-- 🌐 Website: [www.winner-systems.com](https://www.winner-systems.com)
-- 📧 Email: contacto@winner-systems.com
-- 📱 WhatsApp: +51 931 741 355
-- 📍 Dirección: Jangas, Huaraz, Áncash, Perú
+- Website: [www.winner-systems.com](https://www.winner-systems.com)
+- Email: contacto@winner-systems.com
+- WhatsApp: +51 931 741 355
+- Dirección: Jangas, Huaraz, Áncash, Perú
 
 **Desarrollador Principal:**
-- 👨‍💻 Edwin Yoner
-- 📧 edwinyoner@winner-systems.com
-- 💼 LinkedIn: [linkedin.com/in/edwinyoner](https://linkedin.com/in/edwinyoner)
-- 🐙 GitHub: [@edwinyoner](https://github.com/edwinyoner)
+- Edwin Yoner
+- edwinyoner@winner-systems.com
+- LinkedIn: [linkedin.com/in/edwinyoner](https://linkedin.com/in/edwinyoner)
+- GitHub: [@edwinyoner](https://github.com/edwinyoner)
 
 ---
 
@@ -619,7 +619,7 @@ Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.
 
 <div align="center">
 
-**Hecho en Perú 🇵🇪**
+**Hecho en Perú**
 
 [![Winner Systems](https://img.shields.io/badge/Winner_Systems-0066CC?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiAyMkgyMkwxMiAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+&logoColor=white)](https://www.winner-systems.com)
 

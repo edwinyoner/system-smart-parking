@@ -64,11 +64,11 @@ class PlateRecognitionService:
 
             # Cargar YOLO26
             self.yolo_detector.load_model()
-            logger.info("✓ YOLO26 cargado")
+            logger.info("YOLO26 cargado")
 
             # Cargar EasyOCR
             self.ocr_reader.load_model()
-            logger.info("✓ EasyOCR cargado")
+            logger.info("EasyOCR cargado")
 
             logger.info("Todos los modelos de Deep Learning cargados exitosamente")
 
@@ -222,10 +222,10 @@ class PlateRecognitionService:
 
         if detection:
             logger.info(
-                f"✓ Placa detectada con confianza: {detection['confidence']:.3f}"
+                f"Placa detectada con confianza: {detection['confidence']:.3f}"
             )
         else:
-            logger.warning("✗ No se detectó ninguna placa")
+            logger.warning("No se detectó ninguna placa")
 
         return detection
 
@@ -253,11 +253,11 @@ class PlateRecognitionService:
 
         if ocr_result:
             logger.info(
-                f"✓ Texto OCR leído: '{ocr_result['text']}' "
+                f"Texto OCR leído: '{ocr_result['text']}' "
                 f"(confianza: {ocr_result['confidence']:.3f})"
             )
         else:
-            logger.warning("✗ No se pudo leer el texto de la placa")
+            logger.warning("No se pudo leer el texto de la placa")
 
         return ocr_result
 

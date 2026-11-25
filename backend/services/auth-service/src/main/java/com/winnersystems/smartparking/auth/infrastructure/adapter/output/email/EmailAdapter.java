@@ -448,7 +448,7 @@ public class EmailAdapter implements EmailPort {
 
       String subject = "¡Bienvenido a Smart Parking! - Credenciales de Acceso";
 
-      // ✅ Construir lista HTML de roles
+      // Construir lista HTML de roles
       StringBuilder rolesHtml = new StringBuilder();
       for (String role : roles) {
          String roleDisplayName = getRoleDisplayName(role);
@@ -456,7 +456,7 @@ public class EmailAdapter implements EmailPort {
 
          rolesHtml.append("""
             <div class="role-badge">
-                <div class="role-name">🔹 %s</div>
+                <div class="role-name">%s</div>
                 <div class="role-desc">%s</div>
             </div>
             """.formatted(roleDisplayName, roleDescription));
@@ -598,23 +598,23 @@ public class EmailAdapter implements EmailPort {
                      
                      <div class="credentials-box">
                          <h3 style="margin-top: 0; color: #667eea;">
-                             🔐 Tus Credenciales de Acceso
+ Tus Credenciales de Acceso
                          </h3>
                          
                          <div class="credential-item">
-                             <span class="credential-label">📧 Usuario (Email):</span>
+                             <span class="credential-label">Usuario (Email):</span>
                              <span class="credential-value">%s</span>
                          </div>
                          
                          <div class="credential-item">
-                             <span class="credential-label">🔑 Contraseña Temporal:</span>
+                             <span class="credential-label">Contraseña Temporal:</span>
                              <span class="credential-value">%s</span>
                          </div>
                      </div>
                      
                      <div class="roles-box">
                          <h3 style="margin-top: 0; color: #28a745;">
-                             👤 Roles Asignados
+ Roles Asignados
                          </h3>
                          <p style="margin-bottom: 15px; color: #666;">
                              Puedes iniciar sesión con cualquiera de estos roles:
@@ -623,7 +623,7 @@ public class EmailAdapter implements EmailPort {
                      </div>
                      
                      <div class="warning-box">
-                         <strong>⚠️ Importante:</strong>
+                         <strong>Importante:</strong>
                          <ul style="margin: 10px 0 0 0; padding-left: 20px;">
                              <li>Esta es una contraseña temporal generada por el administrador</li>
                              <li>Por seguridad, te recomendamos cambiarla después del primer inicio de sesión</li>
@@ -632,7 +632,7 @@ public class EmailAdapter implements EmailPort {
                      </div>
                      
                      <div class="info-box">
-                         <strong>ℹ️ Selector de Roles:</strong>
+                         <strong>Selector de Roles:</strong>
                          <p style="margin: 10px 0 0 0;">
                              En la pantalla de inicio de sesión podrás seleccionar con qué rol deseas acceder. 
                              Cada rol tiene diferentes permisos y acceso a diferentes secciones del sistema.
@@ -643,7 +643,7 @@ public class EmailAdapter implements EmailPort {
                      
                      <div style="text-align: center;">
                          <a href="%s" class="button">
-                             ✅ Verificar Email
+ Verificar Email
                          </a>
                      </div>
                      
@@ -660,7 +660,7 @@ public class EmailAdapter implements EmailPort {
                      </div>
                      
                      <p style="margin-top: 20px;">
-                         <small>⏱️ Este enlace expira en <strong>%d horas</strong>.</small>
+                         <small>Este enlace expira en <strong>%d horas</strong>.</small>
                      </p>
                      
                      <div class="footer">
@@ -678,7 +678,7 @@ public class EmailAdapter implements EmailPort {
             userName,           // Saludo
             email,              // Usuario (Email)
             HtmlUtils.htmlEscape(password), // Puede contener '&', que el HTML interpretaría
-            rolesHtml.toString(), // ✅ Roles HTML
+            rolesHtml.toString(), // Roles HTML
             verificationLink,   // Botón de verificación
             verificationLink,   // Link manual
             validityHours       // Horas de validez
@@ -687,7 +687,7 @@ public class EmailAdapter implements EmailPort {
       sendHtmlEmail(toEmail, subject, body);
    }
 
-   // ✅ Métodos auxiliares para nombres y descripciones
+   // Métodos auxiliares para nombres y descripciones
    private String getRoleDisplayName(String role) {
       return switch (role) {
          case "ADMIN" -> "Administrador";

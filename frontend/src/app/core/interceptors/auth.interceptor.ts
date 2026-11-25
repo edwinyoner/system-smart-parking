@@ -39,7 +39,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   });
 
   if (environment.features.showDebugInfo) {
-    console.log(`🔐 AuthInterceptor: Token agregado a ${req.method} ${req.url}`);
+    console.log(`AuthInterceptor: Token agregado a ${req.method} ${req.url}`);
   }
 
   return next(authReq);

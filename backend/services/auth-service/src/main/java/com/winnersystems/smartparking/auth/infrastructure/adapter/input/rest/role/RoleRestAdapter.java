@@ -93,7 +93,7 @@ public class RoleRestAdapter {
       RoleDto role = roleService.createRole(
             request.getName(),
             request.getDescription(),
-            request.getStatus() != null ? request.getStatus() : true, // ✅ Default true
+            request.getStatus() != null ? request.getStatus() : true, // Default true
             request.getPermissionIds(),
             actor.getUserId()
       );

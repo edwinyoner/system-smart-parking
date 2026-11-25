@@ -31,7 +31,7 @@ public class ParkingShiftRatePersistenceAdapter implements ParkingShiftRatePersi
    @Override
    @Transactional
    public ParkingShiftRate save(ParkingShiftRate config) {
-      log.debug("💾 Guardando configuración: {}", config);
+      log.debug("Guardando configuración: {}", config);
 
       ParkingShiftRateEntity entity;
 
@@ -54,7 +54,7 @@ public class ParkingShiftRatePersistenceAdapter implements ParkingShiftRatePersi
    @Override
    @Transactional(readOnly = true)
    public Optional<ParkingShiftRate> findById(Long id) {
-      log.debug("🔍 Buscando configuración por ID: {}", id);
+      log.debug("Buscando configuración por ID: {}", id);
       return repository.findById(id)
             .map(mapper::toDomain);
    }
@@ -62,7 +62,7 @@ public class ParkingShiftRatePersistenceAdapter implements ParkingShiftRatePersi
    @Override
    @Transactional(readOnly = true)
    public List<ParkingShiftRate> findByParkingId(Long parkingId) {
-      log.debug("📋 Listando configuraciones del parqueo ID: {}", parkingId);
+      log.debug("Listando configuraciones del parqueo ID: {}", parkingId);
       return repository.findByParkingId(parkingId)
             .stream()
             .map(mapper::toDomain)
@@ -75,7 +75,7 @@ public class ParkingShiftRatePersistenceAdapter implements ParkingShiftRatePersi
          Long parkingId,
          Long shiftId
    ) {
-      log.debug("🔍 Buscando configuración: parking={}, shift={}", parkingId, shiftId);
+      log.debug("Buscando configuración: parking={}, shift={}", parkingId, shiftId);
 
       return repository.findByParkingIdAndShiftId(parkingId, shiftId)
             .map(mapper::toDomain);
@@ -84,14 +84,14 @@ public class ParkingShiftRatePersistenceAdapter implements ParkingShiftRatePersi
    @Override
    @Transactional
    public void deleteByParkingId(Long parkingId) {
-      log.info("🗑️ Eliminando todas las configuraciones del parqueo ID: {}", parkingId);
+      log.info("Eliminando todas las configuraciones del parqueo ID: {}", parkingId);
       repository.deleteByParkingId(parkingId);
    }
 
    @Override
    @Transactional
    public void deleteById(Long id) {
-      log.info("🗑️ Eliminando configuración ID: {}", id);
+      log.info("Eliminando configuración ID: {}", id);
       repository.deleteById(id);
    }
 

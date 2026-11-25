@@ -118,7 +118,7 @@ export class AuthService {
     this.router.navigate(['/login']);
     
     if (environment.features.showDebugInfo) {
-      console.log('👋 Logout exitoso');
+      console.log('Logout exitoso');
     }
   }
 
@@ -255,7 +255,7 @@ updateProfile(data: {firstName: string, lastName: string, phoneNumber?: string |
       errorMessage = error.error?.message || error.message || errorMessage;
     }
 
-    console.error('❌ Error en AuthService:', errorMessage);
+    console.error('Error en AuthService:', errorMessage);
     return throwError(() => ({ status: error.status, message: errorMessage, error }));
   }
 }

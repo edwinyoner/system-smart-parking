@@ -106,7 +106,7 @@ export class ForgotPasswordComponent implements OnInit {
         this.errorMessage = error.message || 'Error al enviar el email. Por favor, intenta nuevamente.';
         
         if (environment.features.showDebugInfo) {
-          console.error('❌ Error en forgot password:', error);
+          console.error('Error en forgot password:', error);
         }
       },
       complete: () => {

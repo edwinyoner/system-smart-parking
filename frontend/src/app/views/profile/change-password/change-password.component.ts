@@ -119,7 +119,7 @@ export class ChangePasswordComponent implements OnInit {
         this.errorMessage = error.message || 'Error al cambiar la contraseña. Verifica tu contraseña actual.';
         
         if (environment.features.showDebugInfo) {
-          console.error('❌ Error al cambiar contraseña:', error);
+          console.error('Error al cambiar contraseña:', error);
         }
       },
       complete: () => {

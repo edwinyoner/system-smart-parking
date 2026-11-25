@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class RolePersistenceAdapter implements RolePersistencePort {
 
    private final RoleRepository roleRepository;
-   private final PermissionRepository permissionRepository; // ✅ AGREGAR
+   private final PermissionRepository permissionRepository;
    private final RolePersistenceMapper mapper;
 
    @Override
@@ -87,7 +87,7 @@ public class RolePersistenceAdapter implements RolePersistencePort {
    }
 
    /**
-    * ✅ MÉTODO ACTUALIZADO: Recarga permisos como entidades MANAGED
+    * Recarga permisos como entidades MANAGED
     */
    @Override
    public Role save(Role role) {

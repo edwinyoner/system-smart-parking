@@ -66,7 +66,7 @@ class YOLO26Detector:
             self.is_loaded = True
             self.load_time = datetime.now()
 
-            logger.info("✅ Modelo YOLO26 cargado exitosamente")
+            logger.info("Modelo YOLO26 cargado exitosamente")
 
         except Exception as e:
             logger.error(f"Error al cargar modelo YOLO: {str(e)}")

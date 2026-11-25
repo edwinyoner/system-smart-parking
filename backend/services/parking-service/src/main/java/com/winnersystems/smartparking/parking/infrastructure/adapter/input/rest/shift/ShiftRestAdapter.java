@@ -59,7 +59,7 @@ public class ShiftRestAdapter {
 
    @GetMapping("/active")
    public ResponseEntity<List<ShiftResponse>> listActiveShifts() {
-      log.info("📋 Obteniendo turnos activos");
+      log.info("Obteniendo turnos activos");
 
       List<ShiftDto> activeShiftsDto = listShiftsUseCase.listAllActiveShifts();
 

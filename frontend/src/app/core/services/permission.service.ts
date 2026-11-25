@@ -136,7 +136,7 @@ export class PermissionService {
   // ========== MANEJO DE ERRORES ==========
 
   private handleError(error: any): Observable<never> {
-    console.error('❌ Error en PermissionService:', error);
+    console.error('Error en PermissionService:', error);
     return throwError(() => error);
   }
 }

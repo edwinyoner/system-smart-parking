@@ -16,7 +16,7 @@ public class UpdatePermissionRequest {
 
    @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
    @Pattern(regexp = "^[a-z]+\\.[a-z]+$", message = "El formato debe ser: modulo.accion (ej: users.create)")
-   private String name; // ✅ AGREGADO - Opcional
+   private String name; // Opcional
 
    @Size(max = 255, message = "La descripción no puede exceder 255 caracteres")
    private String description;

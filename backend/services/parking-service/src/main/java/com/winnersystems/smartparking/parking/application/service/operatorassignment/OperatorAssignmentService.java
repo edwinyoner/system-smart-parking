@@ -156,7 +156,7 @@ public class OperatorAssignmentService implements
 
    @Override
    public OperatorAssignmentDetailDto getAssignment(Long assignmentId) {
-      log.debug("🔍 Obteniendo asignación {}", assignmentId);
+      log.debug("Obteniendo asignación {}", assignmentId);
 
       OperatorAssignment assignment = operatorAssignmentPersistencePort.findById(assignmentId)
             .orElseThrow(() -> new IllegalArgumentException(

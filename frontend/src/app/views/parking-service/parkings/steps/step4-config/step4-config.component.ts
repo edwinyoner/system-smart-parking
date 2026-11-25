@@ -48,8 +48,6 @@ export class Step4ConfigComponent implements OnInit {
   @Input() parkingId!: number;
   @Output() configSaved = new EventEmitter<void>();
 
-  // ❌ ELIMINADO: @Input() zoneIds: number[] = [];
-
   // Catálogos
   shifts: Shift[] = [];
   rates: Rate[] = [];

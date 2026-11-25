@@ -77,7 +77,7 @@ public class DataSeeder implements CommandLineRunner {
 
    private void seedDocumentTypes() {
       if (documentTypeRepository.count() > 0) {
-         log.info("✓ Tipos de documento ya existen, saltando...");
+         log.info("Tipos de documento ya existen, saltando...");
          return;
       }
 
@@ -111,14 +111,14 @@ public class DataSeeder implements CommandLineRunner {
             .status(true)
             .build());
 
-      log.info("✓ 4 tipos de documento cargados");
+      log.info("4 tipos de documento cargados");
    }
 
    // ========================= TIPOS DE PAGO =========================
 
    private void seedPaymentTypes() {
       if (paymentTypeRepository.count() > 0) {
-         log.info("✓ Tipos de pago ya existen, saltando...");
+         log.info("Tipos de pago ya existen, saltando...");
          return;
       }
 
@@ -159,14 +159,14 @@ public class DataSeeder implements CommandLineRunner {
             .status(true)
             .build());
 
-      log.info("✓ 5 tipos de pago cargados");
+      log.info("5 tipos de pago cargados");
    }
 
    // ========================= TURNOS =========================
 
    private void seedShifts() {
       if (shiftRepository.count() > 0) {
-         log.info("✓ Turnos ya existen, saltando...");
+         log.info("Turnos ya existen, saltando...");
          return;
       }
 
@@ -199,14 +199,14 @@ public class DataSeeder implements CommandLineRunner {
             .description("Turno nocturno - 6:00 PM a 6:00 AM")
             .build());
 
-      log.info("✓ 3 turnos cargados");
+      log.info("3 turnos cargados");
    }
 
    // ========================= TARIFAS =========================
 
    private void seedRates() {
       if (rateRepository.count() > 0) {
-         log.info("✓ Tarifas ya existen, saltando...");
+         log.info("Tarifas ya existen, saltando...");
          return;
       }
 
@@ -244,6 +244,6 @@ public class DataSeeder implements CommandLineRunner {
             .status(true)
             .build());
 
-      log.info("✓ 4 tarifas cargadas");
+      log.info("4 tarifas cargadas");
    }
 }

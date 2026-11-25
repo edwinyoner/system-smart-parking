@@ -158,7 +158,7 @@ export class RegisterComponent implements OnInit {
         this.errorMessage = error.message || 'Error al crear la cuenta. Por favor, intenta nuevamente.';
         
         if (environment.features.showDebugInfo) {
-          console.error('❌ Error en registro:', error);
+          console.error('Error en registro:', error);
         }
       },
       complete: () => {

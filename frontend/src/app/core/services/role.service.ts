@@ -137,7 +137,7 @@ export class RoleService {
   // ========== MANEJO DE ERRORES ==========
 
   private handleError(error: any): Observable<never> {
-    console.error('❌ Error en RoleService:', error);
+    console.error('Error en RoleService:', error);
     return throwError(() => error);
   }
 }

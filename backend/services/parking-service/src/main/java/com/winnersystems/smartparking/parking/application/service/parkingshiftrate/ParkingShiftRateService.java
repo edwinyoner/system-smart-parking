@@ -37,7 +37,7 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
    @Override
    @Transactional
    public List<ParkingShiftRateDto> configureShiftRates(ConfigureParkingShiftRatesCommand command) {
-      log.info("🔧 Configurando tarifas por turno para parqueo ID: {}", command.getParkingId());
+      log.info("Configurando tarifas por turno para parqueo ID: {}", command.getParkingId());
 
       // Validar que el parqueo existe
       Parking parking = parkingPort.findById(command.getParkingId())
@@ -67,7 +67,7 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
             })
             .toList();
 
-      log.info("✅ {} configuraciones guardadas para parqueo {} (se aplican a todas sus zonas)",
+      log.info("{} configuraciones guardadas para parqueo {} (se aplican a todas sus zonas)",
             savedConfigs.size(), command.getParkingId());
 
       return savedConfigs.stream()
@@ -78,7 +78,7 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
    @Override
    @Transactional(readOnly = true)
    public List<ParkingShiftRateDto> getParkingShiftRates(Long parkingId) {
-      log.debug("📋 Obteniendo configuraciones de parqueo ID: {}", parkingId);
+      log.debug("Obteniendo configuraciones de parqueo ID: {}", parkingId);
 
       List<ParkingShiftRate> configs = parkingShiftRatePort.findByParkingId(parkingId);
 
@@ -90,17 +90,17 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
    @Override
    @Transactional
    public void deleteShiftRateConfig(Long configId) {
-      log.info("🗑️ Eliminando configuración ID: {}", configId);
+      log.info("Eliminando configuración ID: {}", configId);
 
       parkingShiftRatePort.deleteById(configId);
 
-      log.info("✅ Configuración eliminada");
+      log.info("Configuración eliminada");
    }
 
    @Override
    @Transactional
    public ParkingShiftRateDto toggleShiftRateStatus(Long configId) {
-      log.info("🔄 Cambiando estado de configuración ID: {}", configId);
+      log.info("Cambiando estado de configuración ID: {}", configId);
 
       ParkingShiftRate config = parkingShiftRatePort.findById(configId)
             .orElseThrow(() -> new IllegalArgumentException(
@@ -110,7 +110,7 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
       config.toggleStatus();
       ParkingShiftRate updated = parkingShiftRatePort.save(config);
 
-      log.info("✅ Estado cambiado a: {}", updated.getStatus() ? "ACTIVO" : "INACTIVO");
+      log.info("Estado cambiado a: {}", updated.getStatus() ? "ACTIVO" : "INACTIVO");
 
       return mapToDto(updated);
    }

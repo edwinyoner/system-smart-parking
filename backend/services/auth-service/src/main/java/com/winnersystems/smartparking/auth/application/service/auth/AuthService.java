@@ -105,7 +105,7 @@ public class AuthService implements
             user.isEmailVerified(),
             activeRole,
             getRoleNames(user),
-            getPermissionNames(user, activeRole)  // ✅ PASAR activeRole
+            getPermissionNames(user, activeRole)  // PASAR activeRole
       );
 
       // 7. Generar y guardar refresh token
@@ -193,7 +193,7 @@ public class AuthService implements
             user.isEmailVerified(),
             activeRole,
             getRoleNames(user),
-            getPermissionNames(user, activeRole)  // ✅ PASAR activeRole
+            getPermissionNames(user, activeRole)  // PASAR activeRole
       );
 
       // 8. Retornar con MISMO refreshToken

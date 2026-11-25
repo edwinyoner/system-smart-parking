@@ -572,7 +572,7 @@ public class DataSeeder implements CommandLineRunner {
                             </div>
                             
                             <div class="credentials">
-                                <h3>🔐 Tus credenciales de acceso</h3>
+                                <h3>Tus credenciales de acceso</h3>
                                 <p>Una vez verificado tu email, podrás iniciar sesión con:</p>
                                 
                                 <p style="margin-top: 15px;"><strong>Usuario:</strong></p>
@@ -586,7 +586,7 @@ public class DataSeeder implements CommandLineRunner {
                             </div>
                             
                             <div class="warning">
-                                <h3>⚠️ IMPORTANTE - Seguridad</h3>
+                                <h3>IMPORTANTE - Seguridad</h3>
                                 <ul>
                                     <li>Primero <strong>verifica tu email</strong> haciendo clic en el botón verde de arriba</li>
                                     <li>Esta es una <strong>contraseña temporal</strong></li>
@@ -610,7 +610,7 @@ public class DataSeeder implements CommandLineRunner {
                         <div class="footer">
                             <p style="margin: 0; font-weight: bold;">Winner Systems Corporation S.A.C.</p>
                             <p style="opacity: 0.9;">Smart Parking Platform</p>
-                            <p style="opacity: 0.8;">Huaraz, Áncash, Perú 🇵🇪</p>
+                            <p style="opacity: 0.8;">Huaraz, Áncash, Perú</p>
                             <p style="font-size: 12px; opacity: 0.7; margin-top: 10px;">
                                 Este es un correo automático, por favor no responder directamente.
                             </p>

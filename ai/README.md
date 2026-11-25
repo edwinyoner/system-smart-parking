@@ -1,9 +1,9 @@
-# 📦 **ARCHIVO: `ai/README.md`**
+# **ARCHIVO: `ai/README.md`**
 
 
 ## AI/ML/DL Tooling & Configuration - System Smart Parking
 
-## 📋 Descripción
+## Descripción
 
 Esta carpeta contiene herramientas, scripts y configuraciones relacionadas con Inteligencia Artificial y Machine Learning que **NO son código de producción deployable**.
 
@@ -13,15 +13,15 @@ backend/services/ia-service/
 ```
 
 Esta carpeta (`ai/`) es para:
-- ✅ Configuración de modelos (una vez)
-- ✅ Scripts de entrenamiento/fine-tuning
-- ✅ Notebooks de experimentación
-- ✅ Datasets y anotaciones
-- ✅ Modelos custom pre-entrenados
+- Configuración de modelos (una vez)
+- Scripts de entrenamiento/fine-tuning
+- Notebooks de experimentación
+- Datasets y anotaciones
+- Modelos custom pre-entrenados
 
 ---
 
-## 📁 Estructura
+## Estructura
 ```
 ai/
 ├── README.md                    ← Este archivo
@@ -46,7 +46,7 @@ ai/
 
 ---
 
-## 🎯 Componentes Actuales
+## Componentes Actuales
 
 ### 1. Parking Configuration
 
@@ -62,7 +62,7 @@ python configure_polygons.py
 
 ---
 
-## 🔄 Relación con ia-service
+## Relación con ia-service
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -86,7 +86,7 @@ python configure_polygons.py
 
 ---
 
-## 🚀 Casos de Uso
+## Casos de Uso
 
 ### Caso 1: Configurar Nuevo Parking
 
@@ -128,7 +128,7 @@ python train_yolo_custom.py \
 
 ---
 
-## 🛠️ Herramientas Utilizadas
+## Herramientas Utilizadas
 
 ### Actuales
 - **Ultralytics YOLO26** - Object detection framework
@@ -143,7 +143,7 @@ python train_yolo_custom.py \
 
 ---
 
-## 📊 Datasets (Futuro)
+## Datasets (Futuro)
 
 Cuando se requiera fine-tuning para mejorar precisión con placas peruanas:
 
@@ -169,26 +169,26 @@ datasets/
 
 ---
 
-## 🎓 Documentación Tesis - UNASAM
+## Documentación Tesis - UNASAM
 
-✅ **Metodología científica**
+**Metodología científica**
 - Proceso de configuración documentado
 - Herramientas profesionales (Ultralytics)
 - Scripts reproducibles
 
-✅ **Escalabilidad**
+**Escalabilidad**
 - Preparado para fine-tuning futuro
 - Estructura para datasets
 - Experimentación organizada
 
-✅ **Profesionalismo**
+**Profesionalismo**
 - Separación clara: tooling vs producción
 - Documentación completa
 - Versionado de modelos
 
 ---
 
-## 📝 Notas Importantes
+## Notas Importantes
 
 1. **NO es código deployable**
    - Esta carpeta NO va a contenedores Docker
@@ -210,7 +210,7 @@ datasets/
 
 ---
 
-## 🔗 Enlaces Relacionados
+## Enlaces Relacionados
 
 - [ia-service README](../backend/services/ia-service/README.md)
 - [parking-configuration README](parking-configuration/README.md)
@@ -219,7 +219,7 @@ datasets/
 
 ---
 
-## 👨‍💻 Autor
+## Autor
 
 **Edwin Yoner Flores Rupay**  
 Bachiller en Ingeniería de Sistemas e Informática  
@@ -228,7 +228,7 @@ Winner Systems Corporation SAC
 
 ---
 
-## 📊 **ESTRUCTURA COMPLETA AHORA:**
+## **ESTRUCTURA COMPLETA AHORA:**
 
 ```
 ai/

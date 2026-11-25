@@ -117,7 +117,7 @@ export class VerifyEmailComponent implements OnInit {
         }
 
         if (environment.features.showDebugInfo) {
-          console.error('❌ Error en verify email:', error);
+          console.error('Error en verify email:', error);
         }
       }
     });
@@ -166,7 +166,7 @@ export class VerifyEmailComponent implements OnInit {
         this.errorMessage = error.message || 'Error al enviar el email. Por favor, intenta nuevamente.';
 
         if (environment.features.showDebugInfo) {
-          console.error('❌ Error en resend verification:', error);
+          console.error('Error en resend verification:', error);
         }
       }
     });

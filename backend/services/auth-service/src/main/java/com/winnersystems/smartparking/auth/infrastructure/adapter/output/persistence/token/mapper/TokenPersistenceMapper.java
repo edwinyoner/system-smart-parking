@@ -18,7 +18,7 @@ public class TokenPersistenceMapper {
 
       RefreshTokenEntity entity = new RefreshTokenEntity();
       entity.setId(token.getId());
-      entity.setToken(token.getToken());  // ✅ UUID plano
+      entity.setToken(token.getToken());  // UUID plano
       entity.setUserId(token.getUserId());
       entity.setActiveRole(token.getActiveRole());
       entity.setIssuedAt(token.getIssuedAt());
@@ -40,13 +40,13 @@ public class TokenPersistenceMapper {
 
       RefreshToken token = new RefreshToken();
       token.setId(entity.getId());
-      token.setToken(entity.getToken());  // ✅ UUID plano
+      token.setToken(entity.getToken());  // UUID plano
       token.setUserId(entity.getUserId());
       token.setActiveRole(entity.getActiveRole());
       token.setIssuedAt(entity.getIssuedAt());
       token.setExpiresAt(entity.getExpiresAt());
 
-      // ✅ Restaurar estado usando método de dominio
+      // Restaurar estado usando método de dominio
       if (entity.isRevoked()) {
          token.revoke();
       }
@@ -68,7 +68,7 @@ public class TokenPersistenceMapper {
 
       VerificationTokenEntity entity = new VerificationTokenEntity();
       entity.setId(token.getId());
-      entity.setToken(token.getToken());  // ✅ UUID plano
+      entity.setToken(token.getToken());  // UUID plano
       entity.setUserId(token.getUserId());
       entity.setExpiresAt(token.getExpiresAt());
       entity.setVerifiedAt(token.getVerifiedAt());
@@ -86,7 +86,7 @@ public class TokenPersistenceMapper {
 
       VerificationToken token = new VerificationToken();
       token.setId(entity.getId());
-      token.setToken(entity.getToken());  // ✅ UUID plano
+      token.setToken(entity.getToken());  // UUID plano
       token.setUserId(entity.getUserId());
       token.setExpiresAt(entity.getExpiresAt());
       token.setVerifiedAt(entity.getVerifiedAt());
@@ -106,7 +106,7 @@ public class TokenPersistenceMapper {
 
       PasswordResetTokenEntity entity = new PasswordResetTokenEntity();
       entity.setId(token.getId());
-      entity.setToken(token.getToken());  // ✅ UUID plano
+      entity.setToken(token.getToken());  // UUID plano
       entity.setUserId(token.getUserId());
       entity.setExpiresAt(token.getExpiresAt());
       entity.setUsed(token.getUsed());
@@ -126,11 +126,11 @@ public class TokenPersistenceMapper {
 
       PasswordResetToken token = new PasswordResetToken();
       token.setId(entity.getId());
-      token.setToken(entity.getToken());  // ✅ UUID plano
+      token.setToken(entity.getToken());  // UUID plano
       token.setUserId(entity.getUserId());
       token.setExpiresAt(entity.getExpiresAt());
 
-      // ✅ NO llamar markAsUsed() aquí - solo restaurar estado
+      // NO llamar markAsUsed() aquí - solo restaurar estado
       // markAsUsed() tiene validaciones que fallarían con tokens expirados
       if (entity.isUsed()) {
          // Setear campos internos directamente en este caso

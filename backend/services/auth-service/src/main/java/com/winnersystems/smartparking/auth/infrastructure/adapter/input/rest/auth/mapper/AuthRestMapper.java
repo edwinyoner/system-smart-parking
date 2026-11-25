@@ -31,7 +31,7 @@ public class AuthRestMapper {
       return new LoginCommand(
             request.email(),                // 1. email
             request.password(),             // 2. password
-            request.selectedRole(),         // 3. selectedRole ✅ AGREGADO
+            request.selectedRole(),         // 3. selectedRole
             request.captchaToken(),         // 4. captchaToken
             request.rememberMe(),           // 5. rememberMe
             extractDeviceInfo(httpRequest), // 6. deviceInfo

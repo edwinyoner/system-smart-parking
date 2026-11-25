@@ -189,7 +189,7 @@ func (h *HealthHandler) Metrics(c *gin.Context) {
 	dbStats := sqlDB.Stats()
 
 	// Obtener estadísticas de Redis
-	// ✅ CORREGIDO: Usar _ para variable no usada
+	// Usar _ para variable no usada
 	_, err := h.redisClient.Info(ctx, "stats").Result()
 	redisStats := map[string]interface{}{
 		"available": err == nil,

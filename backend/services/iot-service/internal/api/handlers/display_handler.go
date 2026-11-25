@@ -95,7 +95,7 @@ func (h *DisplayHandler) GetAvailability(c *gin.Context) {
 		return
 	}
 
-	// ✅ CORREGIDO: Validación simplificada - solo verificar que no sea CAMERA
+	// Validación simplificada - solo verificar que no sea CAMERA
 	// (por ahora aceptamos cualquier tipo de dispositivo excepto CAMERA)
 	if device.DeviceType == "CAMERA" {
 		c.JSON(http.StatusForbidden, ErrorResponse{
@@ -165,7 +165,7 @@ func (h *DisplayHandler) GetAvailability(c *gin.Context) {
 
 // logDisplayQuery registra la consulta en display_logs
 func (h *DisplayHandler) logDisplayQuery(deviceID string, parkingID uint64, response GetAvailabilityResponse) {
-	// ✅ CORREGIDO: Convertir int64 a *int
+	// Convertir int64 a *int
 	responseTimeMs := int(response.ResponseTimeMS)
 
 	log := &models.DisplayLog{
@@ -173,7 +173,7 @@ func (h *DisplayHandler) logDisplayQuery(deviceID string, parkingID uint64, resp
 		ParkingID:       parkingID,
 		AvailableSpaces: response.AvailableSpaces,
 		OccupiedSpaces:  response.OccupiedSpaces,
-		ResponseTimeMs:  &responseTimeMs, // ✅ Puntero a int
+		ResponseTimeMs:  &responseTimeMs, // Puntero a int
 	}
 
 	if err := h.displayLogRepo.Create(log); err != nil {

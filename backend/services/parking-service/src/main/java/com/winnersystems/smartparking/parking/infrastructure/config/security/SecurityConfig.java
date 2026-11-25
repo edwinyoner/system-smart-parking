@@ -35,13 +35,13 @@ public class SecurityConfig {
             // Configurar autorización de requests
             .authorizeHttpRequests(auth -> auth
                   // ========== ENDPOINTS PÚBLICOS (TEMPORALMENTE) ==========
-                  // ⚠️ SOLO PARA DESARROLLO - En producción quitar estos
+                  // SOLO PARA DESARROLLO - En producción quitar estos
                   .requestMatchers(
                         "/actuator/**",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/error",
-                        // ⚠️ TEMPORALMENTE PERMITIR TODOS LOS ENDPOINTS
+                        // TEMPORALMENTE PERMITIR TODOS LOS ENDPOINTS
                         "/shifts/**",
                         "/rates/**",
                         "/parkings/**",

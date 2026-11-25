@@ -176,7 +176,7 @@ class ParkingVisionService:
         start_time = time.time()
 
         logger.info(
-            f"📸 Procesando parking_id={request.parking_id}, "
+            f"Procesando parking_id={request.parking_id}, "
             f"espacios={len(request.polygons)}, "
             f"detect_plates={request.detect_plates}"
         )

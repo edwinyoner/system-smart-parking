@@ -54,7 +54,7 @@ public class ParkingShiftRateRestAdapter {
          @PathVariable Long parkingId,
          @Valid @RequestBody ConfigureParkingShiftRatesRequest request
    ) {
-      log.info("📋 POST /parkings/{}/shift-rates - Configurando tarifas por turno", parkingId);
+      log.info("POST /parkings/{}/shift-rates - Configurando tarifas por turno", parkingId);
 
       ConfigureParkingShiftRatesCommand command = mapper.toCommand(parkingId, request);
 
@@ -79,7 +79,7 @@ public class ParkingShiftRateRestAdapter {
    public ResponseEntity<List<ParkingShiftRateResponse>> getParkingShiftRates(
          @PathVariable Long parkingId
    ) {
-      log.debug("📋 GET /parkings/{}/shift-rates - Obteniendo configuraciones", parkingId);
+      log.debug("GET /parkings/{}/shift-rates - Obteniendo configuraciones", parkingId);
 
       List<ParkingShiftRateDto> dtos = configureParkingShiftRatesUseCase.getParkingShiftRates(parkingId);
 
@@ -101,7 +101,7 @@ public class ParkingShiftRateRestAdapter {
     */
    @DeleteMapping("/shift-rates/{configId}")
    public ResponseEntity<Void> deleteShiftRateConfig(@PathVariable Long configId) {
-      log.info("🗑️ DELETE /parkings/shift-rates/{} - Eliminando configuración", configId);
+      log.info("DELETE /parkings/shift-rates/{} - Eliminando configuración", configId);
 
       configureParkingShiftRatesUseCase.deleteShiftRateConfig(configId);
 
@@ -121,7 +121,7 @@ public class ParkingShiftRateRestAdapter {
    public ResponseEntity<ParkingShiftRateResponse> toggleShiftRateStatus(
          @PathVariable Long configId
    ) {
-      log.info("🔄 PATCH /parkings/shift-rates/{}/toggle - Cambiando estado", configId);
+      log.info("PATCH /parkings/shift-rates/{}/toggle - Cambiando estado", configId);
 
       ParkingShiftRateDto dto = configureParkingShiftRatesUseCase.toggleShiftRateStatus(configId);
 

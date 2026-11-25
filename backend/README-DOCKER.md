@@ -1,4 +1,4 @@
-# 🐳 Smart Parking - Docker Database Setup
+# Smart Parking - Docker Database Setup
 
 **Proyecto:** Sistema Smart Parking - UNASAM  
 **Autor:** Edwin Yoner Flores Rupay  
@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 Versiones de Bases de Datos
+## Versiones de Bases de Datos
 
 | Base de Datos | Versión | Imagen Docker |
 |---------------|---------|---------------|
@@ -19,7 +19,7 @@
 
 ---
 
-## 🚀 Inicio Rápido
+## Inicio Rápido
 ```bash
 # 1. Ir a la carpeta backend
 cd ~/Documents/system-smart-parking/backend
@@ -40,7 +40,7 @@ docker-compose ps
 
 ---
 
-## 📊 Tabla de Credenciales
+## Tabla de Credenciales
 
 | BD | Host | Puerto(s) | Usuario | Password | BD/Service |
 |----|------|-----------|---------|----------|------------|
@@ -53,7 +53,7 @@ docker-compose ps
 
 ---
 
-## 🔌 Conexiones desde Servicios
+## Conexiones desde Servicios
 
 ### PostgreSQL (auth-service)
 ```properties
@@ -155,25 +155,25 @@ EXIT;
 
 ---
 
-## ⏱️ Tiempos de Inicio
+## Tiempos de Inicio
 
 | Servicio | Tiempo | Estado |
 |----------|--------|--------|
-| PostgreSQL 18 | ~5 seg | ✅ Rápido |
-| MySQL 9.0 | ~20 seg | ✅ Rápido |
-| MongoDB 8 | ~10 seg | ✅ Rápido |
-| Oracle 21c XE | ~2-5 min | ⏳ Primera vez (luego rápido) |
-| Redis 7 | ~2 seg | ✅ Instantáneo |
-| MinIO | ~3 seg | ✅ Instantáneo |
+| PostgreSQL 18 | ~5 seg | Rápido |
+| MySQL 9.0 | ~20 seg | Rápido |
+| MongoDB 8 | ~10 seg | Rápido |
+| Oracle 21c XE | ~2-5 min | Primera vez (luego rápido) |
+| Redis 7 | ~2 seg | Instantáneo |
+| MinIO | ~3 seg | Instantáneo |
 
-**⚠️ Oracle tarda más:** Espera hasta ver en los logs:
+**Oracle tarda más:** Espera hasta ver en los logs:
 ```
 DATABASE IS READY TO USE!
 ```
 
 ---
 
-## 🔧 Comandos Útiles
+## Comandos Útiles
 ```bash
 # Ver estado de contenedores
 docker-compose ps
@@ -190,7 +190,7 @@ docker-compose restart mysql
 # Detener todos los servicios
 docker-compose down
 
-# Detener y BORRAR volúmenes (⚠️ BORRA DATOS)
+# Detener y BORRAR volúmenes (BORRA DATOS)
 docker-compose down -v
 
 # Ver uso de recursos
@@ -205,7 +205,7 @@ docker exec -it smart-parking-oracle bash
 
 ---
 
-## 📦 Actualizar Imágenes
+## Actualizar Imágenes
 ```bash
 # Descargar últimas versiones
 docker-compose pull
@@ -216,7 +216,7 @@ docker-compose up -d --force-recreate
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Oracle no inicia
 ```bash
@@ -262,7 +262,7 @@ docker exec -it smart-parking-redis redis-cli -a redis123 PING
 
 ---
 
-## 📖 Recursos y Documentación
+## Recursos y Documentación
 
 - **PostgreSQL 18:** https://www.postgresql.org/docs/18/
 - **MySQL 9.0:** https://dev.mysql.com/doc/refman/9.0/en/
@@ -273,14 +273,14 @@ docker exec -it smart-parking-redis redis-cli -a redis123 PING
 
 ---
 
-## 🎯 Próximos Pasos
+## Próximos Pasos
 
-1. ✅ Levantar Docker Compose
-2. ✅ Crear bases de datos para cada servicio
-3. ✅ Ejecutar scripts de inicialización (init.sql)
-4. ✅ Actualizar variables de entorno en servicios
-5. ✅ Probar conexiones desde cada microservicio
-6. 🚀 ¡Desarrollar!
+1. Levantar Docker Compose
+2. Crear bases de datos para cada servicio
+3. Ejecutar scripts de inicialización (init.sql)
+4. Actualizar variables de entorno en servicios
+5. Probar conexiones desde cada microservicio
+6. ¡Desarrollar!
 
 ---
 

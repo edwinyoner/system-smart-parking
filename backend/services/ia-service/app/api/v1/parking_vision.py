@@ -163,7 +163,7 @@ async def detect_parking_occupancy(
     """
     try:
         logger.info(
-            f"📸 POST /v1/parking-vision - parking_id={request.parking_id}, "
+            f"POST /v1/parking-vision - parking_id={request.parking_id}, "
             f"espacios={len(request.polygons)}, "
             f"detect_plates={request.detect_plates}"
         )

@@ -38,16 +38,16 @@ class PlateRecognitionTester:
             ocr_conf: Umbral de confianza OCR
         """
         print("=" * 80)
-        print("🤖 TESTER DE RECONOCIMIENTO DE PLACAS VEHICULARES")
+        print("TESTER DE RECONOCIMIENTO DE PLACAS VEHICULARES")
         print("=" * 80)
-        print(f"📅 Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"⚙️  Umbral YOLO: {yolo_conf}")
-        print(f"⚙️  Umbral OCR:  {ocr_conf}")
+        print(f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Umbral YOLO: {yolo_conf}")
+        print(f"Umbral OCR:  {ocr_conf}")
         print("=" * 80)
         print()
 
         # Inicializar servicio
-        print("🔄 Cargando modelos de Deep Learning...")
+        print("Cargando modelos de Deep Learning...")
         self.service = PlateRecognitionService()
 
         # Configuración de prueba
@@ -87,7 +87,7 @@ class PlateRecognitionTester:
             print(f"   Formatos soportados: JPG, JPEG, PNG")
             return []
 
-        print(f"📁 Imágenes encontradas: {len(image_files)}")
+        print(f"Imágenes encontradas: {len(image_files)}")
         for i, img_file in enumerate(image_files, 1):
             print(f"   {i}. {img_file.name}")
         print()
@@ -110,10 +110,10 @@ class PlateRecognitionTester:
             Diccionario con resultados
         """
         print("-" * 80)
-        print(f"🖼️  Procesando: {image_path.name}")
+        print(f"Procesando: {image_path.name}")
 
         if expected_plate:
-            print(f"📋 Placa esperada: {expected_plate}")
+            print(f"Placa esperada: {expected_plate}")
 
         print("-" * 80)
 
@@ -187,7 +187,7 @@ class PlateRecognitionTester:
     ):
         """Imprime resultado formateado"""
 
-        print(f"\n📊 RESULTADO:")
+        print(f"\nRESULTADO:")
         print(f"   Status: {response.status}")
         print(f"   Placa detectada: {response.plate_number or 'N/A'}")
 
@@ -225,7 +225,7 @@ class PlateRecognitionTester:
             images_dir: Directorio con imágenes
             expected_plates: Diccionario {filename: expected_plate}
         """
-        print("🚀 INICIANDO PRUEBA EN BATCH")
+        print("INICIANDO PRUEBA EN BATCH")
         print("=" * 80)
         print()
 
@@ -252,7 +252,7 @@ class PlateRecognitionTester:
         # Generar reporte final
         print("\n\n")
         print("=" * 80)
-        print("📈 REPORTE FINAL")
+        print("REPORTE FINAL")
         print("=" * 80)
         self._generate_report()
 
@@ -260,7 +260,7 @@ class PlateRecognitionTester:
         """Genera reporte con métricas agregadas"""
 
         if not self.results:
-            print("⚠️  No hay resultados para reportar")
+            print("No hay resultados para reportar")
             return
 
         total = len(self.results)
@@ -281,28 +281,28 @@ class PlateRecognitionTester:
         correct = sum(1 for r in self.results if r.get('is_correct') is True)
         incorrect = sum(1 for r in self.results if r.get('is_correct') is False)
 
-        print(f"\n📊 MÉTRICAS GENERALES:")
+        print(f"\nMÉTRICAS GENERALES:")
         print(f"   Total de imágenes: {total}")
         print(f"   Exitosos: {successful} ({successful / total * 100:.1f}%)")
         print(f"   Fallidos:  {failed} ({failed / total * 100:.1f}%)")
 
         if yolo_confidences:
             avg_yolo = sum(yolo_confidences) / len(yolo_confidences)
-            print(f"\n📊 YOLO:")
+            print(f"\nYOLO:")
             print(f"   Confianza promedio: {avg_yolo:.3f} ({avg_yolo * 100:.1f}%)")
             print(f"   Confianza mínima:   {min(yolo_confidences):.3f}")
             print(f"   Confianza máxima:   {max(yolo_confidences):.3f}")
 
         if ocr_confidences:
             avg_ocr = sum(ocr_confidences) / len(ocr_confidences)
-            print(f"\n📊 OCR:")
+            print(f"\nOCR:")
             print(f"   Confianza promedio: {avg_ocr:.3f} ({avg_ocr * 100:.1f}%)")
             print(f"   Confianza mínima:   {min(ocr_confidences):.3f}")
             print(f"   Confianza máxima:   {max(ocr_confidences):.3f}")
 
         if processing_times:
             avg_time = sum(processing_times) / len(processing_times)
-            print(f"\n⏱️  TIEMPOS DE PROCESAMIENTO:")
+            print(f"\nTIEMPOS DE PROCESAMIENTO:")
             print(f"   Tiempo promedio: {avg_time:.0f} ms")
             print(f"   Tiempo mínimo:   {min(processing_times)} ms")
             print(f"   Tiempo máximo:   {max(processing_times)} ms")
@@ -328,7 +328,7 @@ class PlateRecognitionTester:
         import csv
 
         if not self.results:
-            print("⚠️  No hay resultados para exportar")
+            print("No hay resultados para exportar")
             return
 
         with open(output_path, 'w', newline='') as f:
@@ -336,7 +336,7 @@ class PlateRecognitionTester:
             writer.writeheader()
             writer.writerows(self.results)
 
-        print(f"📄 Resultados exportados a: {output_path}")
+        print(f"Resultados exportados a: {output_path}")
 
 
 def main():

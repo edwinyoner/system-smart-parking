@@ -43,7 +43,7 @@ public class UserService implements
       DeleteUserUseCase,
       RestoreUserUseCase,
       ResendCredentialsUseCase,
-      ListOperatorsUseCase {  // ✅ AGREGADO
+      ListOperatorsUseCase {
 
    private final UserPersistencePort userPersistencePort;
    private final RolePersistencePort rolePersistencePort;
@@ -105,10 +105,10 @@ public class UserService implements
 
          tokenPersistencePort.saveVerificationToken(verificationToken);
 
-         System.out.println("✅ Token guardado: " + tokenValue);
-         System.out.println("✅ Usuario creado (email NO enviado automáticamente)");
+         System.out.println("Token guardado: " + tokenValue);
+         System.out.println("Usuario creado (email NO enviado automáticamente)");
 
-         // ✅ Código comentado para envío de email
+         // Código comentado para envío de email
          /*
          String verificationLink = "http://localhost:4200/verify-email?token=" + tokenValue;
          Set<String> roleNames = savedUser.getRoles().stream()
@@ -126,11 +126,11 @@ public class UserService implements
          );
          */
 
-         System.out.println("✅ Token guardado: " + tokenValue);
-         System.out.println("✅ Email enviado a: " + savedUser.getEmail());
+         System.out.println("Token guardado: " + tokenValue);
+         System.out.println("Email enviado a: " + savedUser.getEmail());
 
       } catch (Exception e) {
-         System.err.println("❌ Error: " + e.getMessage());
+         System.err.println("Error: " + e.getMessage());
          e.printStackTrace();
       }
 
@@ -398,7 +398,7 @@ public class UserService implements
     */
    @Override
    public List<OperatorDto> listActiveOperators() {
-      log.debug("📋 Listando operadores activos");
+      log.debug("Listando operadores activos");
 
       // Buscar usuarios con rol OPERADOR y status activo
       List<User> operators = userPersistencePort.findByRoleAndStatus("OPERADOR", true);
@@ -414,7 +414,7 @@ public class UserService implements
             ))
             .toList();
 
-      log.debug("✅ {} operadores activos encontrados", operatorDtos.size());
+      log.debug("{} operadores activos encontrados", operatorDtos.size());
 
       return operatorDtos;
    }

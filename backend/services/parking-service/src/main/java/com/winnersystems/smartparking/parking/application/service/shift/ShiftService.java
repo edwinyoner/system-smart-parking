@@ -43,7 +43,7 @@ public class ShiftService implements
 
    @Override
    public ShiftDto createShift(CreateShiftCommand command) {
-      log.info("➕ Creando turno: {}", command.getName());
+      log.info("Creando turno: {}", command.getName());
 
       // Validar código único
       if (shiftPersistencePort.existsByCode(command.getCode())) {
@@ -135,7 +135,7 @@ public class ShiftService implements
    @Override
    @Transactional(readOnly = true)
    public ShiftDto getShiftById(Long id) {
-      log.debug("🔍 Buscando turno ID: {}", id);
+      log.debug("Buscando turno ID: {}", id);
 
       Shift shift = shiftPersistencePort.findById(id)
             .orElseThrow(() -> new IllegalArgumentException(

@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     # Los modelos YOLO y OCR se cargan lazy cuando se crea PlateRecognitionService
     # en el primer request a /api/v1/recognitions
     logger.info("Servicio listo para recibir peticiones")
-    logger.info("📍 Endpoints disponibles:")
+    logger.info("Endpoints disponibles:")
     logger.info("   - POST /api/v1/recognitions (reconocimiento de placas)")
     logger.info("   - POST /api/v1/parking-vision (detección de ocupación)")  # ← NUEVO
     logger.info("   - GET  /api/v1/recognitions/status")

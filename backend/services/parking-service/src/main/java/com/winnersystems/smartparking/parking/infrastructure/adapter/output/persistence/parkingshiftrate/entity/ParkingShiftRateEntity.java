@@ -30,7 +30,7 @@ import java.time.LocalDateTime;
       name = "PARKING_SHIFT_RATES",
       uniqueConstraints = @UniqueConstraint(
             name = "UK_PARKING_SHIFT",
-            columnNames = {"PARKING_ID", "SHIFT_ID"}  // ✅ CORREGIDO: Solo parking + shift
+            columnNames = {"PARKING_ID", "SHIFT_ID"}  // Solo parking + shift
       )
 )
 @Data

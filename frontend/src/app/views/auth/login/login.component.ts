@@ -155,7 +155,7 @@ export class LoginComponent implements OnInit {
         this.errorMessage = error.message || 'Email, contraseña o rol incorrectos';
         
         if (environment.features.showDebugInfo) {
-          console.error('❌ Error en login:', error);
+          console.error('Error en login:', error);
         }
       },
       complete: () => {

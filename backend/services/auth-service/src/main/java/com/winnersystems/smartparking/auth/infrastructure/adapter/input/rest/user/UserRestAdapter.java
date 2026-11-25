@@ -46,7 +46,7 @@ public class UserRestAdapter {
    private final DeleteUserUseCase deleteUserUseCase;
    private final RestoreUserUseCase restoreUserUseCase;
    private final ResendCredentialsUseCase resendCredentialsUseCase;
-   private final ListOperatorsUseCase listOperatorsUseCase;  // ✅ AGREGADO
+   private final ListOperatorsUseCase listOperatorsUseCase;
    private final UserRestMapper mapper;
 
    // ========== CREATE USER ==========
@@ -169,11 +169,11 @@ public class UserRestAdapter {
    @GetMapping("/operators")
    @PreAuthorize("hasAuthority('users.read')")
    public ResponseEntity<List<OperatorDto>> listOperators() {
-      log.debug("📋 GET /users/operators - Listando operadores activos");
+      log.debug("GET /users/operators - Listando operadores activos");
 
       List<OperatorDto> operators = listOperatorsUseCase.listActiveOperators();
 
-      log.debug("✅ {} operadores encontrados", operators.size());
+      log.debug("{} operadores encontrados", operators.size());
 
       return ResponseEntity.ok(operators);
    }

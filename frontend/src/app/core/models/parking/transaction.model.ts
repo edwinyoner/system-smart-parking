@@ -25,9 +25,9 @@ export type TransactionMethod = 'MANUAL' | 'CAMERA_AI' | 'SENSOR';
  */
 export interface TransactionEntryRequest {
   // Ubicación
-  parkingId: number;              // ✅ AGREGADO - Backend lo requiere
+  parkingId: number;              // Backend lo requiere
   zoneId: number;
-  spaceId: number;                // ✅ CORREGIDO (era parkingSpaceId)
+  spaceId: number;                // CORREGIDO (era parkingSpaceId)
 
   // Vehículo - SOLO PLACA
   plateNumber: string;
@@ -37,8 +37,8 @@ export interface TransactionEntryRequest {
   documentNumber: string;
 
   // Cliente - NOMBRES SEPARADOS
-  customerFirstName: string;      // ✅ CORREGIDO (antes era customerName)
-  customerLastName: string;       // ✅ AGREGADO
+  customerFirstName: string;      // CORREGIDO (antes era customerName)
+  customerLastName: string;
   customerEmail?: string;
   customerPhone?: string;
 
@@ -102,7 +102,7 @@ export interface TransactionDto {
   id: number;
   plateNumber: string;
   customerName: string;
-  parkingName: string;            // ✅ AGREGADO
+  parkingName: string;
   zoneName: string;
   spaceCode: string;
   entryTime: string;
@@ -138,7 +138,7 @@ export interface TransactionDetailResponse {
     email?: string;
   };
 
-  parking: {                      // ✅ AGREGADO - Backend sí lo retorna
+  parking: {                      // Backend sí lo retorna
     id: number;
     name: string;
     code: string;

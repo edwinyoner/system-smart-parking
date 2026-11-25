@@ -141,7 +141,7 @@ public class UserPersistenceMapper {
          role.deactivate();
       }
 
-      // ✅ MAPEAR PERMISOS (AQUÍ ESTABA EL PROBLEMA)
+      // MAPEAR PERMISOS (AQUÍ ESTABA EL PROBLEMA)
       if (entity.getPermissions() != null) {
          role.setPermissions(
                entity.getPermissions().stream()

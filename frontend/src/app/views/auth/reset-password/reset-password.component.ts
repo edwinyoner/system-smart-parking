@@ -163,7 +163,7 @@ export class ResetPasswordComponent implements OnInit {
         }
         
         if (environment.features.showDebugInfo) {
-          console.error('❌ Error en reset password:', error);
+          console.error('Error en reset password:', error);
         }
       },
       complete: () => {

@@ -47,67 +47,67 @@
 
 <br>
 
-[🌐 Website](https://www.winner-systems.com) • 
-[📧 Contacto](mailto:contacto@winner-systems.com) • 
-[📱 WhatsApp](https://wa.me/51931741355) • 
-[📖 Documentación](https://docs.winner-systems.com)
+[Website](https://www.winner-systems.com) • 
+[Contacto](mailto:contacto@winner-systems.com) • 
+[WhatsApp](https://wa.me/51931741355) • 
+[Documentación](https://docs.winner-systems.com)
 
 </div>
 
 ---
 
-## 📋 Tabla de Contenidos
+## Tabla de Contenidos
 
-- [Acerca del Proyecto](#-acerca-del-proyecto)
-- [Problema y Solución](#-problema-y-solución)
-- [Arquitectura del Sistema](#️-arquitectura-del-sistema)
-- [Stack Tecnológico](#-stack-tecnológico)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Inicio Rápido](#-inicio-rápido)
-- [Módulos del Sistema](#-módulos-del-sistema)
-- [Roadmap](#️-roadmap)
-- [Contribuir](#-contribuir)
-- [Licencia](#-licencia)
-- [Equipo](#-equipo)
-- [Contacto](#-contacto)
+- [Acerca del Proyecto](#acerca-del-proyecto)
+- [Problema y Solución](#problema-y-solución)
+- [Arquitectura del Sistema](#arquitectura-del-sistema)
+- [Stack Tecnológico](#stack-tecnológico)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Inicio Rápido](#inicio-rápido)
+- [Módulos del Sistema](#módulos-del-sistema)
+- [Roadmap](#roadmap)
+- [Contribuir](#contribuir)
+- [Licencia](#licencia)
+- [Equipo](#equipo)
+- [Contacto](#contacto)
 
 ---
 
-## 📖 Acerca del Proyecto
+## Acerca del Proyecto
 
 **Smart Parking Platform** es un **proyecto de tesis** desarrollado por Winner Systems Corporation S.A.C. que implementa un sistema integral de gestión de estacionamientos inteligentes para la ciudad de Huaraz, Ancash, Perú, aplicando tecnologías de vanguardia:
 
-- 🌐 **Internet of Things (IoT)** - Sensores inteligentes y monitoreo en tiempo real
-- 🤖 **Artificial Intelligence (AI)** - Predicción de disponibilidad y optimización
-- ☁️ **Cloud Computing** - Escalabilidad y alta disponibilidad
+- **Internet of Things (IoT)** - Sensores inteligentes y monitoreo en tiempo real
+- **Artificial Intelligence (AI)** - Predicción de disponibilidad y optimización
+- **Cloud Computing** - Escalabilidad y alta disponibilidad
 
-### 🎯 Objetivo
+### Objetivo
 
 Transformar la gestión de estacionamientos municipales mediante una solución tecnológica integral que mejore la experiencia del ciudadano, optimice el uso de espacios públicos y genere datos accionables para la toma de decisiones urbanas.
 
-### ✨ Características Principales
+### Características Principales
 
-✅ **Monitoreo en Tiempo Real** - Estado de ocupación de espacios de estacionamiento  
-✅ **Gestión de Pagos** - Pagos digitales seguros y automatizados  
-✅ **Aplicación Móvil** - App nativa para iOS y Android con Flutter  
-✅ **Dashboard Web** - Panel administrativo completo para autoridades  
-✅ **Analytics & BI** - Reportes y análisis predictivo con IA  
-✅ **Sensores IoT** - Hardware propio para detección vehicular  
-✅ **API REST** - Arquitectura de microservicios escalable  
+**Monitoreo en Tiempo Real** - Estado de ocupación de espacios de estacionamiento  
+**Gestión de Pagos** - Pagos digitales seguros y automatizados  
+**Aplicación Móvil** - App nativa para iOS y Android con Flutter  
+**Dashboard Web** - Panel administrativo completo para autoridades  
+**Analytics & BI** - Reportes y análisis predictivo con IA  
+**Sensores IoT** - Hardware propio para detección vehicular  
+**API REST** - Arquitectura de microservicios escalable  
 
 ---
 
-## 🎯 Problema y Solución
+## Problema y Solución
 
 ### Problema Identificado
 
 En Huaraz, como en muchas ciudades peruanas de rápido crecimiento:
 
-- 🚫 **Congestión vehicular** en zonas céntricas
-- ⏱️ **Pérdida de tiempo** buscando estacionamiento (promedio: 15-20 minutos)
-- 💰 **Ineficiencia en recaudación** municipal
-- 📊 **Falta de datos** para planificación urbana
-- 🚗 **Uso informal** de espacios públicos
+- **Congestión vehicular** en zonas céntricas
+- **Pérdida de tiempo** buscando estacionamiento (promedio: 15-20 minutos)
+- **Ineficiencia en recaudación** municipal
+- **Falta de datos** para planificación urbana
+- **Uso informal** de espacios públicos
 
 ### Nuestra Solución
 
@@ -121,13 +121,13 @@ Una plataforma tecnológica integral que:
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## Arquitectura del Sistema
 
 
 
 ---
 
-## 🚀 Stack Tecnológico
+## Stack Tecnológico
 
 ### Frontend
 
@@ -186,17 +186,17 @@ Una plataforma tecnológica integral que:
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 system-smart-parking/
 │
-├── 📱 frontend/                  # Aplicación web Angular
+├── frontend/                  # Aplicación web Angular
 │   ├── src/
 │   ├── package.json
 │   └── README.md                # → Documentación del frontend
 │
-├── ⚙️ backend/                   # Servicios backend
+├── backend/                   # Servicios backend
 │   ├── infrastructure/          # Servicios de infraestructura
 │   │   ├── config-server/      # Puerto 8888
 │   │   ├── eureka-server/      # Puerto 8761
@@ -208,41 +208,41 @@ system-smart-parking/
 │   │   └── ia-service/         # Analytics y ML (Python)
 │   └── README.md               # → Documentación del backend
 │
-├── 📱 mobile/                    # App móvil Flutter
+├── mobile/                    # App móvil Flutter
 │   ├── lib/
 │   ├── pubspec.yaml
 │   └── README.md               # → Documentación de la app móvil
 │
-├── 🤖 ai/                        # Modelos de IA/ML
+├── ai/                        # Modelos de IA/ML
 │   ├── models/                 # Modelos entrenados
 │   ├── notebooks/              # Jupyter notebooks
 │   ├── training/               # Scripts de entrenamiento
 │   └── README.md               # → Documentación de IA/ML
 │
-├── 🌐 iot/                       # Código de dispositivos IoT
+├── iot/                       # Código de dispositivos IoT
 │   ├── arduino/                # Código Arduino
 │   ├── esp32/                  # Código ESP32
 │   ├── raspberry-pi/           # Scripts Raspberry Pi
 │   └── README.md               # → Documentación IoT
 │
-├── ☁️ cloud/                     # Configuración cloud
+├── cloud/                     # Configuración cloud
 │   ├── aws/                    # Terraform AWS
 │   ├── kubernetes/             # Manifiestos K8s
 │   ├── docker/                 # Dockerfiles
 │   └── README.md               # → Documentación cloud
 │
-├── 🗄️ database/                  # Migraciones y seeds
+├── database/                  # Migraciones y seeds
 │   ├── migrations/
 │   ├── seeds/
 │   └── README.md               # → Documentación de BD
 │
-├── 📚 docs/                      # Documentación del proyecto
+├── docs/                      # Documentación del proyecto
 │   ├── api/                    # Documentación API
 │   ├── architecture/           # Diagramas de arquitectura
 │   ├── user-guides/            # Guías de usuario
 │   └── thesis/                 # Documento de tesis
 │
-├── 🧪 tests/                     # Tests E2E
+├── tests/                     # Tests E2E
 │   ├── e2e/
 │   ├── integration/
 │   └── performance/
@@ -254,7 +254,7 @@ system-smart-parking/
 
 ---
 
-## ⚡ Inicio Rápido
+## Inicio Rápido
 
 ### Prerrequisitos
 
@@ -335,10 +335,10 @@ docker-compose down
 
 ---
 
-## 🎨 Módulos del Sistema
+## Módulos del Sistema
 
-### 🌐 Frontend Web (Angular)
-> **Estado:** ✅ Implementado  
+### Frontend Web (Angular)
+> **Estado:** Implementado  
 > Dashboard administrativo completo para operadores y autoridades municipales.  
 > [Ver documentación →](frontend/README.md)
 
@@ -351,21 +351,21 @@ docker-compose down
 
 ---
 
-### ⚙️ Backend Services (Java/Spring Boot)
-> **Estado:** 🔄 En desarrollo (Infraestructura completa)  
+### Backend Services (Java/Spring Boot)
+> **Estado:** En desarrollo (Infraestructura completa)  
 > Arquitectura de microservicios con Spring Cloud.  
 > [Ver documentación →](backend/README.md)
 
 **Servicios Implementados:**
-- ✅ Config Server (Puerto 8888)
-- ✅ Eureka Server (Puerto 8761)
-- ✅ API Gateway (Puerto 8080)
-- ✅ Auth Service (Puerto 8081)
-- ✅ Parking Service (Puerto 8082)
+- Config Server (Puerto 8888)
+- Eureka Server (Puerto 8761)
+- API Gateway (Puerto 8080)
+- Auth Service (Puerto 8081)
+- Parking Service (Puerto 8082)
 ---
 
-### 📱 Mobile App (Flutter)
-> **Estado:** 📋 Planificado  
+### Mobile App (Flutter)
+> **Estado:** Planificado  
 > Aplicación móvil para ciudadanos (iOS y Android).  
 > [Ver documentación →](mobile/README.md)
 
@@ -379,8 +379,8 @@ docker-compose down
 
 ---
 
-### 🤖 AI/ML Module (Python)
-> **Estado:** 📋 Planificado  
+### AI/ML Module (Python)
+> **Estado:** Planificado  
 > Inteligencia artificial y machine learning.  
 > [Ver documentación →](ai/README.md)
 
@@ -393,8 +393,8 @@ docker-compose down
 
 ---
 
-### 🌐 IoT Module (Arduino/ESP32)
-> **Estado:** 📋 Planificado  
+### IoT Module (Arduino/ESP32)
+> **Estado:** Planificado  
 > Hardware y firmware para sensores inteligentes.  
 > [Ver documentación →](iot/README.md)
 
@@ -406,8 +406,8 @@ docker-compose down
 
 ---
 
-### ☁️ Cloud Infrastructure (AWS/Azure)
-> **Estado:** 📋 Planificado  
+### Cloud Infrastructure (AWS/Azure)
+> **Estado:** Planificado  
 > Despliegue y configuración cloud.  
 > [Ver documentación →](cloud/README.md)
 
@@ -419,8 +419,8 @@ docker-compose down
 
 ---
 
-### 🗄️ Database (PostgreSQL/MySQL/MongoDB)
-> **Estado:** 📋 Planificado  
+### Database (PostgreSQL/MySQL/MongoDB)
+> **Estado:** Planificado  
 > Esquemas de bases de datos y migraciones.  
 > [Ver documentación →](database/README.md)
 
@@ -442,15 +442,15 @@ chore: actualización de dependencias
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Distribuido bajo la Licencia MIT. Ver [`LICENSE`](LICENSE) para más información.
 
 ---
 
-## 👥 Equipo
+## Equipo
 
-### 🎓 Tesista Principal
+### Tesista Principal
 
 <div align="center">
 <img src="https://github.com/edwinyoner.png" width="100" height="100" style="border-radius: 50%">
@@ -466,7 +466,7 @@ _Full Stack Developer_
 
 </div>
 
-### 🏛️ Institución Académica
+### Institución Académica
 
 **Universidad Nacional Santiago Antúnez de Mayolo (UNASAM)**  
 Facultad De Ciencias  
@@ -475,7 +475,7 @@ Huaraz, Ancash, Perú
 
 ---
 
-## 📞 Contacto
+## Contacto
 
 ### Winner Systems Corporation S.A.C.
 
@@ -486,10 +486,10 @@ Huaraz, Ancash, Perú
 [![WhatsApp](https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/51931741355)
 [![Location](https://img.shields.io/badge/Location-Huaraz,_Perú-red?style=for-the-badge&logo=google-maps&logoColor=white)](https://maps.google.com)
 
-**📍 Dirección:** Jangas, Huaraz, Áncash, Perú  
-**📱 Teléfono:** +51 931 741 355  
-**📧 Email:** contacto@winner-systems.com  
-**🌐 Web:** [www.winner-systems.com](https://www.winner-systems.com)
+**Dirección:** Jangas, Huaraz, Áncash, Perú  
+**Teléfono:** +51 931 741 355  
+**Email:** contacto@winner-systems.com  
+**Web:** [www.winner-systems.com](https://www.winner-systems.com)
 
 </div>
 
@@ -506,7 +506,7 @@ Huaraz, Ancash, Perú
 
 ---
 
-## 📊 Estado del Proyecto
+## Estado del Proyecto
 
 <div align="center">
 
@@ -520,11 +520,11 @@ Huaraz, Ancash, Perú
 
 <div align="center">
 
-**Hecho con ❤️ en Perú 🇵🇪**
+**Hecho con en Perú**
 
 [![Winner Systems](https://img.shields.io/badge/Winner_Systems-0066CC?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiAyMkgyMkwxMiAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+&logoColor=white)](https://www.winner-systems.com)
 
-**Construyendo el futuro de las ciudades inteligentes** 🌆
+**Construyendo el futuro de las ciudades inteligentes**
 
 _"Innovación al servicio de la comunidad"_
 

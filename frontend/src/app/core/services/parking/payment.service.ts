@@ -7,7 +7,7 @@ import { Observable, throwError } from 'rxjs';
 /**
  * Servicio para gestión de PAGOS.
  * 
- * ⚠️ IMPORTANTE: ESTE SERVICIO NO FUNCIONA ACTUALMENTE
+ * IMPORTANTE: ESTE SERVICIO NO FUNCIONA ACTUALMENTE
  * 
  * El backend NO tiene endpoints REST para Payment.
  * Payment se crea automáticamente en TransactionService.processPayment().
@@ -26,7 +26,7 @@ export class PaymentService {
   
   constructor(private http: HttpClient) {
     console.warn(
-      '⚠️ PaymentService: Backend NO tiene endpoints REST para Payment. ' +
+      'PaymentService: Backend NO tiene endpoints REST para Payment. ' +
       'Usa TransactionService.getById() para obtener payment info.'
     );
   }
@@ -34,7 +34,7 @@ export class PaymentService {
   // ========================= FUTURO - NO IMPLEMENTADO =========================
 
   /**
-   * ⚠️ ENDPOINT NO EXISTE EN BACKEND
+   * ENDPOINT NO EXISTE EN BACKEND
    * Usar TransactionService.getById() → response.payment
    */
   getById(id: number): Observable<never> {
@@ -44,7 +44,7 @@ export class PaymentService {
   }
 
   /**
-   * ⚠️ ENDPOINT NO EXISTE EN BACKEND
+   * ENDPOINT NO EXISTE EN BACKEND
    * Usar TransactionService.getById() → response.payment
    */
   getByTransaction(transactionId: number): Observable<never> {

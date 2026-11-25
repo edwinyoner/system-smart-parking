@@ -156,7 +156,7 @@ func (h *CaptureHandler) CreateCapture(c *gin.Context) {
 		CaptureID:        captureID,
 		DeviceID:         req.DeviceID,
 		ParkingID:        req.ParkingID,
-		CaptureType:      models.CaptureType(req.CaptureType), // ✅ CORREGIDO: Cast a models.CaptureType
+		CaptureType:      models.CaptureType(req.CaptureType), // Cast a models.CaptureType
 		ImageURL:         imageURL,
 		ProcessingStatus: models.ProcessingStatusPending,
 	}
@@ -293,7 +293,7 @@ func (h *CaptureHandler) GetCaptureStatus(c *gin.Context) {
 	}
 
 	if capture.ProcessingStatus == models.ProcessingStatusCompleted {
-		// ✅ CORREGIDO: Dereferencia punteros con verificación de nil
+		// Dereferencia punteros con verificación de nil
 		if capture.TransactionID != nil {
 			response.TransactionID = *capture.TransactionID
 		}
@@ -305,7 +305,7 @@ func (h *CaptureHandler) GetCaptureStatus(c *gin.Context) {
 		}
 		response.Message = "Captura procesada exitosamente"
 	} else if capture.ProcessingStatus == models.ProcessingStatusFailed {
-		// ✅ CORREGIDO: Dereferencia puntero con verificación de nil
+		// Dereferencia puntero con verificación de nil
 		if capture.ErrorMessage != nil {
 			response.Message = *capture.ErrorMessage
 		} else {

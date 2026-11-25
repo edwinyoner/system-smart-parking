@@ -56,16 +56,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
          FilterChain filterChain) throws ServletException, IOException {
 
       System.out.println("========== JWT FILTER DEBUG ==========");
-      System.out.println("🌐 Request URI: " + request.getRequestURI());
-      System.out.println("🔧 Method: " + request.getMethod());
+      System.out.println("Request URI: " + request.getRequestURI());
+      System.out.println("Method: " + request.getMethod());
 
       // 1. Extraer header Authorization
       final String authHeader = request.getHeader("Authorization");
-      System.out.println("🔐 Auth Header: " + authHeader);
+      System.out.println("Auth Header: " + authHeader);
 
       // Si no hay header o no empieza con "Bearer ", continuar sin autenticar
       if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-         System.out.println("❌ No Bearer token found");
+         System.out.println("No Bearer token found");
          System.out.println("======================================");
          filterChain.doFilter(request, response);
          return;
@@ -74,16 +74,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       try {
          // 2. Extraer token (quitar "Bearer ")
          final String jwt = authHeader.substring(7);
-         System.out.println("🎫 JWT Token: " + jwt.substring(0, Math.min(20, jwt.length())) + "...");
+         System.out.println("JWT Token: " + jwt.substring(0, Math.min(20, jwt.length())) + "...");
 
          // 3. Extraer email del token
          final String userEmail = jwtService.extractEmail(jwt);
-         System.out.println("📧 Email from token: " + userEmail);
+         System.out.println("Email from token: " + userEmail);
 
          // 4. Si hay email y NO hay autenticación previa
          if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            System.out.println("👤 Loading UserDetails for: " + userEmail);
+            System.out.println("Loading UserDetails for: " + userEmail);
 
             // 5. Cargar detalles del usuario
             // La firma ya se comprobó al extraer el email: si no existe, fue dado de baja
@@ -97,7 +97,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                      : SessionEndReason.ACCOUNT_DELETED);
                throw e;
             }
-            System.out.println("✅ UserDetails loaded: " + userDetails.getClass().getName());
+            System.out.println("UserDetails loaded: " + userDetails.getClass().getName());
             System.out.println("   - Username: " + userDetails.getUsername());
             System.out.println("   - Authorities: " + userDetails.getAuthorities());
 
@@ -111,7 +111,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 7. Validar token. Desactivar la cuenta, cambiar la contraseña o quitar el rol cierra la sesión
             if (jwtService.validateToken(jwt) && isSessionActive(userDetails, jwt) && hasRole) {
-               System.out.println("✅ Token is valid");
+               System.out.println("Token is valid");
 
                // Crear autenticación
                UsernamePasswordAuthenticationToken authToken =
@@ -127,21 +127,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                // 8. Establecer autenticación en el contexto de Spring Security
                SecurityContextHolder.getContext().setAuthentication(authToken);
-               System.out.println("✅ Authentication set in SecurityContext");
+               System.out.println("Authentication set in SecurityContext");
             } else {
                request.setAttribute(SessionEndReason.REQUEST_ATTRIBUTE, !userDetails.isEnabled()
                      ? SessionEndReason.ACCOUNT_DISABLED
                      : isSessionActive(userDetails, jwt)
                      ? SessionEndReason.ROLE_REMOVED
                      : SessionEndReason.PASSWORD_CHANGED);
-               System.out.println("❌ Token is NOT valid or account is disabled");
+               System.out.println("Token is NOT valid or account is disabled");
             }
          } else {
-            System.out.println("⚠️ Email is null or authentication already exists");
+            System.out.println("Email is null or authentication already exists");
          }
 
       } catch (Exception e) {
-         System.err.println("❌ Error processing JWT: " + e.getMessage());
+         System.err.println("Error processing JWT: " + e.getMessage());
          e.printStackTrace();
       }
 

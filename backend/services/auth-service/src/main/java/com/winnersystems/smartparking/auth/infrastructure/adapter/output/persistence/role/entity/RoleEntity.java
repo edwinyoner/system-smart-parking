@@ -32,7 +32,7 @@ public class RoleEntity {
 
    // ========== RELACIONES ==========
 
-   @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})  // ✅ CAMBIO AQUÍ
+   @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
    @JoinTable(
          name = "role_permissions",
          joinColumns = @JoinColumn(name = "role_id"),

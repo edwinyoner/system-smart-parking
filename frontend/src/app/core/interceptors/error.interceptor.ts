@@ -28,7 +28,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.error instanceof ErrorEvent) {
         // Error del lado del cliente (network error)
         errorMessage = `Error de conexión: ${error.error.message}`;
-        console.error('❌ Error del cliente:', error.error);
+        console.error('Error del cliente:', error.error);
       } else {
         // Error del lado del servidor
         switch (error.status) {
@@ -41,42 +41,42 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           case 403:
             // Prohibido - Sin permisos
             errorMessage = error.error?.message || 'No tienes permisos para realizar esta acción.';
-            console.warn('🔒 Acceso denegado:', errorMessage);
+            console.warn('Acceso denegado:', errorMessage);
             break;
 
           case 404:
             // No encontrado
             errorMessage = error.error?.message || 'Recurso no encontrado.';
-            console.warn('🔍 Recurso no encontrado:', req.url);
+            console.warn('Recurso no encontrado:', req.url);
             break;
 
           case 422:
             // Error de validación
             errorMessage = error.error?.message || 'Los datos enviados no son válidos.';
-            console.warn('⚠️ Error de validación:', error.error);
+            console.warn('Error de validación:', error.error);
             break;
 
           case 500:
             // Error del servidor
             errorMessage = error.error?.message || 'Error interno del servidor. Por favor, intenta más tarde.';
-            console.error('💥 Error del servidor:', error);
+            console.error('Error del servidor:', error);
             break;
 
           case 503:
             // Servicio no disponible
             errorMessage = 'Servicio temporalmente no disponible. Por favor, intenta más tarde.';
-            console.error('🚫 Servicio no disponible');
+            console.error('Servicio no disponible');
             break;
 
           default:
             // Otros errores
             errorMessage = error.error?.message || `Error ${error.status}: ${error.statusText}`;
-            console.error(`❌ Error HTTP ${error.status}:`, error);
+            console.error(`Error HTTP ${error.status}:`, error);
         }
       }
 
       if (environment.features.showDebugInfo) {
-        console.error('🔴 ErrorInterceptor:', {
+        console.error('ErrorInterceptor:', {
           status: error.status,
           message: errorMessage,
           url: req.url,
@@ -110,7 +110,7 @@ function handleUnauthorized(
     return;
   }
 
-  console.warn('🔒 Token inválido o expirado, cerrando sesión...');
+  console.warn('Token inválido o expirado, cerrando sesión...');
   
   // Limpiar tokens y datos del usuario
   tokenService.clearTokens();

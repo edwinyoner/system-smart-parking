@@ -178,7 +178,7 @@ export class AboutComponent implements OnInit {
     }
   ];
 
-  // ⭐ ACTUALIZADO: Microservicios con MongoDB en ia-service
+  // Microservicios con MongoDB en ia-service
   microservices: Microservice[] = [
     {
       name: 'Auth Service',
@@ -213,16 +213,16 @@ export class AboutComponent implements OnInit {
     {
       name: 'IA Service',
       tech: 'Python 3.11 + FastAPI',
-      database: 'MongoDB 7.x (NoSQL)', // ⭐ ACTUALIZADO
+      database: 'MongoDB 7.x (NoSQL)',
       port: 8084,
       status: 'En Desarrollo',
-      description: 'Reconocimiento con YOLOv8 + EasyOCR. Analytics ML, métricas de confianza y mejora continua del modelo', // ⭐ ACTUALIZADO
+      description: 'Reconocimiento con YOLOv8 + EasyOCR. Analytics ML, métricas de confianza y mejora continua del modelo',
       icon: this.icons.brain,
       color: 'warning'
     }
   ];
 
-  // ⭐ ACTUALIZADO: Características con Mejora Continua de IA
+  // Características con Mejora Continua de IA
   features: Feature[] = [
     {
       title: '3 Canales de Cliente',
@@ -238,7 +238,7 @@ export class AboutComponent implements OnInit {
     },
     {
       title: 'Arquitectura de Microservicios',
-      description: '4 servicios independientes con 4 bases de datos (PostgreSQL, Oracle, MySQL, MongoDB). Diversificación tecnológica completa: 3 RDBMS + 1 NoSQL.', // ⭐ ACTUALIZADO
+      description: '4 servicios independientes con 4 bases de datos (PostgreSQL, Oracle, MySQL, MongoDB). Diversificación tecnológica completa: 3 RDBMS + 1 NoSQL.',
       icon: this.icons.network,
       color: 'success'
     },
@@ -249,8 +249,8 @@ export class AboutComponent implements OnInit {
       color: 'danger'
     },
     {
-      title: 'IA con Mejora Continua', // ⭐ ACTUALIZADO
-      description: 'YOLOv8 + EasyOCR con MongoDB para analytics. Guarda métricas, detecta errores comunes (O vs 0, I vs 1) y genera datasets para reentrenamiento con placas peruanas reales.', // ⭐ ACTUALIZADO
+      title: 'IA con Mejora Continua',
+      description: 'YOLOv8 + EasyOCR con MongoDB para analytics. Guarda métricas, detecta errores comunes (O vs 0, I vs 1) y genera datasets para reentrenamiento con placas peruanas reales.',
       icon: this.icons.brain,
       color: 'warning'
     },
@@ -262,7 +262,7 @@ export class AboutComponent implements OnInit {
     }
   ];
 
-  // ⭐ ACTUALIZADO: Stack tecnológico con MongoDB
+  // Stack tecnológico con MongoDB
   technologies: Technology[] = [
     // Frontend & Clientes
     {
@@ -324,7 +324,7 @@ export class AboutComponent implements OnInit {
       description: 'ia-service con FastAPI + YOLO'
     },
     
-    // ⭐ ACTUALIZADO: Bases de Datos (4 diferentes: 3 SQL + 1 NoSQL)
+    // Bases de Datos (4 diferentes: 3 SQL + 1 NoSQL)
     {
       name: 'Oracle Database',
       category: 'Base de Datos SQL',
@@ -350,7 +350,7 @@ export class AboutComponent implements OnInit {
       description: 'iot-service (dispositivos IoT)'
     },
     {
-      name: 'MongoDB', // ⭐ NUEVO
+      name: 'MongoDB',
       category: 'Base de Datos NoSQL',
       icon: this.icons.database,
       version: '7.x',
@@ -401,28 +401,28 @@ export class AboutComponent implements OnInit {
     }
   ];
 
-  // ⭐ ACTUALIZADO: Estadísticas (ahora son 4 BD)
+  // Estadísticas (ahora son 4 BD)
   projectStats = [
     { label: 'Canales de Cliente', value: 3, icon: this.icons.mobile, color: 'primary' },
     { label: 'Microservicios', value: 4, icon: this.icons.server, color: 'info' },
-    { label: 'Bases de Datos', value: 4, icon: this.icons.database, color: 'success' }, // ⭐ CAMBIADO de 3 a 4
+    { label: 'Bases de Datos', value: 4, icon: this.icons.database, color: 'success' },
     { label: 'Componentes Angular', value: 90, icon: this.icons.angular, color: 'danger' },
-    { label: 'Endpoints API', value: 155, icon: this.icons.code, color: 'warning' }, // ⭐ ACTUALIZADO
-    { label: 'Tablas de BD', value: 35, icon: this.icons.database, color: 'purple' } // ⭐ ACTUALIZADO (32 + 3 colecciones MongoDB)
+    { label: 'Endpoints API', value: 155, icon: this.icons.code, color: 'warning' },
+    { label: 'Tablas de BD', value: 35, icon: this.icons.database, color: 'purple' } // ACTUALIZADO (32 + 3 colecciones MongoDB)
   ];
 
-  // ⭐ ACTUALIZADO: Fases del proyecto con MongoDB
+  // Fases del proyecto con MongoDB
   projectPhases = [
     {
       phase: 'Fase 1 - Core System',
       status: 'Completado',
       progress: 100,
       items: [
-        '✅ auth-service: JWT, roles, permisos, usuarios (PostgreSQL)',
-        '✅ parking-service Backend: 15 módulos de dominio completos (Oracle)',
-        '✅ Frontend Angular 20: Dashboard + 14/15 módulos operativos',
-        '✅ Control de acceso por operador con assignedParkings',
-        '✅ Infrastructure: Gateway, Config Server, Eureka Server'
+        { text: 'auth-service: JWT, roles, permisos, usuarios (PostgreSQL)', done: true },
+        { text: 'parking-service Backend: 15 módulos de dominio completos (Oracle)', done: true },
+        { text: 'Frontend Angular 20: Dashboard + 14/15 módulos operativos', done: true },
+        { text: 'Control de acceso por operador con assignedParkings', done: true },
+        { text: 'Infrastructure: Gateway, Config Server, Eureka Server', done: true }
       ]
     },
     {
@@ -430,11 +430,11 @@ export class AboutComponent implements OnInit {
       status: 'En Progreso',
       progress: 93,
       items: [
-        '✅ Parking, Zone, Space, Shift, Rate, ParkingShiftRate',
-        '✅ DocumentType, PaymentType, OperatorAssignment',
-        '✅ Transaction (Entry, Exit, Payment, List, Detail)',
-        '✅ Customer, Vehicle, CustomerVehicle',
-        '⏳ Infraction (pendiente - último módulo)'
+        { text: 'Parking, Zone, Space, Shift, Rate, ParkingShiftRate', done: true },
+        { text: 'DocumentType, PaymentType, OperatorAssignment', done: true },
+        { text: 'Transaction (Entry, Exit, Payment, List, Detail)', done: true },
+        { text: 'Customer, Vehicle, CustomerVehicle', done: true },
+        { text: 'Infraction (pendiente - último módulo)', done: false }
       ]
     },
     {
@@ -442,12 +442,12 @@ export class AboutComponent implements OnInit {
       status: 'Planificado',
       progress: 0,
       items: [
-        '⏳ iot-service: Go + MySQL + REST API + WebSocket',
-        '⏳ ia-service: Python + FastAPI + YOLOv8 + EasyOCR + MongoDB', // ⭐ ACTUALIZADO
-        '⏳ MongoDB Collections: plate_recognitions, model_metrics, training_datasets', // ⭐ NUEVO
-        '⏳ Analytics ML: confianza promedio, errores comunes, mejora continua', // ⭐ NUEVO
-        '⏳ Event-driven con RabbitMQ (async processing)',
-        '⏳ Endpoint público para ESP32 Displays LED'
+        { text: 'iot-service: Go + MySQL + REST API + WebSocket', done: false },
+        { text: 'ia-service: Python + FastAPI + YOLOv8 + EasyOCR + MongoDB', done: false },
+        { text: 'MongoDB Collections: plate_recognitions, model_metrics, training_datasets', done: false },
+        { text: 'Analytics ML: confianza promedio, errores comunes, mejora continua', done: false },
+        { text: 'Event-driven con RabbitMQ (async processing)', done: false },
+        { text: 'Endpoint público para ESP32 Displays LED', done: false }
       ]
     },
     {
@@ -455,11 +455,11 @@ export class AboutComponent implements OnInit {
       status: 'Planificado',
       progress: 0,
       items: [
-        '⏳ Flutter 3.x: UI/UX diseño para iOS + Android',
-        '⏳ Mapa interactivo con disponibilidad en tiempo real',
-        '⏳ Integración Google Maps + WebSocket',
-        '⏳ Filtros por cercanía y tipo de vehículo',
-        '⏳ (Futuro) Login ciudadano + reservas + pagos'
+        { text: 'Flutter 3.x: UI/UX diseño para iOS + Android', done: false },
+        { text: 'Mapa interactivo con disponibilidad en tiempo real', done: false },
+        { text: 'Integración Google Maps + WebSocket', done: false },
+        { text: 'Filtros por cercanía y tipo de vehículo', done: false },
+        { text: '(Futuro) Login ciudadano + reservas + pagos', done: false }
       ]
     },
     {
@@ -467,11 +467,11 @@ export class AboutComponent implements OnInit {
       status: 'Planificado',
       progress: 0,
       items: [
-        '⏳ ESP32-CAM (2-3 unidades): Firmware captura automática',
-        '⏳ ESP32 Displays LED (3-5 unidades): Firmware consulta backend',
-        '⏳ Paneles LED 64x32 en avenidas principales',
-        '⏳ HC-SR04: Sensores de ocupación por espacio',
-        '⏳ Instalación piloto en 1 parking de Huaraz'
+        { text: 'ESP32-CAM (2-3 unidades): Firmware captura automática', done: false },
+        { text: 'ESP32 Displays LED (3-5 unidades): Firmware consulta backend', done: false },
+        { text: 'Paneles LED 64x32 en avenidas principales', done: false },
+        { text: 'HC-SR04: Sensores de ocupación por espacio', done: false },
+        { text: 'Instalación piloto en 1 parking de Huaraz', done: false }
       ]
     }
   ];

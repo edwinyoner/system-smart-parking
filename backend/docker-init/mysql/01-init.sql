@@ -14,7 +14,7 @@ CREATE USER IF NOT EXISTS 'iot_user'@'%' IDENTIFIED BY 'iot_password';
 GRANT ALL PRIVILEGES ON iot_service_db.* TO 'iot_user'@'%';
 
 -- Permitir que root se conecte desde cualquier host (solo para desarrollo)
--- ⚠️ En producción, esto NO se debe hacer
+-- En producción, esto NO se debe hacer
 CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY 'mysql';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
 

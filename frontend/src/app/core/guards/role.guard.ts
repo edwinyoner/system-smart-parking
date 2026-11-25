@@ -36,7 +36,7 @@ export const RoleGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
   // pero por seguridad verificamos
   if (!currentUser) {
     if (environment.features.showDebugInfo) {
-      console.error('❌ RoleGuard: No hay usuario autenticado');
+      console.error('RoleGuard: No hay usuario autenticado');
     }
     router.navigate(['/login']);
     return false;
@@ -61,7 +61,7 @@ export const RoleGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
     
     if (!hasRole) {
       if (environment.features.showDebugInfo) {
-        console.warn(`🔒 RoleGuard: Usuario no tiene ninguno de los roles requeridos: ${requiredRoles.join(', ')}`);
+        console.warn(`RoleGuard: Usuario no tiene ninguno de los roles requeridos: ${requiredRoles.join(', ')}`);
       }
       handleUnauthorizedAccess(router, route);
       return false;
@@ -83,7 +83,7 @@ export const RoleGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
     if (!hasPermission) {
       if (environment.features.showDebugInfo) {
         const operator = requireAllPermissions ? 'todos' : 'al menos uno de';
-        console.warn(`🔒 RoleGuard: Usuario no tiene ${operator} los permisos requeridos: ${requiredPermissions.join(', ')}`);
+        console.warn(`RoleGuard: Usuario no tiene ${operator} los permisos requeridos: ${requiredPermissions.join(', ')}`);
       }
       handleUnauthorizedAccess(router, route);
       return false;

@@ -53,7 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String email = claims.getSubject();
             String role = claims.get("role", String.class);
 
-            log.debug("🔐 JWT válido: userId={}, email={}, role={}", userId, email, role);
+            log.debug("JWT válido: userId={}, email={}, role={}", userId, email, role);
 
             // 4. Crear authorities (roles y permisos)
             Collection<GrantedAuthority> authorities =
