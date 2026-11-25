@@ -45,6 +45,15 @@ public interface RolePersistencePort {
     */
    Optional<Role> findById(Long id);
 
+   /** Roles eliminados (papelera) */
+   List<Role> findAllDeleted();
+
+   /** Busca un rol SOLO si está eliminado. Se usa únicamente para restaurarlo */
+   Optional<Role> findDeletedById(Long id);
+
+   /** Nombre sin distinguir mayúsculas, INCLUIDOS los eliminados */
+   Optional<Role> findByNameIncludingDeleted(String name);
+
    /**
     * Busca un rol por su nombre único.
     *

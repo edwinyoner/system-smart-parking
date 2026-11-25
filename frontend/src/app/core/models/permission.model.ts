@@ -15,26 +15,6 @@ export interface Permission {
 }
 
 /**
- * DTO para crear un nuevo permiso
- */
-export interface CreatePermissionRequest {
-  name: string;
-  description: string;
-  module: string;        // Cambiado a requerido (sin ?)
-  status: boolean;       
-}
-
-/**
- * DTO para actualizar un permiso existente
- */
-export interface UpdatePermissionRequest {
-  name?: string;
-  description?: string;
-  status?: boolean;
-  module?: string;
-}
-
-/**
  * Filtros para búsqueda de permisos
  */
 export interface PermissionFilters {

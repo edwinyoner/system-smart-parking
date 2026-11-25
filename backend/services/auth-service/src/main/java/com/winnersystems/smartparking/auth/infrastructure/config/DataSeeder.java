@@ -102,10 +102,8 @@ public class DataSeeder implements CommandLineRunner {
             {"roles.delete", "Eliminar roles del sistema"},
 
             // ========== GESTIÓN DE PERMISOS ==========
-            {"permissions.create", "Crear nuevos permisos"},
+            // Solo lectura: los permisos nacen aquí, en el código, y no se crean ni editan desde la interfaz
             {"permissions.read", "Ver información de permisos"},
-            {"permissions.update", "Actualizar permisos existentes"},
-            {"permissions.delete", "Eliminar permisos del sistema"},
 
             // ========== GESTIÓN DE ESTACIONAMIENTOS ==========
 

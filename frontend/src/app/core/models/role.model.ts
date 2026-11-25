@@ -13,6 +13,7 @@ export interface Role {
   userCount?: number; // Cantidad de usuarios con este rol
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;    // Solo viene con valor en la papelera
   createdBy?: string;
   updatedBy?: string;
 }
@@ -53,6 +54,7 @@ export interface UpdateRoleRequest {
 export interface RoleFilters {
   search?: string;
   status?: boolean;
+  deleted?: boolean;            // true = papelera (solo ADMIN activo)
   page?: number;
   size?: number;
   sortBy?: string;
