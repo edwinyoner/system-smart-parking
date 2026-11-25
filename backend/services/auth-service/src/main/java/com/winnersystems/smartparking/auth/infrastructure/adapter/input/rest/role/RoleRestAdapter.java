@@ -49,10 +49,10 @@ public class RoleRestAdapter {
 
    /**
     * GET /roles?deleted=true - Papelera: roles eliminados.
-    * Solo quien puede restaurarlos (ADMIN activo) los ve.
+    * Solo la ve quien tiene el permiso roles.restore en su rol activo.
     */
    @GetMapping(params = "deleted=true")
-   @PreAuthorize(ACTIVE_ADMIN)
+   @PreAuthorize("hasAuthority('roles.restore')")
    public ResponseEntity<PagedResponse<RoleDto>> listDeletedRoles(
          @RequestParam(required = false) String search,
          @RequestParam(defaultValue = "0") int page,
@@ -134,10 +134,10 @@ public class RoleRestAdapter {
    }
 
    /**
-    * POST /roles/{id}/restore - Restaurar un rol eliminado
+    * POST /roles/{id}/restore - Restaurar un rol eliminado (permiso roles.restore)
     */
    @PostMapping("/{id}/restore")
-   @PreAuthorize(ACTIVE_ADMIN)
+   @PreAuthorize("hasAuthority('roles.restore')")
    public ResponseEntity<RoleDto> restoreRole(
          @PathVariable Long id,
          @AuthenticationPrincipal CustomUserDetails actor) {

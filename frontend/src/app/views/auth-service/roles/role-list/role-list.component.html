@@ -96,7 +96,8 @@
         }
       </strong>
       <div class="d-flex align-items-center gap-3 flex-wrap">
-        @if (isAdmin) {
+        <!-- La papelera exige roles.restore -->
+        @if (hasPermission('roles.restore') || showDeleted) {
           <div class="btn-group btn-group-sm" role="group" aria-label="Registros a mostrar">
             <button type="button" class="btn" [class.btn-success]="!showDeleted" [class.btn-outline-secondary]="showDeleted"
               [attr.aria-pressed]="!showDeleted" (click)="setShowDeleted(false)">

@@ -24,20 +24,22 @@ public interface ShiftRepository extends JpaRepository<ShiftEntity, Long> {
 
    Optional<ShiftEntity> findByCodeAndDeletedAtIsNull(String code);
 
+   Optional<ShiftEntity> findByIdAndDeletedAtIsNotNull(Long id);
+
    /** Incluye los eliminados: CODE es único en toda la tabla */
    Optional<ShiftEntity> findFirstByCodeIgnoreCase(String code);
 
    List<ShiftEntity> findByStatusTrueAndDeletedAtIsNullOrderByStartTimeAsc();
 
    /**
-    * Lista paginada de turnos no eliminados.
+    * Lista paginada de turnos vigentes o, con deleted = true, de la papelera.
     *
     * @param search texto en minúsculas, con %, _ y \\ escapados, a buscar en el nombre o el código (null = sin filtro)
     * @param status estado (null = todos)
     */
    @Query("""
          SELECT s FROM ShiftEntity s
-         WHERE s.deletedAt IS NULL
+         WHERE ((:deleted = false AND s.deletedAt IS NULL) OR (:deleted = true AND s.deletedAt IS NOT NULL))
            AND (:search IS NULL
                 OR LOWER(s.name) LIKE CONCAT('%', :search, '%') ESCAPE '\\'
                 OR LOWER(s.code) LIKE CONCAT('%', :search, '%') ESCAPE '\\')
@@ -45,5 +47,6 @@ public interface ShiftRepository extends JpaRepository<ShiftEntity, Long> {
          """)
    Page<ShiftEntity> search(@Param("search") String search,
                             @Param("status") Boolean status,
+                            @Param("deleted") boolean deleted,
                             Pageable pageable);
 }

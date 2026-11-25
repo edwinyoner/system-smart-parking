@@ -14,6 +14,8 @@ export interface Shift {
   createdBy?: number;
   updatedAt?: string;
   updatedBy?: number;
+  deletedAt?: string;          // solo en la papelera
+  deletedBy?: number;
 }
 
 export interface ShiftRequest {

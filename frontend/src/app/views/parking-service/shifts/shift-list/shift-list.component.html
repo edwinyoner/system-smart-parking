@@ -47,7 +47,7 @@
                             <i class="fas fa-search me-2"></i>Buscar
                         </label>
                         <input type="text" class="form-control" formControlName="search"
-                            placeholder="Buscar por nombre...">
+                            placeholder="Buscar por nombre o código...">
                     </div>
 
                     <div class="col-md-4">
@@ -69,10 +69,23 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>
-                <i class="fas fa-list me-2"></i>
-                Lista de Turnos ({{ totalItems }} turnos)
+                <i class="fas me-2" [class.fa-list]="!showDeleted" [class.fa-trash-restore]="showDeleted"></i>
+                {{ showDeleted ? 'Turnos Eliminados' : 'Lista de Turnos' }} ({{ totalItems }} {{ totalItems === 1 ? 'turno' : 'turnos' }})
             </strong>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- La papelera exige shifts.restore -->
+                @if (hasPermission('shifts.restore') || showDeleted) {
+                <div class="btn-group btn-group-sm me-2" role="group" aria-label="Vigentes o eliminados">
+                    <button type="button" class="btn" [class.btn-success]="!showDeleted" [class.btn-outline-secondary]="showDeleted"
+                        [attr.aria-pressed]="!showDeleted" (click)="setShowDeleted(false)">
+                        <i class="fas fa-clock me-1"></i>Vigentes
+                    </button>
+                    <button type="button" class="btn" [class.btn-danger]="showDeleted" [class.btn-outline-secondary]="!showDeleted"
+                        [attr.aria-pressed]="showDeleted" (click)="setShowDeleted(true)">
+                        <i class="fas fa-trash me-1"></i>Eliminados
+                    </button>
+                </div>
+                }
                 <label class="mb-0 me-2 fw-semibold">Mostrar:</label>
                 <select class="form-select form-select-sm" style="width: auto;" [value]="pageSize"
                     (change)="onPageSizeChange($event)">
@@ -115,6 +128,7 @@
 
                             <td>
                                 <div class="fw-semibold">{{ shift.name }}</div>
+                                <small class="text-muted">{{ shift.code }}</small>
                             </td>
 
                             <td>
@@ -145,15 +159,26 @@
                             </td>
 
                             <td class="text-center">
+                                @if (showDeleted) {
+                                <span class="badge bg-secondary" title="Fecha de eliminación">
+                                    <i class="fas fa-trash me-1"></i>Eliminado {{ shift.deletedAt | date:'dd/MM/yyyy HH:mm' }}
+                                </span>
+                                } @else {
                                 <span class="badge" [class.bg-success]="shift.status" [class.bg-danger]="!shift.status">
                                     <i class="fas me-1" [class.fa-check-circle]="shift.status"
                                         [class.fa-times-circle]="!shift.status">
                                     </i>
                                     {{ shift.status ? 'Activo' : 'Inactivo' }}
                                 </span>
+                                }
                             </td>
 
                             <td class="text-center">
+                                @if (showDeleted) {
+                                <button class="btn btn-success btn-sm" (click)="confirmRestore(shift)" title="Restaurar">
+                                    <i class="fas fa-trash-restore me-1"></i>Restaurar
+                                </button>
+                                } @else {
                                 <div class="btn-group btn-group-sm" role="group">
                                     <button class="btn btn-outline-info" (click)="viewShift(shift.id!)"
                                         title="Ver detalles">
@@ -177,6 +202,7 @@
                                     </span>
                                     }
                                 </div>
+                                }
                             </td>
                         </tr>
                         }
@@ -216,8 +242,8 @@
             @if (!isLoading && shifts.length === 0) {
             <div class="text-center py-5">
                 <i class="fas fa-clock-rotate-left fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">No se encontraron turnos</h5>
-                @if (hasPermission('shifts.create')) {
+                <h5 class="text-muted">{{ showDeleted ? 'No hay turnos eliminados' : 'No se encontraron turnos' }}</h5>
+                @if (hasPermission('shifts.create') && !showDeleted) {
                 <button class="btn btn-success" (click)="createShift()">
                     <i class="fas fa-plus-circle me-2"></i>
                     Crear Turno
@@ -245,7 +271,7 @@
                     <p>¿Estás seguro de eliminar el turno <strong>"{{ shiftToDelete.name }}"</strong>?</p>
                     <p class="text-muted mb-0">
                         <i class="fas fa-info-circle me-2"></i>
-                        Ningún parqueo lo usa. Dejará de aparecer en la lista de turnos.
+                        Ningún parqueo lo usa. Podrás restaurarlo desde <strong>Eliminados</strong>.
                     </p>
                 </div>
                 <div class="modal-footer bg-light">
@@ -262,3 +288,31 @@
     }
 
 </div>
+
+<!-- Confirmación de restauración -->
+@if (showRestoreConfirm && shiftToRestore) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-trash-restore me-2"></i>Restaurar Turno</h5>
+                <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" (click)="cancelRestore()"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p>¿Restaurar el turno <strong>"{{ shiftToRestore.name }}"</strong> ({{ shiftToRestore.code }})?</p>
+                <ul class="mb-0 small text-body-secondary">
+                    <li>Vuelve <strong>activo</strong> con su mismo horario: {{ formatTime(shiftToRestore.startTime) }} - {{ formatTime(shiftToRestore.endTime) }}.</li>
+                    <li>Podrá usarse otra vez en la configuración de tarifas de los parqueos.</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="cancelRestore()">Cancelar</button>
+                <button type="button" class="btn btn-success" (click)="restoreShift()" [disabled]="isLoading">
+                    <i class="fas fa-trash-restore me-2"></i>Restaurar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+}

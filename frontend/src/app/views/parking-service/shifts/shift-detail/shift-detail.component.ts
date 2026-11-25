@@ -1,5 +1,9 @@
 // src/app/views/parking-service/shifts/shift-detail/shift-detail.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
+import { EMPTY, catchError, exhaustMap, filter } from 'rxjs';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -31,6 +35,8 @@ export class ShiftDetailComponent implements OnInit {
   errorMessage: string | null = null;
   showDeleteConfirm = false;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private shiftService: ShiftService,
     private router: Router,
@@ -40,6 +46,25 @@ export class ShiftDetailComponent implements OnInit {
   ngOnInit(): void {
     this.shiftId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadShift();
+    this.startLiveRefresh();
+  }
+
+  /** Mantiene el detalle al día (cambios de otro usuario) sin spinner ni recargar */
+  private startLiveRefresh(): void {
+    liveRefresh(5000).pipe(
+      filter(() => !this.isLoading && !!this.shift),
+      exhaustMap(() => this.shiftService.getById(this.shiftId, true).pipe(
+        catchError((error: HttpErrorResponse) => {
+          if (error.status === 404) {
+            // Otro usuario lo eliminó mientras se veía
+            this.shift = null;
+            this.errorMessage = 'Este turno fue eliminado. Puedes restaurarlo desde Eliminados.';
+          }
+          return EMPTY;
+        })
+      )),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(shift => this.shift = shift);
   }
 
   private loadShift(): void {

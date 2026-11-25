@@ -26,6 +26,7 @@ import java.util.List;
  * - El código es único entre todos los turnos, también los eliminados (409 si se repite).
  * - Un turno que usa algún parqueo no se elimina (409 con los nombres de los parqueos).
  *   Sí se puede desactivar: esos parqueos dejan de operar en ese horario.
+ * - Un turno eliminado se restaura desde la papelera; su código no se puede reutilizar.
  * - La auditoría (createdBy, updatedBy, deletedBy) es el usuario del JWT.
  */
 @Slf4j
@@ -37,7 +38,8 @@ public class ShiftService implements
       DeleteShiftUseCase,
       GetShiftUseCase,
       ListShiftsUseCase,
-      ToggleShiftStatusUseCase {
+      ToggleShiftStatusUseCase,
+      RestoreShiftUseCase {
 
    private static final String RESOURCE = "Turno";
 
@@ -113,6 +115,18 @@ public class ShiftService implements
       log.info("Turno eliminado (soft delete): id={}", id);
    }
 
+   // ========================= RESTORE =========================
+
+   @Override
+   public ShiftDto restoreShift(Long id) {
+      Shift shift = shiftPersistencePort.findDeletedById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Turno eliminado no encontrado con ID: " + id));
+      shift.restore(currentUserPort.requireCurrentUserId());
+      Shift saved = shiftPersistencePort.save(shift);
+      log.info("Turno restaurado: id={}, código={}", id, saved.getCode());
+      return mapToDto(saved);
+   }
+
    // ========================= GET =========================
 
    @Override
@@ -125,9 +139,12 @@ public class ShiftService implements
 
    @Override
    @Transactional(readOnly = true)
-   public PagedResponse<ShiftDto> listAllShifts(int page, int size, String search, Boolean status) {
-      PageRequest pageRequest = PageRequest.of(page, size, "id", "ASC");
-      PageResult<Shift> result = shiftPersistencePort.findAll(pageRequest, search, status);
+   public PagedResponse<ShiftDto> listAllShifts(int page, int size, String search, Boolean status, boolean deleted) {
+      // La papelera muestra primero lo último que se eliminó
+      PageRequest pageRequest = deleted
+            ? PageRequest.of(page, size, "deletedAt", "DESC")
+            : PageRequest.of(page, size, "id", "ASC");
+      PageResult<Shift> result = shiftPersistencePort.findAll(pageRequest, search, deleted ? null : status, deleted);
       return result.toPagedResponse(this::mapToDto);
    }
 
@@ -186,7 +203,7 @@ public class ShiftService implements
    private void ensureCodeIsAvailable(String code) {
       shiftPersistencePort.findByCodeIncludingDeleted(code).ifPresent(existing -> {
          throw new ResourceConflictException(existing.isDeleted()
-               ? "El código " + code + " pertenece a un turno eliminado. Usa otro código."
+               ? "El código " + code + " pertenece a un turno eliminado. Restáuralo desde Eliminados o usa otro código."
                : "Ya existe un turno con el código " + code);
       });
    }
@@ -201,7 +218,7 @@ public class ShiftService implements
    }
 
    private ShiftDto mapToDto(Shift shift) {
-      List<String> usedBy = shift.getId() == null
+      List<String> usedBy = shift.getId() == null || shift.isDeleted()
             ? List.of()
             : parkingShiftRatePersistencePort.findParkingNamesUsingShift(shift.getId());
       return new ShiftDto(
@@ -218,7 +235,9 @@ public class ShiftService implements
             shift.getCreatedAt(),
             shift.getCreatedBy(),
             shift.getUpdatedAt(),
-            shift.getUpdatedBy()
+            shift.getUpdatedBy(),
+            shift.getDeletedAt(),
+            shift.getDeletedBy()
       );
    }
 }

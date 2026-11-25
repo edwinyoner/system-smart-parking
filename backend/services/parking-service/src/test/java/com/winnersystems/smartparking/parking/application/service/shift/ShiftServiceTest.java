@@ -22,6 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 class ShiftServiceTest {
@@ -77,7 +80,7 @@ class ShiftServiceTest {
       assertThatThrownBy(() -> service.createShift(new CreateShiftCommand(
             "Mañana", "morning", null, LocalTime.of(6, 0), LocalTime.of(13, 59), true)))
             .isInstanceOf(ResourceConflictException.class)
-            .hasMessageContaining("eliminado");
+            .hasMessageContaining("Restáuralo desde Eliminados");
       verify(shifts, never()).save(any());
    }
 
@@ -117,6 +120,34 @@ class ShiftServiceTest {
       assertThat(dto.status()).isFalse();
       assertThat(dto.updatedBy()).isEqualTo(USER);
       assertThat(dto.usedByParkings()).containsExactly("San Martín");
+   }
+
+   @Test
+   @DisplayName("restaurar: busca en la papelera; un turno vigente o inexistente responde 404")
+   void restore() {
+      Shift deleted = existing(4L);
+      deleted.markAsDeleted(1L);
+      when(shifts.findDeletedById(4L)).thenReturn(Optional.of(deleted));
+
+      ShiftDto dto = service.restoreShift(4L);
+
+      assertThat(dto.status()).isTrue();
+      assertThat(dto.deletedAt()).isNull();
+      assertThat(dto.updatedBy()).isEqualTo(USER);
+      when(shifts.findDeletedById(5L)).thenReturn(Optional.empty());
+      assertThatThrownBy(() -> service.restoreShift(5L)).isInstanceOf(ResourceNotFoundException.class);
+   }
+
+   @Test
+   @DisplayName("papelera: ordena por fecha de eliminación e ignora el filtro de estado")
+   void trashList() {
+      when(shifts.findAll(any(), any(), any(), anyBoolean()))
+            .thenReturn(com.winnersystems.smartparking.parking.application.dto.query.PageResult.of(List.of(), 0, 10, 0));
+      service.listAllShifts(0, 10, "man", true, true);
+      ArgumentCaptor<com.winnersystems.smartparking.parking.application.dto.query.PageRequest> req =
+            ArgumentCaptor.forClass(com.winnersystems.smartparking.parking.application.dto.query.PageRequest.class);
+      verify(shifts).findAll(req.capture(), eq("man"), isNull(), eq(true));
+      assertThat(req.getValue().sortBy()).isEqualTo("deletedAt");
    }
 
    @Test

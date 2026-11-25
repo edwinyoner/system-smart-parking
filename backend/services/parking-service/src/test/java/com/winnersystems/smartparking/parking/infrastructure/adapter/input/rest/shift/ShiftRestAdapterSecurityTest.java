@@ -1,5 +1,6 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift;
 
+import com.winnersystems.smartparking.parking.application.dto.query.PagedResponse;
 import com.winnersystems.smartparking.parking.application.dto.query.ShiftDto;
 import com.winnersystems.smartparking.parking.application.port.input.shift.*;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.mapper.ShiftRestMapper;
@@ -21,6 +22,9 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -38,18 +42,23 @@ class ShiftRestAdapterSecurityTest {
       @Bean CreateShiftUseCase create() { return mock(CreateShiftUseCase.class); }
       @Bean UpdateShiftUseCase update() { return mock(UpdateShiftUseCase.class); }
       @Bean DeleteShiftUseCase delete() { return mock(DeleteShiftUseCase.class); }
-      @Bean ListShiftsUseCase list() { return mock(ListShiftsUseCase.class); }
+      @Bean ListShiftsUseCase list() {
+         ListShiftsUseCase list = mock(ListShiftsUseCase.class);
+         when(list.listAllShifts(anyInt(), anyInt(), any(), any(), anyBoolean())).thenReturn(PagedResponse.of(List.of()));
+         return list;
+      }
+      @Bean RestoreShiftUseCase restore() { return mock(RestoreShiftUseCase.class); }
       @Bean GetShiftUseCase get() {
          GetShiftUseCase get = mock(GetShiftUseCase.class);
          when(get.getShiftById(anyLong())).thenReturn(new ShiftDto(1L, "Mañana", "MORNING", null,
-               LocalTime.of(6, 0), LocalTime.of(13, 59), true, false, 8.0, List.of(), null, null, null, null));
+               LocalTime.of(6, 0), LocalTime.of(13, 59), true, false, 8.0, List.of(), null, null, null, null, null, null));
          return get;
       }
       @Bean ShiftRestMapper mapper() { return new ShiftRestMapper(); }
       @Bean ShiftRestAdapter adapter(CreateShiftUseCase c, UpdateShiftUseCase u, DeleteShiftUseCase d,
                                      GetShiftUseCase g, ListShiftsUseCase l, ToggleShiftStatusUseCase t,
-                                     ShiftRestMapper m) {
-         return new ShiftRestAdapter(c, u, d, g, l, t, m);
+                                     RestoreShiftUseCase r, ShiftRestMapper m) {
+         return new ShiftRestAdapter(c, u, d, g, l, t, r, m);
       }
    }
 
@@ -81,6 +90,19 @@ class ShiftRestAdapterSecurityTest {
       login("ROLE_OPERADOR");
       assertThat(adapter.listActiveShifts().getStatusCode().is2xxSuccessful()).isTrue();
       assertThatThrownBy(() -> adapter.getShiftById(1L)).isInstanceOf(AccessDeniedException.class);
+   }
+
+   @Test
+   @DisplayName("papelera y restaurar exigen shifts.restore (no basta shifts.delete)")
+   void trashNeedsDelete() {
+      login("shifts.read", "shifts.delete");
+      assertThat(adapter.listAllShifts(0, 10, null, null, false).getStatusCode().is2xxSuccessful()).isTrue();
+      assertThatThrownBy(() -> adapter.listAllShifts(0, 10, null, null, true)).isInstanceOf(AccessDeniedException.class);
+      assertThatThrownBy(() -> adapter.restoreShift(1L)).isInstanceOf(AccessDeniedException.class);
+
+      login("shifts.read", "shifts.restore");
+      adapter.listAllShifts(0, 10, null, null, true);
+      adapter.restoreShift(1L);
    }
 
    @Test

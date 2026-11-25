@@ -26,6 +26,8 @@ public record ShiftResponse(
       LocalDateTime createdAt,
       Long createdBy,
       LocalDateTime updatedAt,
-      Long updatedBy
+      Long updatedBy,
+      LocalDateTime deletedAt,
+      Long deletedBy
 ) {
 }

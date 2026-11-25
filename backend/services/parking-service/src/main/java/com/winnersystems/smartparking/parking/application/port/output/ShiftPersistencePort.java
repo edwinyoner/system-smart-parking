@@ -22,6 +22,9 @@ public interface ShiftPersistencePort {
    /** Solo turnos no eliminados */
    Optional<Shift> findByCode(String code);
 
+   /** Solo turnos eliminados (papelera) */
+   Optional<Shift> findDeletedById(Long id);
+
    /**
     * Busca el código también entre los eliminados: en la base de datos es único
     * para todos, así que no se puede reutilizar el de un turno eliminado.
@@ -31,8 +34,9 @@ public interface ShiftPersistencePort {
    List<Shift> findAllActive();
 
    /**
-    * @param search texto a buscar en el nombre o el código (null = sin filtro)
-    * @param status estado (null = todos)
+    * @param search  texto a buscar en el nombre o el código (null = sin filtro)
+    * @param status  estado (null = todos); no aplica a la papelera
+    * @param deleted true = solo eliminados (papelera), false = solo vigentes
     */
-   PageResult<Shift> findAll(PageRequest pageRequest, String search, Boolean status);
+   PageResult<Shift> findAll(PageRequest pageRequest, String search, Boolean status, boolean deleted);
 }

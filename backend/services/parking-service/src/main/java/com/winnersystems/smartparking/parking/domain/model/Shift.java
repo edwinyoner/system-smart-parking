@@ -209,12 +209,20 @@ public class Shift {
    }
 
    /**
-    * Restaura un turno eliminado. Queda inactivo: debe activarse manualmente.
+    * Restaura un turno eliminado (deshace la eliminación). Vuelve activo: solo se pudo
+    * eliminar porque ningún parqueo lo usaba, así que activarlo no cambia ningún horario.
+    *
+    * @param restoredBy usuario que restaura (auditoría)
+    * @throws ParkingDomainException si el turno no está eliminado
     */
-   public void restore() {
+   public void restore(Long restoredBy) {
+      if (!isDeleted()) {
+         throw new ParkingDomainException("El turno no está eliminado");
+      }
       this.deletedAt = null;
       this.deletedBy = null;
-      this.status = false;
+      this.status = true;
+      this.updatedBy = restoredBy;
       this.updatedAt = LocalDateTime.now();
    }
 

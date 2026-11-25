@@ -10,6 +10,7 @@ import java.util.List;
  * @param crossesMidnight true si termina al día siguiente (ej: 20:00 - 05:59)
  * @param durationHours   duración contando el minuto final (06:00 - 13:59 = 8 h)
  * @param usedByParkings  nombres de los parqueos que lo usan en sus tarifas (ParkingShiftRate)
+ * @param deletedAt       fecha de eliminación (solo en la papelera)
  */
 public record ShiftDto(
       Long id,
@@ -25,6 +26,8 @@ public record ShiftDto(
       LocalDateTime createdAt,
       Long createdBy,
       LocalDateTime updatedAt,
-      Long updatedBy
+      Long updatedBy,
+      LocalDateTime deletedAt,
+      Long deletedBy
 ) {
 }

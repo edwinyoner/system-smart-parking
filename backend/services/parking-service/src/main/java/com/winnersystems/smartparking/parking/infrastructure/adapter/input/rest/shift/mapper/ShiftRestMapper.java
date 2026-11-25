@@ -49,6 +49,8 @@ public class ShiftRestMapper {
             dto.createdAt(),
             dto.createdBy(),
             dto.updatedAt(),
-            dto.updatedBy());
+            dto.updatedBy(),
+            dto.deletedAt(),
+            dto.deletedBy());
    }
 }

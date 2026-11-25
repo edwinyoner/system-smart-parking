@@ -36,22 +36,25 @@ public class ShiftRestAdapter {
    private final GetShiftUseCase getShiftUseCase;
    private final ListShiftsUseCase listShiftsUseCase;
    private final ToggleShiftStatusUseCase toggleShiftStatusUseCase;
+   private final RestoreShiftUseCase restoreShiftUseCase;
    private final ShiftRestMapper mapper;
 
    /**
     * Lista paginada. search busca en el nombre y el código; status: true, false o vacío (todos).
+    * deleted = true lista la papelera: exige además shifts.restore.
     */
    @GetMapping
-   @PreAuthorize("hasAuthority('shifts.read')")
+   @PreAuthorize("hasAuthority('shifts.read') and (!#deleted or hasAuthority('shifts.restore'))")
    public ResponseEntity<PagedResponse<ShiftResponse>> listAllShifts(
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size,
          @RequestParam(required = false) String search,
-         @RequestParam(required = false) Boolean status) {
+         @RequestParam(required = false) Boolean status,
+         @RequestParam(defaultValue = "false") boolean deleted) {
       int safePage = Math.max(page, 0);
       int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
       return ResponseEntity.ok(
-            listShiftsUseCase.listAllShifts(safePage, safeSize, search, status).map(mapper::toResponse));
+            listShiftsUseCase.listAllShifts(safePage, safeSize, search, status, deleted).map(mapper::toResponse));
    }
 
    @GetMapping("/active")
@@ -89,6 +92,13 @@ public class ShiftRestAdapter {
    public ResponseEntity<Void> deleteShift(@PathVariable Long id) {
       deleteShiftUseCase.deleteShift(id);
       return ResponseEntity.noContent().build();
+   }
+
+   /** Deshace una eliminación: el turno vuelve activo con su mismo código */
+   @PostMapping("/{id}/restore")
+   @PreAuthorize("hasAuthority('shifts.restore')")
+   public ResponseEntity<ShiftResponse> restoreShift(@PathVariable Long id) {
+      return ResponseEntity.ok(mapper.toResponse(restoreShiftUseCase.restoreShift(id)));
    }
 
    @PatchMapping("/{id}/toggle-status")

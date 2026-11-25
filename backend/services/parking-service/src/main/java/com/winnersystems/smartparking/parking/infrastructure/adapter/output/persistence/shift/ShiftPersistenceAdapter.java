@@ -65,6 +65,11 @@ public class ShiftPersistenceAdapter implements ShiftPersistencePort {
    }
 
    @Override
+   public Optional<Shift> findDeletedById(Long id) {
+      return repository.findByIdAndDeletedAtIsNotNull(id).map(mapper::toDomain);
+   }
+
+   @Override
    public Optional<Shift> findByCodeIncludingDeleted(String code) {
       return repository.findFirstByCodeIgnoreCase(code).map(mapper::toDomain);
    }
@@ -81,13 +86,13 @@ public class ShiftPersistenceAdapter implements ShiftPersistencePort {
    }
 
    @Override
-   public PageResult<Shift> findAll(PageRequest pageRequest, String search, Boolean status) {
+   public PageResult<Shift> findAll(PageRequest pageRequest, String search, Boolean status, boolean deleted) {
       String text = search == null || search.isBlank() ? null : search.trim().toLowerCase();
       // %, _ y \ escritos por el usuario se buscan como texto, no como comodines
       if (text != null) {
          text = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
       }
-      Page<ShiftEntity> page = repository.search(text, status, buildPageable(pageRequest));
+      Page<ShiftEntity> page = repository.search(text, status, deleted, buildPageable(pageRequest));
 
       return PageResult.of(
             page.getContent().stream().map(mapper::toDomain).toList(),

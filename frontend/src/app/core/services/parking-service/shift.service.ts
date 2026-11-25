@@ -1,11 +1,12 @@
 //src/app/core/services/parking-service/shift.service.ts
 import { Injectable } from "@angular/core";
-import { HttpClient, HttpParams } from "@angular/common/http";
+import { HttpClient, HttpContext, HttpParams } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { environment } from "../../../../environments/environment";
 import { Shift, ShiftRequest } from "../../models/parking-service/shift.model";
 // Importar ParkingPagedResponse en lugar de PaginatedResponse
 import { ParkingPagedResponse } from "../../models/pagination.model";
+import { SKIP_LOADING } from "../../interceptors/loading.interceptor";
 
 @Injectable({
   providedIn: "root",
@@ -20,6 +21,8 @@ export class ShiftService {
     size: number = 20,
     search?: string,
     status?: string,
+    deleted = false,
+    silent = false,   // true: actualización en segundo plano, sin spinner global
   ): Observable<ParkingPagedResponse<Shift>> {
     let params = new HttpParams()
       .set("page", page.toString())
@@ -31,16 +34,25 @@ export class ShiftService {
     if (status !== undefined && status !== "") {
       params = params.set("status", status);
     }
+    // Papelera: turnos eliminados (exige shifts.delete)
+    if (deleted) {
+      params = params.set("deleted", "true");
+    }
       
-    return this.http.get<ParkingPagedResponse<Shift>>(this.apiUrl, { params });
+    return this.http.get<ParkingPagedResponse<Shift>>(this.apiUrl, {
+      params,
+      context: new HttpContext().set(SKIP_LOADING, silent),
+    });
   }
 
   getActive(): Observable<Shift[]> {
     return this.http.get<Shift[]>(`${this.apiUrl}/active`);
   }
 
-  getById(id: number): Observable<Shift> {
-    return this.http.get<Shift>(`${this.apiUrl}/${id}`);
+  getById(id: number, silent = false): Observable<Shift> {
+    return this.http.get<Shift>(`${this.apiUrl}/${id}`, {
+      context: new HttpContext().set(SKIP_LOADING, silent),
+    });
   }
 
   create(shift: ShiftRequest): Observable<Shift> {
@@ -53,6 +65,11 @@ export class ShiftService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  /** Deshace la eliminación: el turno vuelve activo con su mismo código */
+  restore(id: number): Observable<Shift> {
+    return this.http.post<Shift>(`${this.apiUrl}/${id}/restore`, {});
   }
 
   toggleActive(id: number): Observable<Shift> {

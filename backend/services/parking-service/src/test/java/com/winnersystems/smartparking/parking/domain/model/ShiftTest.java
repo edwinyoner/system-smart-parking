@@ -105,6 +105,19 @@ class ShiftTest {
    }
 
    @Test
+   @DisplayName("restaurar: vuelve activo, sin marcas de eliminación y con quién restauró")
+   void restore() {
+      Shift s = shift("06:00", "13:59");
+      assertThatThrownBy(() -> s.restore(1L)).isInstanceOf(ParkingDomainException.class);
+      s.markAsDeleted(5L);
+      s.restore(7L);
+      assertThat(s.isDeleted()).isFalse();
+      assertThat(s.getDeletedBy()).isNull();
+      assertThat(s.isActive()).isTrue();
+      assertThat(s.getUpdatedBy()).isEqualTo(7L);
+   }
+
+   @Test
    @DisplayName("equals y hashCode por ID")
    void equality() {
       Shift a = shift("06:00", "13:59");

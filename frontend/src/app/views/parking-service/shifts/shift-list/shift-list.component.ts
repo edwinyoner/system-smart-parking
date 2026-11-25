@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, catchError, exhaustMap, filter } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,6 +13,7 @@ import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
 import { formatShiftDuration } from '../../../../core/utils/shift.util';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
 import { AuthContextService } from '../../../../core/services/auth-service/auth-context.service';
 
 @Component({
@@ -39,7 +42,16 @@ export class ShiftListComponent implements OnInit {
   showDeleteConfirm = false;
   shiftToDelete: Shift | null = null;
 
+  // Papelera: turnos eliminados que se pueden restaurar
+  showDeleted = false;
+  showRestoreConfirm = false;
+  shiftToRestore: Shift | null = null;
+
   Math = Math;
+
+  private destroyRef = inject(DestroyRef);
+  /** Identifica la última consulta: una respuesta vieja no pisa una página o filtro nuevos */
+  private lastRequestId = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -57,6 +69,45 @@ export class ShiftListComponent implements OnInit {
     this.initFilterForm();
     this.loadShifts();
     this.setupFilterListeners();
+    this.startLiveRefresh();
+  }
+
+  /**
+   * Cada 5 s (y al volver a la ventana) recarga la página actual sin spinner:
+   * lo que otro usuario cree, edite, elimine o restaure aparece sin refrescar.
+   */
+  private startLiveRefresh(): void {
+    liveRefresh(5000).pipe(
+      filter(() => !this.isLoading),
+      exhaustMap(() => {
+        const requestId = this.lastRequestId;
+        return this.request(true).pipe(
+          filter(() => requestId === this.lastRequestId),
+          catchError(() => EMPTY)
+        );
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(response => this.showPage(response));
+  }
+
+  private request(silent: boolean) {
+    const search = this.filterForm.get('search')?.value ?? '';
+    const status = this.filterForm.get('status')?.value ?? '';
+    return this.shiftService.getAll(this.currentPage - 1, this.pageSize, search,
+      this.showDeleted ? '' : status, this.showDeleted, silent);
+  }
+
+  private showPage(response: ParkingPagedResponse<Shift>): void {
+    this.shifts      = response.content;
+    this.totalItems  = response.totalElements;
+    this.totalPages  = response.totalPages;
+    this.currentPage = response.pageNumber + 1;  // base 0 → base 1
+    this.pageSize    = response.pageSize;
+    // Si la página quedó vacía (otro usuario eliminó o restauró), volver a la anterior
+    if (this.shifts.length === 0 && this.currentPage > 1 && this.currentPage > this.totalPages) {
+      this.currentPage = Math.max(this.totalPages, 1);
+      this.loadShifts();
+    }
   }
 
   private initFilterForm(): void {
@@ -83,22 +134,59 @@ export class ShiftListComponent implements OnInit {
   loadShifts(): void {
     this.isLoading = true;
 
-    const search = this.filterForm.get("search")?.value ?? "";
-    const status = this.filterForm.get("status")?.value ?? "";
+    const requestId = ++this.lastRequestId;
 
-    this.shiftService.getAll(this.currentPage - 1, this.pageSize, search, status).subscribe({
+    this.request(false).subscribe({
       next: (response: ParkingPagedResponse<Shift>) => {
-        this.shifts      = response.content;
-        this.totalItems  = response.totalElements;
-        this.totalPages  = response.totalPages;
-        this.currentPage = response.pageNumber + 1;  // base 0 → base 1
-        this.pageSize    = response.pageSize;
-        this.isLoading   = false;
+        if (requestId !== this.lastRequestId) return;
+        this.isLoading = false;
+        this.showPage(response);
       },
       error: (error) => {
         this.isLoading    = false;
         this.errorMessage = 'Error al cargar los turnos del sistema';
         console.error(error);
+      }
+    });
+  }
+
+  /** Cambia entre turnos vigentes y la papelera. En la papelera no se filtra por estado */
+  setShowDeleted(deleted: boolean): void {
+    if (this.showDeleted === deleted) return;
+    this.showDeleted = deleted;
+    const status = this.filterForm.get('status');
+    deleted ? status?.disable({ emitEvent: false }) : status?.enable({ emitEvent: false });
+    this.currentPage = 1;
+    this.shifts = [];
+    this.loadShifts();
+  }
+
+  confirmRestore(shift: Shift): void {
+    this.shiftToRestore = shift;
+    this.showRestoreConfirm = true;
+  }
+
+  cancelRestore(): void {
+    this.showRestoreConfirm = false;
+    this.shiftToRestore = null;
+  }
+
+  restoreShift(): void {
+    const shift = this.shiftToRestore;
+    if (!shift?.id) return;
+    this.isLoading = true;
+
+    this.shiftService.restore(shift.id).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.successMessage = `Turno "${shift.name}" restaurado: ya está activo y se puede usar en los parqueos`;
+        this.cancelRestore();
+        this.loadShifts();
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.errorMessage = error.error?.message || 'No se pudo restaurar el turno';
+        this.cancelRestore();
       }
     });
   }

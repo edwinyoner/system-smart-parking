@@ -97,12 +97,13 @@ public class DataSeeder implements CommandLineRunner {
             {"users.read", "Ver información de usuarios"},
             {"users.update", "Actualizar información de usuarios"},
             {"users.delete", "Eliminar usuarios del sistema"},
-            {"users.restore", "Restaurar usuarios eliminados"},
+            {"users.restore", "Ver usuarios eliminados y restaurarlos"},
 
             // ========== GESTIÓN DE ROLES ==========
             {"roles.create", "Crear nuevos roles"},
             {"roles.read", "Ver información de roles"},
             {"roles.update", "Actualizar roles existentes"},
+            {"roles.restore", "Ver roles eliminados y restaurarlos"},
             {"roles.delete", "Eliminar roles del sistema"},
 
             // ========== GESTIÓN DE PERMISOS ==========
@@ -116,6 +117,7 @@ public class DataSeeder implements CommandLineRunner {
             {"shifts.read", "Ver información de turnos"},
             {"shifts.update", "Actualizar turnos existentes"},
             {"shifts.delete", "Eliminar turnos"},
+            {"shifts.restore", "Ver turnos eliminados y restaurarlos"},
 
             // Zonas de Estacionamiento
             {"zones.create", "Crear nuevas zonas de estacionamiento"},
@@ -240,7 +242,7 @@ public class DataSeeder implements CommandLineRunner {
                   "permissions.read",
 
                   // Gestión de Turnos
-                  "shifts.create", "shifts.read", "shifts.update", "shifts.delete",
+                  "shifts.create", "shifts.read", "shifts.update", "shifts.delete", "shifts.restore",
                   // Gestión de Zonas
                   "zones.create", "zones.read", "zones.update", "zones.delete", "zones.activate",
                   // Gestión de Tipos de Espacio
