@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { PaymentTypeService } from '../../../../core/services/parking/payment-type.service';
+import { PaymentTypeService } from '../../../../core/services/parking-service/payment-type.service';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 
 @Component({

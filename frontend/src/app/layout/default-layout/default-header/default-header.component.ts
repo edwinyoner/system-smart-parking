@@ -22,9 +22,9 @@ import {
 } from '@coreui/angular';
 
 import { IconDirective } from '@coreui/icons-angular';
-import { AuthService } from '../../../core/services/auth.service';
-import { CurrentUserService } from '../../../core/services/current-user.service';
-import { AuthContextService } from '../../../core/services/auth-context.service';
+import { AuthService } from '../../../core/services/auth-service/auth.service';
+import { CurrentUserService } from '../../../core/services/auth-service/current-user.service';
+import { AuthContextService } from '../../../core/services/auth-service/auth-context.service';
 
 @Component({
   selector: 'app-default-header',

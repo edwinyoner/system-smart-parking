@@ -15,9 +15,9 @@ import {
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
 import { forkJoin, Observable } from 'rxjs';
-import { SpaceService } from '../../../../../core/services/parking/space.service';
-import { Zone } from '../../../../../core/models/parking/zone.model';
-import { Space, SpaceRequest } from '../../../../../core/models/parking/space.model';
+import { SpaceService } from '../../../../../core/services/parking-service/space.service';
+import { Zone } from '../../../../../core/models/parking-service/zone.model';
+import { Space, SpaceRequest } from '../../../../../core/models/parking-service/space.model';
 
 interface SpacePreview {
   code: string;

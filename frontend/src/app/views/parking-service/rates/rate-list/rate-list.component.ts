@@ -4,8 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 
-import { RateService } from "../../../../core/services/parking/rate.service";
-import { Rate } from "../../../../core/models/parking/rate.model";
+import { RateService } from "../../../../core/services/parking-service/rate.service";
+import { Rate } from "../../../../core/models/parking-service/rate.model";
 // ParkingPagedResponse para parking-service
 import { ParkingPagedResponse } from "../../../../core/models/pagination.model";
 import { AlertMessageComponent } from "../../../../shared/components/alert-message/alert-message.component";

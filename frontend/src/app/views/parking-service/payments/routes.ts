@@ -1,5 +1,4 @@
 // src/app/views/parking-service/payments/routes.ts
-
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [

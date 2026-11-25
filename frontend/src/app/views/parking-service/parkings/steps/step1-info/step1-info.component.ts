@@ -12,8 +12,8 @@ import {
   AlertModule,
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
-import { ParkingService } from '../../../../../core/services/parking/parking.service';
-import { ParkingRequest } from '../../../../../core/models/parking/parking.model';
+import { ParkingService } from '../../../../../core/services/parking-service/parking.service';
+import { ParkingRequest } from '../../../../../core/models/parking-service/parking.model';
 
 @Component({
   selector: 'app-step1-info',

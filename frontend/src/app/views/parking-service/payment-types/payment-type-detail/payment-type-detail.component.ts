@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-import { PaymentTypeService } from '../../../../core/services/parking/payment-type.service';
-import { PaymentType } from '../../../../core/models/parking/payment-type.model';
+import { PaymentTypeService } from '../../../../core/services/parking-service/payment-type.service';
+import { PaymentType } from '../../../../core/models/parking-service/payment-type.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 
 @Component({

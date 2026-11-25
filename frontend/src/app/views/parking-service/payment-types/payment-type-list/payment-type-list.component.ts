@@ -4,8 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { PaymentTypeService } from '../../../../core/services/parking/payment-type.service';
-import { PaymentType } from '../../../../core/models/parking/payment-type.model';
+import { PaymentTypeService } from '../../../../core/services/parking-service/payment-type.service';
+import { PaymentType } from '../../../../core/models/parking-service/payment-type.model';
 import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';

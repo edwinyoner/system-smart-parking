@@ -14,10 +14,10 @@ import {
   AlertComponent,
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { Vehicle } from '../../../../core/models/parking/vehicle.model';
-import { VehicleService } from '../../../../core/services/parking/vehicle.service';
-import { CustomerVehicle } from '../../../../core/models/parking/customer-vehicle.model';
-import { CustomerVehicleService } from '../../../../core/services/parking/customer-vehicle.service';
+import { Vehicle } from '../../../../core/models/parking-service/vehicle.model';
+import { VehicleService } from '../../../../core/services/parking-service/vehicle.service';
+import { CustomerVehicle } from '../../../../core/models/parking-service/customer-vehicle.model';
+import { CustomerVehicleService } from '../../../../core/services/parking-service/customer-vehicle.service';
 
 @Component({
   selector: 'app-vehicle-detail',

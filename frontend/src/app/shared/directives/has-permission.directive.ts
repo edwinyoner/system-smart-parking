@@ -1,7 +1,7 @@
 import { Directive, Input, TemplateRef, ViewContainerRef, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { PermissionService } from '../../core/services/permission.service';
-import { CurrentUserService } from '../../core/services/current-user.service';
+import { PermissionService } from '../../core/services/auth-service/permission.service';
+import { CurrentUserService } from '../../core/services/auth-service/current-user.service';
 
 /**
  * Directiva estructural para mostrar/ocultar elementos según permisos

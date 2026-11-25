@@ -4,10 +4,10 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 
 // Services
-import { ShiftService } from '../../../../core/services/parking/shift.service';
+import { ShiftService } from '../../../../core/services/parking-service/shift.service';
 
 // Models
-import { Shift } from '../../../../core/models/parking/shift.model';
+import { Shift } from '../../../../core/models/parking-service/shift.model';
 
 // Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';

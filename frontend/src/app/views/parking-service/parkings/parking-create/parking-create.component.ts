@@ -9,7 +9,7 @@ import {
   BadgeModule,
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
-import { Zone } from '../../../../core/models/parking/zone.model';
+import { Zone } from '../../../../core/models/parking-service/zone.model';
 import { Step1InfoComponent } from '../steps/step1-info/step1-info.component';
 import { Step2ZonesComponent } from '../steps/step2-zones/step2-zones.component';
 import { Step3SpacesComponent } from '../steps/step3-spaces/step3-spaces.component';

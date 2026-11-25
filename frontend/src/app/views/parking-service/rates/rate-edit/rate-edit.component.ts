@@ -5,10 +5,10 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 
 // Services
-import { RateService } from '../../../../core/services/parking/rate.service';
+import { RateService } from '../../../../core/services/parking-service/rate.service';
 
 // Models
-import { Rate } from '../../../../core/models/parking/rate.model';
+import { Rate } from '../../../../core/models/parking-service/rate.model';
 
 // Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';

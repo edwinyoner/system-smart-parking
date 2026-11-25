@@ -16,11 +16,11 @@ import {
   ProgressModule,
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
-import { ParkingService } from '../../../../core/services/parking/parking.service';
-import { ZoneService } from '../../../../core/services/parking/zone.service';
-import { SpaceService } from '../../../../core/services/parking/space.service';
-import { Parking } from '../../../../core/models/parking/parking.model';
-import { Zone } from '../../../../core/models/parking/zone.model';
+import { ParkingService } from '../../../../core/services/parking-service/parking.service';
+import { ZoneService } from '../../../../core/services/parking-service/zone.service';
+import { SpaceService } from '../../../../core/services/parking-service/space.service';
+import { Parking } from '../../../../core/models/parking-service/parking.model';
+import { Zone } from '../../../../core/models/parking-service/zone.model';
 import { forkJoin } from 'rxjs';
 
 @Component({

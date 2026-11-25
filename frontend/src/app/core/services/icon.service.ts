@@ -1,4 +1,4 @@
-// src/app/services/service.ts
+// src/app/core/services/icon.service.ts
 import { Injectable } from '@angular/core';
 
 @Injectable({

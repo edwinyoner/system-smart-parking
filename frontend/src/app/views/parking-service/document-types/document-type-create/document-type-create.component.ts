@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { DocumentTypeService } from '../../../../core/services/parking/document-type.service';
+import { DocumentTypeService } from '../../../../core/services/parking-service/document-type.service';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 
 @Component({

@@ -1,5 +1,4 @@
 // src/app/views/parking-service/customers/customer-list/customer-list.component.ts
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -20,8 +19,8 @@ import {
   AlertComponent, 
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { Customer, CustomerFilters } from '../../../../core/models/parking/customer.model';
-import { CustomerService } from '../../../../core/services/parking/customer.service';
+import { Customer, CustomerFilters } from '../../../../core/models/parking-service/customer.model';
+import { CustomerService } from '../../../../core/services/parking-service/customer.service';
 import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 
 @Component({

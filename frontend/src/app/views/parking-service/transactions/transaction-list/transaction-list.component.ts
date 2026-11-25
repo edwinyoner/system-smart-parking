@@ -1,5 +1,4 @@
 // src/app/views/parking-service/transactions/transaction-list/transaction-list.component.ts
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,13 +17,13 @@ import {
   SpinnerComponent
 } from '@coreui/angular';
 
-import { TransactionService } from '../../../../core/services/parking/transaction.service';
-import { ParkingService } from '../../../../core/services/parking/parking.service';
-import { ZoneService } from '../../../../core/services/parking/zone.service';
+import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
+import { ParkingService } from '../../../../core/services/parking-service/parking.service';
+import { ZoneService } from '../../../../core/services/parking-service/zone.service';
 
-import { TransactionDto, TransactionStatus, TransactionPaymentStatus } from '../../../../core/models/parking/transaction.model';
-import { Parking } from '../../../../core/models/parking/parking.model';
-import { Zone } from '../../../../core/models/parking/zone.model';
+import { TransactionDto, TransactionStatus, TransactionPaymentStatus } from '../../../../core/models/parking-service/transaction.model';
+import { Parking } from '../../../../core/models/parking-service/parking.model';
+import { Zone } from '../../../../core/models/parking-service/zone.model';
 
 @Component({
   selector: 'app-transaction-list',

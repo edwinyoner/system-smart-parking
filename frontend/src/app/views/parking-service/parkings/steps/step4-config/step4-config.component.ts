@@ -19,11 +19,11 @@ import {
 } from "@coreui/angular";
 import { IconModule } from "@coreui/icons-angular";
 import { forkJoin } from "rxjs";
-import { ShiftService } from "../../../../../core/services/parking/shift.service";
-import { RateService } from "../../../../../core/services/parking/rate.service";
-import { ParkingShiftRateService } from "../../../../../core/services/parking/parking-shift-rate.service";
-import { Shift } from "../../../../../core/models/parking/shift.model";
-import { Rate } from "../../../../../core/models/parking/rate.model";
+import { ShiftService } from "../../../../../core/services/parking-service/shift.service";
+import { RateService } from "../../../../../core/services/parking-service/rate.service";
+import { ParkingShiftRateService } from "../../../../../core/services/parking-service/parking-shift-rate.service";
+import { Shift } from "../../../../../core/models/parking-service/shift.model";
+import { Rate } from "../../../../../core/models/parking-service/rate.model";
 
 @Component({
   selector: "app-step4-config",

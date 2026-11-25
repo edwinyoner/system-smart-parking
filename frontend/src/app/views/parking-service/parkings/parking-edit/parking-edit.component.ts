@@ -14,8 +14,8 @@ import {
   SpinnerModule,
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
-import { ParkingService } from '../../../../core/services/parking/parking.service';
-import { Parking, ParkingRequest } from '../../../../core/models/parking/parking.model';
+import { ParkingService } from '../../../../core/services/parking-service/parking.service';
+import { Parking, ParkingRequest } from '../../../../core/models/parking-service/parking.model';
 
 @Component({
   selector: 'app-parking-edit',

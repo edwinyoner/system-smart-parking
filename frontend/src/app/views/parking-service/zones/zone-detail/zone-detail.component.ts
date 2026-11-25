@@ -4,10 +4,10 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 
 // Services
-import { ZoneService } from '../../../../core/services/parking/zone.service';
+import { ZoneService } from '../../../../core/services/parking-service/zone.service';
 
 // Models
-import { Zone } from '../../../../core/models/parking/zone.model';
+import { Zone } from '../../../../core/models/parking-service/zone.model';
 
 // Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';

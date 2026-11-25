@@ -5,7 +5,7 @@ import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } fr
 import { Router } from '@angular/router';
 
 // Services
-import { ZoneService } from '../../../../core/services/parking/zone.service';
+import { ZoneService } from '../../../../core/services/parking-service/zone.service';
 
 // Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';

@@ -40,23 +40,23 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import { DashboardChartsData, IChartProps } from './dashboard-charts-data';
-import { ParkingService } from '../../core/services/parking/parking.service';
-import { ZoneService } from '../../core/services/parking/zone.service';
-import { SpaceService } from '../../core/services/parking/space.service';
-import { TransactionService } from '../../core/services/parking/transaction.service';
-import { CustomerService } from '../../core/services/parking/customer.service';
-import { VehicleService } from '../../core/services/parking/vehicle.service';
-import { InfractionService } from '../../core/services/parking/infraction.service';
-import { PaymentService } from '../../core/services/parking/payment.service';
+import { ParkingService } from '../../core/services/parking-service/parking.service';
+import { ZoneService } from '../../core/services/parking-service/zone.service';
+import { SpaceService } from '../../core/services/parking-service/space.service';
+import { TransactionService } from '../../core/services/parking-service/transaction.service';
+import { CustomerService } from '../../core/services/parking-service/customer.service';
+import { VehicleService } from '../../core/services/parking-service/vehicle.service';
+import { InfractionService } from '../../core/services/parking-service/infraction.service';
+import { PaymentService } from '../../core/services/parking-service/payment.service';
 
-import { Parking } from '../../core/models/parking/parking.model';
-import { Zone } from '../../core/models/parking/zone.model';
-import { Space } from '../../core/models/parking/space.model';
-import { ActiveTransactionDto, TransactionDto } from '../../core/models/parking/transaction.model';
-import { Customer } from '../../core/models/parking/customer.model';
-import { Vehicle } from '../../core/models/parking/vehicle.model';
-import { Infraction } from '../../core/models/parking/infraction.model';
-import { PaymentDto } from '../../core/models/parking/payment.model';
+import { Parking } from '../../core/models/parking-service/parking.model';
+import { Zone } from '../../core/models/parking-service/zone.model';
+import { Space } from '../../core/models/parking-service/space.model';
+import { ActiveTransactionDto, TransactionDto } from '../../core/models/parking-service/transaction.model';
+import { Customer } from '../../core/models/parking-service/customer.model';
+import { Vehicle } from '../../core/models/parking-service/vehicle.model';
+import { Infraction } from '../../core/models/parking-service/infraction.model';
+import { PaymentDto } from '../../core/models/parking-service/payment.model';
 
 import { interval, Subscription, forkJoin, Observable } from 'rxjs';
 import { switchMap, startWith, catchError } from 'rxjs/operators';

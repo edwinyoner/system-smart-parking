@@ -18,10 +18,10 @@ import {
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { navItems, INavDataWithPermissions } from './_nav';
-import { CurrentUserService } from '../../core/services/current-user.service';
-import { SessionSyncService } from '../../core/services/session-sync.service';
-import { AuthContextService } from '../../core/services/auth-context.service';
-import { PermissionService } from '../../core/services/permission.service';
+import { CurrentUserService } from '../../core/services/auth-service/current-user.service';
+import { SessionSyncService } from '../../core/services/auth-service/session-sync.service';
+import { AuthContextService } from '../../core/services/auth-service/auth-context.service';
+import { PermissionService } from '../../core/services/auth-service/permission.service';
 
 @Component({
   selector: 'app-dashboard',

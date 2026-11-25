@@ -1,5 +1,4 @@
 // src/app/views/parking-service/transactions/transaction-detail/transaction-detail.component.ts
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -15,8 +14,8 @@ import {
   AlertComponent
 } from '@coreui/angular';
 
-import { TransactionService } from '../../../../core/services/parking/transaction.service';
-import { TransactionDetailResponse } from '../../../../core/models/parking/transaction.model';
+import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
+import { TransactionDetailResponse } from '../../../../core/models/parking-service/transaction.model';
 
 @Component({
   selector: 'app-transaction-detail',

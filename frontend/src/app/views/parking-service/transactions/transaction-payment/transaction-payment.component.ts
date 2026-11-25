@@ -1,5 +1,4 @@
 // src/app/views/parking-service/transactions/transaction-payment/transaction-payment.component.ts
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -23,11 +22,11 @@ import {
   BadgeComponent
 } from '@coreui/angular';
 
-import { TransactionService } from '../../../../core/services/parking/transaction.service';
-import { PaymentTypeService } from '../../../../core/services/parking/payment-type.service';
+import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
+import { PaymentTypeService } from '../../../../core/services/parking-service/payment-type.service';
 
-import { TransactionDetailResponse, ProcessPaymentRequest } from '../../../../core/models/parking/transaction.model';
-import { PaymentType } from '../../../../core/models/parking/payment-type.model';
+import { TransactionDetailResponse, ProcessPaymentRequest } from '../../../../core/models/parking-service/transaction.model';
+import { PaymentType } from '../../../../core/models/parking-service/payment-type.model';
 
 @Component({
   selector: 'app-transaction-payment',

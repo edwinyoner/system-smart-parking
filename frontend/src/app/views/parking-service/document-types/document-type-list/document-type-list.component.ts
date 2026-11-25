@@ -4,8 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { DocumentTypeService } from '../../../../core/services/parking/document-type.service';
-import { DocumentType } from '../../../../core/models/parking/document-type.model';
+import { DocumentTypeService } from '../../../../core/services/parking-service/document-type.service';
+import { DocumentType } from '../../../../core/models/parking-service/document-type.model';
 import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';

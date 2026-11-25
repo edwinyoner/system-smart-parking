@@ -1,5 +1,4 @@
 // src/app/views/parking-service/payments/payment-list/payment-list.component.ts
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,8 +16,8 @@ import {
   SpinnerComponent
 } from '@coreui/angular';
 
-import { TransactionService } from '../../../../core/services/parking/transaction.service';
-import { TransactionDto } from '../../../../core/models/parking/transaction.model';
+import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
+import { TransactionDto } from '../../../../core/models/parking-service/transaction.model';
 
 interface PaymentListItem {
   paymentId: number;

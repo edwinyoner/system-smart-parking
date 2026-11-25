@@ -5,7 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 
 // Services
-import { ShiftService } from '../../../../core/services/parking/shift.service';
+import { ShiftService } from '../../../../core/services/parking-service/shift.service';
 
 // Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';

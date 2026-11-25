@@ -5,7 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 
 // Services
-import { RateService } from '../../../../core/services/parking/rate.service';
+import { RateService } from '../../../../core/services/parking-service/rate.service';
 
 // Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';

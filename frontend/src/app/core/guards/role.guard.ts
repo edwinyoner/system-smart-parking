@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn, ActivatedRouteSnapshot } from '@angular/router';
-import { PermissionService } from '../services/permission.service';
-import { CurrentUserService } from '../services/current-user.service';
+import { PermissionService } from '../services/auth-service/permission.service';
+import { CurrentUserService } from '../services/auth-service/current-user.service';
 import { environment } from '../../../environments/environment';
 
 /**

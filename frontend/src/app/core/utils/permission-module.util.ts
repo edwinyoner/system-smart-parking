@@ -1,4 +1,4 @@
-import { Permission, PermissionGroup } from '../models/permission.model';
+import { Permission, PermissionGroup } from '../models/auth-service/permission.model';
 
 /**
  * Catálogo de módulos de permisos.

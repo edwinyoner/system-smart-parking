@@ -18,16 +18,16 @@ import { IconModule } from '@coreui/icons-angular';
 import { Router } from '@angular/router';
 
 // SERVICIOS CORRECTOS
-import { UserService } from '../../../../../core/services/user.service';
-import { ShiftService } from '../../../../../core/services/parking/shift.service';
-import { ZoneService } from '../../../../../core/services/parking/zone.service';
-import { OperatorAssignmentService } from '../../../../../core/services/parking/operator-assignment.service';
+import { UserService } from '../../../../../core/services/auth-service/user.service';
+import { ShiftService } from '../../../../../core/services/parking-service/shift.service';
+import { ZoneService } from '../../../../../core/services/parking-service/zone.service';
+import { OperatorAssignmentService } from '../../../../../core/services/parking-service/operator-assignment.service';
 
 // MODELOS CORRECTOS
-import { Operator } from '../../../../../core/models/parking/operator.model';
-import { Shift } from '../../../../../core/models/parking/shift.model';
-import { Zone } from '../../../../../core/models/parking/zone.model';
-import { AssignOperatorRequest } from '../../../../../core/models/parking/operator-assignment.model';
+import { Operator } from '../../../../../core/models/parking-service/operator.model';
+import { Shift } from '../../../../../core/models/parking-service/shift.model';
+import { Zone } from '../../../../../core/models/parking-service/zone.model';
+import { AssignOperatorRequest } from '../../../../../core/models/parking-service/operator-assignment.model';
 
 import { forkJoin } from 'rxjs';
 

@@ -4,8 +4,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { ShiftService } from '../../../../core/services/parking/shift.service';
-import { Shift } from '../../../../core/models/parking/shift.model';
+import { ShiftService } from '../../../../core/services/parking-service/shift.service';
+import { Shift } from '../../../../core/models/parking-service/shift.model';
 // Importar ParkingPagedResponse (no PaginatedResponse)
 import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';

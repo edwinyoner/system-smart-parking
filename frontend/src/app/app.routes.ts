@@ -22,25 +22,25 @@ export const routes: Routes = [
       {
         path: 'login',
         canActivate: [NoAuthGuard],
-        loadChildren: () => import('./views/auth/routes').then(m => m.loginRoutes),
+        loadChildren: () => import('./views/auth-service/auth/routes').then(m => m.loginRoutes),
         data: { title: 'Iniciar Sesión' }
       },
       {
         path: 'forgot-password',
         canActivate: [NoAuthGuard],
-        loadChildren: () => import('./views/auth/routes').then(m => m.forgotPasswordRoutes),
+        loadChildren: () => import('./views/auth-service/auth/routes').then(m => m.forgotPasswordRoutes),
         data: { title: 'Recuperar Contraseña' }
       },
       // Enlaces que llegan por correo: se abren siempre. Traen su propio token y pueden ser
       // de otra persona que la de la sesión guardada en este navegador.
       {
         path: 'reset-password',
-        loadChildren: () => import('./views/auth/routes').then(m => m.resetPasswordRoutes),
+        loadChildren: () => import('./views/auth-service/auth/routes').then(m => m.resetPasswordRoutes),
         data: { title: 'Restablecer Contraseña' }
       },
       {
         path: 'verify-email',
-        loadChildren: () => import('./views/auth/routes').then(m => m.verifyEmailRoutes),
+        loadChildren: () => import('./views/auth-service/auth/routes').then(m => m.verifyEmailRoutes),
         data: { title: 'Verificar Email' }
       }
     ]
@@ -62,7 +62,7 @@ export const routes: Routes = [
       // Usuarios (Requiere permiso users.read)
       {
         path: 'users',
-        loadChildren: () => import('./views/users/routes').then(m => m.routes),
+        loadChildren: () => import('./views/auth-service/users/routes').then(m => m.routes),
         canActivate: [RoleGuard],
         data: { 
           title: 'Usuarios',
@@ -73,7 +73,7 @@ export const routes: Routes = [
       // Roles (Requiere permiso roles.read)
       {
         path: 'roles',
-        loadChildren: () => import('./views/roles/routes').then(m => m.routes),
+        loadChildren: () => import('./views/auth-service/roles/routes').then(m => m.routes),
         canActivate: [RoleGuard],
         data: { 
           title: 'Roles',
@@ -84,7 +84,7 @@ export const routes: Routes = [
       // Permisos (Requiere permiso roles.read o ser ADMIN)
       {
         path: 'permissions',
-        loadChildren: () => import('./views/permissions/routes').then(m => m.routes),
+        loadChildren: () => import('./views/auth-service/permissions/routes').then(m => m.routes),
         canActivate: [RoleGuard],
         data: { 
           title: 'Permisos',
@@ -95,7 +95,7 @@ export const routes: Routes = [
       // Perfil (Acceso para todos los usuarios autenticados)
       {
         path: 'profile',
-        loadChildren: () => import('./views/profile/routes').then(m => m.routes),
+        loadChildren: () => import('./views/auth-service/profile/routes').then(m => m.routes),
         data: { title: 'Mi Perfil' }
       },
       {

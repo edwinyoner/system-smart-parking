@@ -1,5 +1,4 @@
 // src/app/views/parking-service/transactions/transaction-exit/transaction-exit.component.ts
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -19,11 +18,11 @@ import {
   BadgeComponent
 } from '@coreui/angular';
 
-import { TransactionService } from '../../../../core/services/parking/transaction.service';
-import { DocumentTypeService } from '../../../../core/services/parking/document-type.service';
+import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
+import { DocumentTypeService } from '../../../../core/services/parking-service/document-type.service';
 
-import { TransactionDetailResponse, TransactionExitRequest } from '../../../../core/models/parking/transaction.model';
-import { DocumentType } from '../../../../core/models/parking/document-type.model';
+import { TransactionDetailResponse, TransactionExitRequest } from '../../../../core/models/parking-service/transaction.model';
+import { DocumentType } from '../../../../core/models/parking-service/document-type.model';
 
 @Component({
   selector: 'app-transaction-exit',

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
-import { TokenService } from '../services/token.service';
+import { TokenService } from '../services/auth-service/token.service';
 import { environment } from '../../../environments/environment';
 
 /**

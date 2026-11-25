@@ -1,6 +1,6 @@
 import { Directive, Input, TemplateRef, ViewContainerRef, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { CurrentUserService } from '../../core/services/current-user.service';
+import { CurrentUserService } from '../../core/services/auth-service/current-user.service';
 
 /**
  * Directiva estructural para mostrar/ocultar elementos según roles

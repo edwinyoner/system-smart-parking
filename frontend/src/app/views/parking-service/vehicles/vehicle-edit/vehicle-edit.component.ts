@@ -17,8 +17,8 @@ import {
   FormFeedbackComponent,
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { Vehicle, VehicleUpdateRequest } from '../../../../core/models/parking/vehicle.model';
-import { VehicleService } from '../../../../core/services/parking/vehicle.service';
+import { Vehicle, VehicleUpdateRequest } from '../../../../core/models/parking-service/vehicle.model';
+import { VehicleService } from '../../../../core/services/parking-service/vehicle.service';
 
 @Component({
   selector: 'app-vehicle-edit',

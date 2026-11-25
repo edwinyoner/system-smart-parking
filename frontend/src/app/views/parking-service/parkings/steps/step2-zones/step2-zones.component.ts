@@ -13,8 +13,8 @@ import {
   BadgeModule,
 } from '@coreui/angular';
 import { IconModule } from '@coreui/icons-angular';
-import { ZoneService } from '../../../../../core/services/parking/zone.service';
-import { Zone, ZoneRequest } from '../../../../../core/models/parking/zone.model';
+import { ZoneService } from '../../../../../core/services/parking-service/zone.service';
+import { Zone, ZoneRequest } from '../../../../../core/models/parking-service/zone.model';
 import { forkJoin, Observable } from 'rxjs';
 
 @Component({
