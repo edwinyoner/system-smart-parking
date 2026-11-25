@@ -1,6 +1,6 @@
-import { appConfig } from './../../app.config';
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
+import { SKIP_LOADING } from '../interceptors/loading.interceptor';
 import { Observable, catchError, throwError, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { 
@@ -54,8 +54,10 @@ export class PermissionService {
   /**
    * Obtiene todos los permisos sin paginación
    */
-  getAllPermissions(): Observable<Permission[]> {
-    return this.http.get<Permission[]>(`${this.API_URL}/all`).pipe(
+  getAllPermissions(silent = false): Observable<Permission[]> {
+    return this.http.get<Permission[]>(`${this.API_URL}/all`, {
+      context: new HttpContext().set(SKIP_LOADING, silent)
+    }).pipe(
       catchError(this.handleError)
     );
   }

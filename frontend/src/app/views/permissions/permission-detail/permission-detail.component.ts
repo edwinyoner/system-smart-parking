@@ -1,182 +1,168 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import { catchError, forkJoin, of, switchMap, tap } from 'rxjs';
 
 // Services
 import { PermissionService } from '../../../core/services/permission.service';
+import { RoleService } from '../../../core/services/role.service';
 import { AuthContextService } from '../../../core/services/auth-context.service';
 
 // Models
 import { Permission } from '../../../core/models/permission.model';
+import { Role } from '../../../core/models/role.model';
+
+// Utils
+import {
+  ActionKind, getActionKind, getModuleInfo, getPermissionActionLabel,
+  getPermissionModule, groupPermissionsByModule
+} from '../../../core/utils/permission-module.util';
+import { SYSTEM_ROLE_NAMES, getRoleBadgeClasses, getRoleLabel } from '../../../core/utils/role.util';
 
 // Components
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
 
+/**
+ * Detalle de un permiso (solo lectura): qué permite, qué roles lo tienen
+ * y qué otros permisos hay en su módulo.
+ */
 @Component({
   selector: 'app-permission-detail',
   standalone: true,
-  imports: [
-    CommonModule,
-    AlertMessageComponent
-  ],
+  imports: [CommonModule, AlertMessageComponent],
   templateUrl: './permission-detail.component.html',
-  styleUrls: ['./permission-detail.component.scss']
+  styleUrls: ['./permission-detail.component.css']
 })
 export class PermissionDetailComponent implements OnInit {
-  
-  permissionId!: number;
+
   permission: Permission | null = null;
-  
+
+  /** Roles activos que tienen y que no tienen este permiso */
+  rolesWith: Role[] = [];
+  rolesWithout: Role[] = [];
+  rolesAvailable = false;
+
+  /** Los demás permisos del mismo módulo */
+  siblings: Permission[] = [];
+
   isLoading = false;
   errorMessage: string | null = null;
 
-  // Módulos disponibles para mostrar label
-  availableModules: { [key: string]: string } = {
-    'users': 'Usuarios',
-    'roles': 'Roles',
-    'permissions': 'Permisos',
-    'parking': 'Estacionamiento',
-    'rates': 'Tarifas',
-    'reports': 'Reportes',
-    'sensors': 'Sensores',
-    'cameras': 'Cámaras',
-    'barriers': 'Barreras',
-    'dashboard': 'Dashboard'
-  };
-  
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private permissionService: PermissionService,
+    private roleService: RoleService,
     private authContext: AuthContextService,
     private router: Router,
     private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
-    this.getPermissionId();
-    this.loadPermission();
+    // Se escucha la ruta: al pasar a otro permiso del módulo, Angular reutiliza este componente
+    this.route.paramMap.pipe(
+      tap(() => {
+        this.isLoading = true;
+        this.errorMessage = null;
+      }),
+      switchMap(params => forkJoin({
+        permission: this.permissionService.getPermissionById(Number(params.get('id'))),
+        all: this.permissionService.getAllPermissions(true).pipe(catchError(() => of([] as Permission[]))),
+        roles: this.roleService.getAllRoles(true).pipe(catchError(() => of(null))),
+      }).pipe(catchError(() => {
+        this.errorMessage = 'No se encontró el permiso o no se pudo cargar';
+        return of(null);
+      }))),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(data => {
+      this.isLoading = false;
+      if (!data) {
+        this.permission = null;
+        return;
+      }
+      this.setData(data.permission, data.all, data.roles);
+    });
   }
 
-  /**
-   * Control de permisos (patrón aprendido)
-   */
+  private setData(permission: Permission, all: Permission[], roles: Role[] | null): void {
+    this.permission = permission;
+
+    const module = getPermissionModule(permission);
+    const group = groupPermissionsByModule(all).find(g => g.module === module);
+    this.siblings = (group?.permissions ?? []).filter(p => p.id !== permission.id);
+
+    this.rolesAvailable = roles !== null;
+    const sorted = this.sortRoles(roles ?? []);
+    const has = (role: Role) => (role.permissions ?? []).some(p => p.id === permission.id);
+    this.rolesWith = sorted.filter(has);
+    this.rolesWithout = sorted.filter(role => !has(role));
+  }
+
+  /** Primero los del sistema y luego los demás por nombre */
+  private sortRoles(roles: Role[]): Role[] {
+    const rank = (name: string) => {
+      const i = SYSTEM_ROLE_NAMES.indexOf(name);
+      return i === -1 ? SYSTEM_ROLE_NAMES.length : i;
+    };
+    return [...roles].sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
+  }
+
   hasPermission(permission: string): boolean {
     return this.authContext.hasPermission(permission);
   }
 
-  private getPermissionId(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.permissionId = Number(id);
-    } else {
-      this.router.navigate(['/permissions']);
-    }
+  /** Solo quien entró como ADMIN cambia los permisos de un rol */
+  get canEditRoles(): boolean {
+    return this.authContext.isActiveRole('ADMIN') && this.hasPermission('roles.update');
   }
 
-  private loadPermission(): void {
-    this.isLoading = true;
-    
-    this.permissionService.getPermissionById(this.permissionId).subscribe({
-      next: (permission) => {
-        this.permission = permission;
-        this.isLoading = false;
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.errorMessage = 'Error al cargar la información del permiso';
-        console.error('Error loading permission:', error);
-      }
+  // ========== DATOS PARA LA VISTA ==========
+
+  get moduleInfo() {
+    return getModuleInfo(this.permission ? getPermissionModule(this.permission) : '');
+  }
+
+  actionLabel(permission: Permission): string {
+    return getPermissionActionLabel(permission);
+  }
+
+  actionKind(permission: Permission): ActionKind {
+    return getActionKind(permission);
+  }
+
+  roleLabel(name: string): string {
+    return getRoleLabel(name);
+  }
+
+  roleBadge(name: string): string {
+    return getRoleBadgeClasses(name);
+  }
+
+  formatDate(date: string | null | undefined): string {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('es-PE', {
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
     });
   }
 
-  /**
-   * Obtiene el nombre legible del módulo
-   */
-  getModuleLabel(): string {
-    if (!this.permission?.module) return 'Sin módulo';
-    return this.availableModules[this.permission.module] || this.permission.module;
+  // ========== NAVEGACIÓN ==========
+
+  viewPermission(id: number): void {
+    this.router.navigate(['/permissions', id]);
   }
 
-  /**
-   * Obtiene la clase CSS del badge según el módulo
-   */
-  getModuleBadgeClass(): string {
-    if (!this.permission?.module) return 'bg-secondary';
-    
-    const colors: { [key: string]: string } = {
-      'users': 'bg-primary',
-      'roles': 'bg-success',
-      'permissions': 'bg-warning',
-      'parking': 'bg-info',
-      'rates': 'bg-secondary',
-      'reports': 'bg-dark',
-      'sensors': 'bg-danger',
-      'cameras': 'bg-primary',
-      'barriers': 'bg-success',
-      'dashboard': 'bg-info'
-    };
-    
-    return colors[this.permission.module] || 'bg-secondary';
+  viewRole(role: Role): void {
+    this.router.navigate(['/roles', role.id]);
   }
 
-  /**
-   * Extrae el módulo y acción del nombre del permiso
-   * Ejemplo: "users.create" → { module: "users", action: "create" }
-   */
-  parsePermissionName(): { module: string; action: string } | null {
-    if (!this.permission) return null;
-    
-    const parts = this.permission.name.split('.');
-    if (parts.length === 2) {
-      return {
-        module: parts[0],
-        action: parts[1]
-      };
-    }
-    
-    return null;
+  /** ADMIN no cambia permisos: tiene todos siempre */
+  editRole(role: Role): void {
+    this.router.navigate(['/roles', role.id, 'edit']);
   }
 
-  /**
-   * Obtiene el label de la acción
-   */
-  getActionLabel(): string {
-    const parsed = this.parsePermissionName();
-    if (!parsed) return 'N/A';
-    
-    const actions: { [key: string]: string } = {
-      'create': 'Crear',
-      'read': 'Leer',
-      'update': 'Actualizar',
-      'delete': 'Eliminar',
-      'export': 'Exportar',
-      'import': 'Importar',
-      'restore': 'Restaurar',
-      'approve': 'Aprobar',
-      'reject': 'Rechazar'
-    };
-    
-    return actions[parsed.action] || parsed.action;
-  }
-
-  /**
-   * Vuelve a la lista de permisos
-   */
   goBack(): void {
     this.router.navigate(['/permissions']);
-  }
-
-  /**
-   * Formatea una fecha a formato local
-   */
-  formatDate(date: string): string {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('es-PE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   }
 
   dismissError(): void {

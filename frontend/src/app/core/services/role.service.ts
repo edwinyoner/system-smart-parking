@@ -53,8 +53,10 @@ export class RoleService {
   /**
    * Obtiene todos los roles sin paginación (para selects)
    */
-  getAllRoles(): Observable<Role[]> {
-    return this.http.get<Role[]>(`${this.API_URL}/all`).pipe(
+  getAllRoles(silent = false): Observable<Role[]> {
+    return this.http.get<Role[]>(`${this.API_URL}/all`, {
+      context: new HttpContext().set(SKIP_LOADING, silent)
+    }).pipe(
       catchError(this.handleError)
     );
   }

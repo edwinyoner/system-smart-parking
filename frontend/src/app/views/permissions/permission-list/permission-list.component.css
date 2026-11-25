@@ -1,0 +1,160 @@
+.permission-list-container {
+  padding: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+}
+
+/* ===== Resumen ===== */
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  min-width: 150px;
+  background: var(--cui-body-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.5rem;
+}
+
+.summary-item > i {
+  font-size: 1.25rem;
+  color: var(--cui-success);
+}
+
+.summary-item strong {
+  display: block;
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.summary-item span {
+  font-size: 0.8rem;
+  color: var(--cui-secondary-color);
+}
+
+/* ===== Matriz ===== */
+.matrix th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--cui-tertiary-bg);
+  border-bottom: 2px solid var(--cui-border-color);
+}
+
+.col-action {
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 1rem !important;
+}
+
+.col-role {
+  width: 1%;
+  min-width: 6.5rem;
+}
+
+.col-view {
+  width: 1%;
+  padding-right: 1rem !important;
+}
+
+/* Fila de sección (Seguridad y accesos, Estacionamientos...) */
+.section-row th {
+  padding: 0.9rem 1rem 0.4rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cui-secondary-color);
+  background: var(--cui-body-bg);
+  border-bottom: none;
+}
+
+/* Fila de módulo */
+.module-row > * {
+  background: var(--cui-tertiary-bg);
+}
+
+.module-row th {
+  padding-left: 1rem;
+}
+
+.module-count {
+  background: var(--cui-secondary-bg);
+  color: var(--cui-body-color);
+  border: 1px solid var(--cui-border-color);
+  font-weight: 600;
+}
+
+.permission-row td:nth-child(2) {
+  padding-left: 0.5rem;
+}
+
+.permission-code {
+  font-size: 0.85rem;
+  color: var(--cui-body-color);
+  background: var(--cui-secondary-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+}
+
+/* Cabecera de rol: también filtra */
+.role-toggle {
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.role-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.role-toggle:focus-visible {
+  outline: 2px solid var(--cui-success);
+  outline-offset: 2px;
+}
+
+.role-toggle.selected {
+  border-color: var(--cui-body-color);
+  box-shadow: 0 0 0 2px var(--cui-body-bg);
+}
+
+.has-role {
+  color: var(--cui-success);
+  font-size: 1.1rem;
+}
+
+.no-role {
+  color: var(--cui-border-color);
+  font-weight: 600;
+}
+
+/* Permiso que ningún rol tiene: nadie puede usar esa función */
+.unassigned .permission-code {
+  border: 1px dashed var(--sp-warning-soft-border);
+}
+
+.unassigned-badge {
+  background: var(--sp-warning-soft-bg);
+  color: var(--sp-warning-strong);
+  border: 1px solid var(--sp-warning-soft-border);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .permission-list-container {
+    padding: 0.5rem;
+  }
+
+  .matrix {
+    font-size: 0.875rem;
+  }
+}

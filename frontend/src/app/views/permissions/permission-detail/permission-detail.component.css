@@ -1,0 +1,142 @@
+.permission-detail-container {
+  padding: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+}
+
+.refreshing {
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+/* Ícono grande del módulo */
+.module-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  border-radius: 0.75rem;
+  background: var(--sp-success-soft-bg);
+  border: 1px solid var(--sp-success-soft-border);
+  color: var(--sp-success-strong);
+}
+
+.lead-description {
+  font-size: 1.05rem;
+  color: var(--cui-body-color);
+}
+
+.detail-list dt {
+  font-weight: 600;
+  color: var(--cui-secondary-color);
+}
+
+.detail-list dd {
+  margin-bottom: 0.75rem;
+}
+
+.permission-code {
+  font-size: 0.9rem;
+  color: var(--cui-body-color);
+  background: var(--cui-secondary-bg);
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.25rem;
+}
+
+/* Roles */
+.roles-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.75rem;
+}
+
+.roles-title.has {
+  color: var(--sp-success-strong);
+}
+
+.roles-title.without {
+  color: var(--cui-secondary-color);
+  margin-top: 1.25rem;
+}
+
+.role-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.role-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--cui-border-color-translucent);
+}
+
+.role-list li:last-child {
+  border-bottom: none;
+}
+
+.role-name {
+  flex-grow: 1;
+  color: var(--cui-secondary-color);
+  font-size: 0.875rem;
+}
+
+.role-list .btn-link {
+  color: var(--sp-success-strong);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.unassigned-note {
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.375rem;
+  background: var(--sp-warning-soft-bg);
+  border: 1px solid var(--sp-warning-soft-border);
+  color: var(--sp-warning-strong);
+  font-size: 0.875rem;
+}
+
+/* Otros permisos del módulo */
+.sibling {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.35rem;
+  background: var(--cui-body-bg);
+  color: var(--cui-body-color);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 999px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.sibling:hover {
+  border-color: var(--cui-success);
+  transform: translateY(-1px);
+}
+
+.sibling:focus-visible {
+  outline: 2px solid var(--cui-success);
+  outline-offset: 2px;
+}
+
+.sibling code {
+  font-size: 0.8rem;
+  color: inherit;
+}
+
+@media (max-width: 768px) {
+  .permission-detail-container {
+    padding: 0.5rem;
+  }
+}

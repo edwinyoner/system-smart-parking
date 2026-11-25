@@ -17,3 +17,16 @@ export function getRoleLabel(name: string): string {
 export function getRoleIconClass(name: string | null): string {
   return (name && SYSTEM_ROLES[name]?.icon) || 'fas fa-user';
 }
+
+/**
+ * Clases del badge de un rol, iguales en todas las vistas:
+ * ADMIN rojo, AUTORIDAD ámbar, OPERADOR verde y los creados desde la interfaz en gris.
+ */
+export function getRoleBadgeClasses(name: string): string {
+  switch (name) {
+    case 'ADMIN': return 'bg-danger text-white';
+    case 'AUTORIDAD': return 'bg-warning text-dark';
+    case 'OPERADOR': return 'bg-success text-white';
+    default: return 'bg-secondary text-white';
+  }
+}

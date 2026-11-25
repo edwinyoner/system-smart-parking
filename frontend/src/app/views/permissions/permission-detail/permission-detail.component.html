@@ -1,273 +1,160 @@
 <div class="permission-detail-container">
-  
-  <!-- Header -->
+
+  <!-- Encabezado -->
   <div class="page-header mb-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
       <div>
         <h2 class="page-title mb-1">
           <i class="fas fa-key me-2"></i>
-          Detalles del Permiso
+          Detalle del Permiso
         </h2>
-        @if (permission) {
-          <p class="text-muted mb-0">
-            Información completa del permiso: <code>{{ permission.name }}</code>
-          </p>
-        }
+        <p class="text-body-secondary mb-0">
+          <i class="fas fa-lock me-1"></i>
+          Solo lectura: se asigna o se quita desde la edición de cada rol.
+        </p>
       </div>
-      
-      <div class="btn-group">
-        <button 
-          class="btn btn-outline-secondary"
-          (click)="goBack()">
-          <i class="fas fa-arrow-left me-2"></i>
-          Volver
-        </button>
-      </div>
+      <button type="button" class="btn btn-outline-secondary" (click)="goBack()">
+        <i class="fas fa-arrow-left me-2"></i>
+        Volver a Permisos
+      </button>
     </div>
   </div>
 
-  <!-- Loading State -->
-  @if (isLoading) {
-    <div class="card">
-      <div class="card-body text-center py-5">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Cargando permiso...</span>
-        </div>
-        <p class="mt-3 text-muted">Cargando información del permiso...</p>
-      </div>
-    </div>
-  }
-
-  <!-- Error Message -->
   @if (errorMessage) {
-    <app-alert-message 
-      type="error" 
+    <app-alert-message
+      type="error"
       [message]="errorMessage"
       [dismissible]="true"
       (onDismiss)="dismissError()">
     </app-alert-message>
   }
 
-  @if (!isLoading && permission) {
-
-    <!-- Información Básica -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <strong>
-          <i class="fas fa-info-circle me-2"></i>
-          Información Básica
-        </strong>
-      </div>
-      <div class="card-body">
-        <div class="row g-4">
-          
-          <!-- ID -->
-          <div class="col-md-3">
-            <div class="detail-item">
-              <label class="detail-label">
-                <i class="fas fa-hashtag me-2"></i>
-                ID del Permiso
-              </label>
-              <div class="detail-value">
-                <span class="badge bg-light text-dark">{{ permission.id }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Nombre -->
-          <div class="col-md-9">
-            <div class="detail-item">
-              <label class="detail-label">
-                <i class="fas fa-tag me-2"></i>
-                Nombre del Permiso
-              </label>
-              <div class="detail-value">
-                <code class="permission-code">{{ permission.name }}</code>
-              </div>
-            </div>
-          </div>
-
-          <!-- Módulo -->
-          <div class="col-md-4">
-            <div class="detail-item">
-              <label class="detail-label">
-                <i class="fas fa-folder me-2"></i>
-                Módulo
-              </label>
-              <div class="detail-value">
-                <span [class]="'badge ' + getModuleBadgeClass()">
-                  {{ getModuleLabel() }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Acción -->
-          <div class="col-md-4">
-            <div class="detail-item">
-              <label class="detail-label">
-                <i class="fas fa-bolt me-2"></i>
-                Acción
-              </label>
-              <div class="detail-value">
-                <span class="badge bg-secondary">{{ getActionLabel() }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Estado -->
-          <div class="col-md-4">
-            <div class="detail-item">
-              <label class="detail-label">
-                <i class="fas fa-power-off me-2"></i>
-                Estado
-              </label>
-              <div class="detail-value">
-                @if (permission.status) {
-                  <span class="badge bg-success">
-                    <i class="fas fa-check-circle me-1"></i>
-                    Activo
-                  </span>
-                } @else {
-                  <span class="badge bg-danger">
-                    <i class="fas fa-times-circle me-1"></i>
-                    Inactivo
-                  </span>
-                }
-              </div>
-            </div>
-          </div>
-
-          <!-- Descripción -->
-          <div class="col-12">
-            <div class="detail-item">
-              <label class="detail-label">
-                <i class="fas fa-align-left me-2"></i>
-                Descripción
-              </label>
-              <div class="detail-value">
-                {{ permission.description || 'Sin descripción' }}
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-    <!-- Desglose del Permiso -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <strong>
-          <i class="fas fa-project-diagram me-2"></i>
-          Desglose del Permiso
-        </strong>
-      </div>
-      <div class="card-body">
-        <div class="permission-breakdown">
-          
-          <!-- Visual Breakdown -->
-          <div class="breakdown-visual">
-            <div class="breakdown-part module">
-              <div class="part-label">Módulo</div>
-              <div class="part-value">{{ parsePermissionName()?.module || 'N/A' }}</div>
-            </div>
-            
-            <div class="breakdown-separator">
-              <i class="fas fa-arrow-right"></i>
-            </div>
-            
-            <div class="breakdown-part action">
-              <div class="part-label">Acción</div>
-              <div class="part-value">{{ parsePermissionName()?.action || 'N/A' }}</div>
-            </div>
-          </div>
-
-          <!-- Explanation -->
-          <div class="breakdown-explanation mt-4">
-            <div class="alert alert-info mb-0">
-              <i class="fas fa-info-circle me-2"></i>
-              <strong>Interpretación:</strong> 
-              Este permiso permite realizar la acción <strong>{{ getActionLabel() }}</strong> 
-              en el módulo <strong>{{ getModuleLabel() }}</strong>.
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-    <!-- Información de Auditoría -->
+  @if (isLoading && !permission) {
     <div class="card">
-      <div class="card-header">
-        <strong>
-          <i class="fas fa-clock me-2"></i>
-          Información de Auditoría
-        </strong>
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          
-          <!-- Fecha de Creación -->
-          <div class="col-md-6">
-            <div class="detail-item">
-              <label class="detail-label">
-                <i class="fas fa-calendar-plus me-2"></i>
-                Fecha de Creación
-              </label>
-              <div class="detail-value">
-                {{ formatDate(permission.createdAt) }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Última Actualización -->
-          <div class="col-md-6">
-            <div class="detail-item">
-              <label class="detail-label">
-                <i class="fas fa-calendar-check me-2"></i>
-                Última Actualización
-              </label>
-              <div class="detail-value">
-                {{ formatDate(permission.updatedAt) }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Creado Por -->
-          @if (permission.createdBy) {
-            <div class="col-md-6">
-              <div class="detail-item">
-                <label class="detail-label">
-                  <i class="fas fa-user me-2"></i>
-                  Creado Por
-                </label>
-                <div class="detail-value">
-                  {{ permission.createdBy }}
-                </div>
-              </div>
-            </div>
-          }
-
-          <!-- Actualizado Por -->
-          @if (permission.updatedBy) {
-            <div class="col-md-6">
-              <div class="detail-item">
-                <label class="detail-label">
-                  <i class="fas fa-user-edit me-2"></i>
-                  Actualizado Por
-                </label>
-                <div class="detail-value">
-                  {{ permission.updatedBy }}
-                </div>
-              </div>
-            </div>
-          }
-
-        </div>
+      <div class="card-body text-center py-5">
+        <div class="spinner-border text-success" role="status"><span class="visually-hidden">Cargando...</span></div>
+        <p class="mt-3 text-muted">Cargando permiso...</p>
       </div>
     </div>
-
   }
 
+  @if (permission) {
+    <div class="row g-4" [class.refreshing]="isLoading">
+
+      <!-- Qué permite -->
+      <div class="col-lg-7">
+        <div class="card h-100">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-4">
+              <div class="module-icon"><i class="fas {{ moduleInfo.icon }}"></i></div>
+              <div>
+                <div class="small text-body-secondary">{{ moduleInfo.section }} · {{ moduleInfo.label }}</div>
+                <h3 class="h4 mb-0">{{ actionLabel(permission) }} {{ moduleInfo.label.toLowerCase() }}</h3>
+              </div>
+            </div>
+
+            <p class="lead-description mb-4">{{ permission.description || 'Sin descripción' }}</p>
+
+            <dl class="row mb-0 detail-list">
+              <dt class="col-sm-4">Código</dt>
+              <dd class="col-sm-8"><code class="permission-code">{{ permission.name }}</code></dd>
+
+              <dt class="col-sm-4">Módulo</dt>
+              <dd class="col-sm-8"><i class="fas {{ moduleInfo.icon }} me-2 text-success"></i>{{ moduleInfo.label }}</dd>
+
+              <dt class="col-sm-4">Acción</dt>
+              <dd class="col-sm-8">
+                <span class="action-pill" [attr.data-kind]="actionKind(permission)">{{ actionLabel(permission) }}</span>
+              </dd>
+
+              <dt class="col-sm-4">Estado</dt>
+              <dd class="col-sm-8">
+                <span class="badge text-white" [class.bg-success]="permission.status" [class.bg-danger]="!permission.status">
+                  <i class="fas me-1" [class.fa-check-circle]="permission.status" [class.fa-times-circle]="!permission.status"></i>
+                  {{ permission.status ? 'Activo' : 'Inactivo' }}
+                </span>
+              </dd>
+
+              <dt class="col-sm-4">Registrado</dt>
+              <dd class="col-sm-8 mb-0">{{ formatDate(permission.createdAt) }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Roles -->
+      <div class="col-lg-5">
+        <div class="card h-100">
+          <div class="card-header">
+            <strong><i class="fas fa-user-shield me-2"></i>Roles</strong>
+          </div>
+          <div class="card-body">
+            @if (!rolesAvailable) {
+              <p class="text-body-secondary mb-0">No tienes acceso a la lista de roles.</p>
+            } @else {
+              <h4 class="roles-title has">
+                <i class="fas fa-check-circle me-2"></i>Lo tienen ({{ rolesWith.length }})
+              </h4>
+              @if (rolesWith.length) {
+                <ul class="role-list">
+                  @for (role of rolesWith; track role.id) {
+                    <li>
+                      <span class="badge" [class]="roleBadge(role.name)">{{ role.name }}</span>
+                      <span class="role-name">{{ roleLabel(role.name) }}</span>
+                      @if (hasPermission('roles.read')) {
+                        <button type="button" class="btn btn-sm btn-link" (click)="viewRole(role)">Ver rol</button>
+                      }
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div class="unassigned-note mb-3">
+                  <i class="fas fa-exclamation-triangle me-2"></i>
+                  Ningún rol lo tiene: por ahora nadie puede usar esta función.
+                </div>
+              }
+
+              <h4 class="roles-title without">
+                <i class="fas fa-minus-circle me-2"></i>No lo tienen ({{ rolesWithout.length }})
+              </h4>
+              @if (rolesWithout.length) {
+                <ul class="role-list mb-0">
+                  @for (role of rolesWithout; track role.id) {
+                    <li>
+                      <span class="badge" [class]="roleBadge(role.name)">{{ role.name }}</span>
+                      <span class="role-name">{{ roleLabel(role.name) }}</span>
+                      @if (canEditRoles && role.permissionsEditable) {
+                        <button type="button" class="btn btn-sm btn-link" (click)="editRole(role)">Asignar</button>
+                      }
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="text-body-secondary small mb-0">Todos los roles activos lo tienen.</p>
+              }
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Otros permisos del módulo -->
+      @if (siblings.length) {
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <strong><i class="fas {{ moduleInfo.icon }} me-2"></i>Otros permisos de {{ moduleInfo.label }}</strong>
+            </div>
+            <div class="card-body d-flex flex-wrap gap-2">
+              @for (sibling of siblings; track sibling.id) {
+                <button type="button" class="sibling" (click)="viewPermission(sibling.id)" [title]="sibling.description">
+                  <span class="action-pill" [attr.data-kind]="actionKind(sibling)">{{ actionLabel(sibling) }}</span>
+                  <code>{{ sibling.name }}</code>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
 </div>

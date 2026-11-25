@@ -93,3 +93,40 @@ export function groupPermissionsByModule(permissions: Permission[]): PermissionG
       || rank(MODULE_ORDER, a.module) - rank(MODULE_ORDER, b.module)
       || a.module.localeCompare(b.module));
 }
+
+/** Datos de un módulo para mostrar (también los que no están en el catálogo) */
+export function getModuleInfo(module: string): { module: string; label: string; icon: string; section: string } {
+  const info = MODULES[module];
+  return {
+    module,
+    label: info?.label ?? module.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase()),
+    icon: info?.icon ?? 'fa-folder-open',
+    section: info?.section ?? OTHER_SECTION,
+  };
+}
+
+/** "users.create" → "create" */
+export function getPermissionAction(permission: Permission): string {
+  return permission.name.split('.').slice(1).join('.');
+}
+
+/**
+ * Tipo de acción para filtrar: las 4 básicas (ver, crear, editar, eliminar)
+ * y "other" para las propias de cada módulo (restaurar, anular, exportar...).
+ */
+export type ActionKind = 'read' | 'create' | 'update' | 'delete' | 'other';
+
+export function getActionKind(permission: Permission): ActionKind {
+  const action = getPermissionAction(permission);
+  if (action === 'read' || action === 'view') return 'read';
+  if (action === 'create' || action === 'update' || action === 'delete') return action;
+  return 'other';
+}
+
+export const ACTION_KIND_OPTIONS: { value: ActionKind; label: string }[] = [
+  { value: 'read', label: 'Ver' },
+  { value: 'create', label: 'Crear' },
+  { value: 'update', label: 'Editar' },
+  { value: 'delete', label: 'Eliminar' },
+  { value: 'other', label: 'Otras (restaurar, anular, exportar...)' },
+];
