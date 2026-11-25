@@ -43,12 +43,7 @@ export class ResetPasswordComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute
-  ) {
-    // Si ya está autenticado, redirigir al dashboard
-    if (this.authService.isLoggedIn()) {
-      this.router.navigate(['/dashboard']);
-    }
-  }
+  ) {}
 
   ngOnInit(): void {
     // Obtener token de query params

@@ -17,18 +17,22 @@ export const routes: Routes = [
   {
     path: '',
     component: AuthLayoutComponent,
-    canActivate: [NoAuthGuard], // Solo accesible si NO está autenticado
     children: [
+      // Login y recuperar contraseña: solo sin sesión (con sesión se va al dashboard)
       {
         path: 'login',
+        canActivate: [NoAuthGuard],
         loadChildren: () => import('./views/auth/routes').then(m => m.loginRoutes),
         data: { title: 'Iniciar Sesión' }
       },
       {
         path: 'forgot-password',
+        canActivate: [NoAuthGuard],
         loadChildren: () => import('./views/auth/routes').then(m => m.forgotPasswordRoutes),
         data: { title: 'Recuperar Contraseña' }
       },
+      // Enlaces que llegan por correo: se abren siempre. Traen su propio token y pueden ser
+      // de otra persona que la de la sesión guardada en este navegador.
       {
         path: 'reset-password',
         loadChildren: () => import('./views/auth/routes').then(m => m.resetPasswordRoutes),
