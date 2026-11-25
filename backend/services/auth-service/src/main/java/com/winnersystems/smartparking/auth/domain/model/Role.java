@@ -1,7 +1,10 @@
 package com.winnersystems.smartparking.auth.domain.model;
 
+import com.winnersystems.smartparking.auth.domain.exception.ProtectedRoleException;
+
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
@@ -15,13 +18,16 @@ import java.util.Set;
  * <ul>
  *   <li>Relación Many-to-Many con Permission</li>
  *   <li>Soft delete para auditoría</li>
- *   <li>Roles de sistema (ADMIN) no pueden desactivarse</li>
+ *   <li>Los 3 roles de sistema no se renombran, desactivan ni eliminan</li>
  * </ul>
  *
  * @author Edwin Yoner - Winner Systems - Smart Parking Platform
  * @version 1.0
  */
 public class Role {
+
+   private static final String ADMIN_ROLE = "ADMIN";
+   private static final Set<String> SYSTEM_ROLES = Set.of(ADMIN_ROLE, "AUTORIDAD", "OPERADOR");
 
    // ========================= CAMPOS DE IDENTIDAD =========================
 
@@ -199,21 +205,47 @@ public class Role {
    // ========================= MÉTODOS DE NEGOCIO - VALIDACIONES =========================
 
    /**
-    * Verifica si el rol es de sistema (no modificable).
-    *
-    * @return true si es ADMIN
+    * Rol del que depende el código del sistema (seguridad, operadores, login).
     */
    public boolean isSystemRole() {
-      return name != null && name.equalsIgnoreCase("ADMIN");
+      return name != null && SYSTEM_ROLES.contains(name.toUpperCase(Locale.ROOT));
    }
 
    /**
-    * Verifica si el rol puede ser modificado.
-    *
-    * @return true si puede modificarse
+    * Los permisos de ADMIN son fijos: quitarlos dejaría al sistema sin administrador.
     */
-   public boolean canBeModified() {
-      return !isSystemRole();
+   public boolean arePermissionsEditable() {
+      return !ADMIN_ROLE.equalsIgnoreCase(name);
+   }
+
+   /**
+    * Formato único de los nombres: mayúsculas y guion bajo en lugar de espacios.
+    */
+   public static String normalizeName(String name) {
+      return name.strip().toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
+   }
+
+   /**
+    * Valida que el rol pueda eliminarse.
+    *
+    * @param userCount usuarios que lo tienen asignado
+    */
+   public void ensureCanBeDeleted(long userCount) {
+      ensureIsNotSystemRole("no se puede eliminar");
+      ensureIsNotInUse(userCount, "eliminarlo");
+   }
+
+   private void ensureIsNotSystemRole(String reason) {
+      if (isSystemRole()) {
+         throw new ProtectedRoleException("El rol " + name + " es del sistema: " + reason);
+      }
+   }
+
+   private void ensureIsNotInUse(long userCount, String action) {
+      if (userCount > 0) {
+         throw new IllegalStateException("El rol " + name + " está asignado a " + userCount
+               + (userCount == 1 ? " usuario" : " usuarios") + ": quítalo antes de " + action);
+      }
    }
 
    /**
@@ -239,18 +271,51 @@ public class Role {
    // ========================= MÉTODOS DE NEGOCIO - ACTUALIZACIÓN =========================
 
    /**
-    * Actualiza el nombre y descripción del rol.
-    * No permite modificar roles de sistema.
-    *
-    * @param name nuevo nombre
-    * @param description nueva descripción
+    * Cambia el nombre y la descripción. Reenviar los mismos valores no es un cambio.
     */
    public void updateDetails(String name, String description) {
-      if (isSystemRole()) {
-         throw new IllegalStateException("Los roles de sistema no pueden modificar su nombre o descripción");
+      String newName = normalizeName(name);
+      if (newName.equals(this.name) && Objects.equals(description, this.description)) {
+         return;
       }
-      this.name = name;
+      ensureIsNotSystemRole("no se puede cambiar su nombre ni su descripción");
+      this.name = newName;
       this.description = description;
+      this.updatedAt = LocalDateTime.now();
+   }
+
+   /**
+    * Activa o desactiva el rol.
+    *
+    * @param userCount usuarios que lo tienen asignado
+    */
+   public void changeStatus(boolean active, long userCount) {
+      if (active == this.status) {
+         return;
+      }
+      if (active) {
+         activate();
+         return;
+      }
+      ensureIsNotSystemRole("no se puede desactivar");
+      ensureIsNotInUse(userCount, "desactivarlo");
+      deactivate();
+   }
+
+   /**
+    * Reemplaza los permisos. Un rol sin permisos no sirve para nada.
+    */
+   public void replacePermissions(Set<Permission> newPermissions) {
+      if (newPermissions.equals(this.permissions)) {
+         return;
+      }
+      if (!arePermissionsEditable()) {
+         throw new ProtectedRoleException("Los permisos del rol ADMIN no se pueden cambiar");
+      }
+      if (newPermissions.isEmpty()) {
+         throw new IllegalArgumentException("El rol debe tener al menos un permiso");
+      }
+      this.permissions = new HashSet<>(newPermissions);
       this.updatedAt = LocalDateTime.now();
    }
 

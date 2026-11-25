@@ -11,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -81,16 +82,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             System.out.println("👤 Loading UserDetails for: " + userEmail);
 
             // 5. Cargar detalles del usuario
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+            // La firma ya se comprobó al extraer el email: si no existe, fue dado de baja
+            UserDetails userDetails;
+            try {
+               userDetails = userDetailsService.loadUserByUsername(userEmail);
+            } catch (UsernameNotFoundException e) {
+               request.setAttribute(SessionEndReason.REQUEST_ATTRIBUTE, SessionEndReason.ACCOUNT_DELETED);
+               throw e;
+            }
             System.out.println("✅ UserDetails loaded: " + userDetails.getClass().getName());
             System.out.println("   - Username: " + userDetails.getUsername());
             System.out.println("   - Authorities: " + userDetails.getAuthorities());
 
-            // 6. Validar token
-            if (jwtService.validateToken(jwt)) {
+            // 6. Limitar los permisos al rol elegido al iniciar sesión
+            boolean hasRole = true;
+            if (userDetails instanceof CustomUserDetails customUser) {
+               CustomUserDetails withRole = customUser.withActiveRole(jwtService.extractActiveRole(jwt));
+               hasRole = withRole.getActiveRole() != null;
+               userDetails = withRole;
+            }
+
+            // 7. Validar token. Desactivar la cuenta, cambiar la contraseña o quitar el rol cierra la sesión
+            if (jwtService.validateToken(jwt) && isSessionActive(userDetails, jwt) && hasRole) {
                System.out.println("✅ Token is valid");
 
-               // 7. Crear autenticación
+               // Crear autenticación
                UsernamePasswordAuthenticationToken authToken =
                      new UsernamePasswordAuthenticationToken(
                            userDetails,
@@ -106,7 +122,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                SecurityContextHolder.getContext().setAuthentication(authToken);
                System.out.println("✅ Authentication set in SecurityContext");
             } else {
-               System.out.println("❌ Token is NOT valid");
+               request.setAttribute(SessionEndReason.REQUEST_ATTRIBUTE, !userDetails.isEnabled()
+                     ? SessionEndReason.ACCOUNT_DISABLED
+                     : isSessionActive(userDetails, jwt)
+                     ? SessionEndReason.ROLE_REMOVED
+                     : SessionEndReason.PASSWORD_CHANGED);
+               System.out.println("❌ Token is NOT valid or account is disabled");
             }
          } else {
             System.out.println("⚠️ Email is null or authentication already exists");
@@ -121,5 +142,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
       // 9. Continuar con el siguiente filtro
       filterChain.doFilter(request, response);
+   }
+
+   private boolean isSessionActive(UserDetails userDetails, String jwt) {
+      return userDetails instanceof CustomUserDetails customUser
+            ? customUser.acceptsTokenIssuedAt(jwtService.extractIssuedAt(jwt))
+            : userDetails.isEnabled();
    }
 }

@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
 import { Router } from '@angular/router';
+import { SKIP_LOADING } from '../interceptors/loading.interceptor';
 import { environment } from '../../../environments/environment';
 import { TokenService } from './token.service';
+import { CurrentUserService, CurrentUserProfile } from './current-user.service';
 import { 
   AuthResponse, 
   RefreshTokenResponse, 
@@ -38,6 +40,7 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     private tokenService: TokenService,
+    private currentUserService: CurrentUserService,
     private router: Router
   ) {
     // Ahora sí podemos usar tokenService porque ya fue inyectado
@@ -62,11 +65,23 @@ export class AuthService {
   }
 
   /**
+   * Nombres de los roles activos con los que se puede iniciar sesión
+   */
+  getLoginRoles(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.API_URL}/login-roles`, {
+      context: new HttpContext().set(SKIP_LOADING, true)
+    });
+  }
+
+  /**
    * Maneja la respuesta de autenticación exitosa
    */
   private handleAuthResponse(response: AuthResponse): void {
     // Guardar tokens
     this.tokenService.saveTokens(response.accessToken, response.refreshToken);
+
+    // Cargar los datos del usuario que acaba de entrar
+    this.currentUserService.refreshCurrentUser();
     
     // Actualizar estado de autenticación
     this.isAuthenticatedSubject.next(true);
@@ -92,6 +107,9 @@ export class AuthService {
     
     // Limpiar tokens
     this.tokenService.clearTokens();
+
+    // Evitar que el siguiente usuario herede datos o roles de este
+    this.currentUserService.clearCurrentUser();
     
     // Actualizar estado
     this.isAuthenticatedSubject.next(false);
@@ -130,6 +148,7 @@ export class AuthService {
     return this.http.post<RefreshTokenResponse>(`${this.API_URL}/refresh`, { refreshToken }).pipe(
       tap(response => {
         this.tokenService.saveTokens(response.accessToken, response.refreshToken);
+        this.currentUserService.refreshCurrentUser();
         this.isAuthenticatedSubject.next(true);
       }),
       catchError(error => {
@@ -173,8 +192,8 @@ export class AuthService {
   /**
  * Actualiza el perfil del usuario actual
  */
-updateProfile(data: {firstName: string, lastName: string, phoneNumber?: string | null}): Observable<any> {
-  return this.http.put(`${this.API_URL}/profile`, data);
+updateProfile(data: {firstName: string, lastName: string, phoneNumber?: string | null, profilePicture?: string | null}): Observable<CurrentUserProfile> {
+  return this.http.put<CurrentUserProfile>(`${this.API_URL}/profile`, data);
 }
 
   /**
@@ -237,6 +256,6 @@ updateProfile(data: {firstName: string, lastName: string, phoneNumber?: string |
     }
 
     console.error('❌ Error en AuthService:', errorMessage);
-    return throwError(() => ({ message: errorMessage, error }));
+    return throwError(() => ({ status: error.status, message: errorMessage, error }));
   }
 }

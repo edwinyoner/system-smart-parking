@@ -1,5 +1,13 @@
 package com.winnersystems.smartparking.auth.application.service.role;
 
+import com.winnersystems.smartparking.auth.application.dto.query.UserSearchCriteria;
+import com.winnersystems.smartparking.auth.application.port.output.UserPersistencePort;
+import com.winnersystems.smartparking.auth.domain.exception.RoleNotFoundException;
+import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Locale;
+import java.util.Objects;
 import com.winnersystems.smartparking.auth.application.dto.query.PagedResponse;
 import com.winnersystems.smartparking.auth.application.dto.query.PermissionDto;
 import com.winnersystems.smartparking.auth.application.dto.query.RoleDto;
@@ -29,23 +37,26 @@ public class RoleService {
 
    private final RolePersistencePort rolePersistencePort;
    private final PermissionPersistencePort permissionPersistencePort;
+   private final UserPersistencePort userPersistencePort;
 
    /**
     * Lista roles con paginación y filtros
     */
    public PagedResponse<RoleDto> listRoles(String search, Boolean status, int page, int size) {
-      // Obtener todos los roles activos
-      List<Role> roles = rolePersistencePort.findAllActive();
+      // Incluye los inactivos: si no, un rol desactivado no podría reactivarse
+      List<Role> roles = rolePersistencePort.findAll().stream()
+            .sorted(Comparator.comparing(Role::getId))
+            .toList();
 
-      // Filtrar por búsqueda si existe
+      // Filtrar por búsqueda: todas las palabras, sin distinguir tildes
       if (search != null && !search.isBlank()) {
-         String searchLower = search.toLowerCase();
+         String[] words = searchable(search).split("\\s+");
          roles = roles.stream()
-               .filter(role ->
-                     role.getName().toLowerCase().contains(searchLower) ||
-                           (role.getDescription() != null && role.getDescription().toLowerCase().contains(searchLower))
-               )
-               .collect(Collectors.toList());
+               .filter(role -> {
+                  String text = searchable(role.getName() + " " + Objects.toString(role.getDescription(), ""));
+                  return Arrays.stream(words).allMatch(text::contains);
+               })
+               .toList();
       }
 
       // Filtrar por estado si existe
@@ -79,88 +90,96 @@ public class RoleService {
     * Obtiene un rol por ID
     */
    public RoleDto getRoleById(Long id) {
-      Role role = rolePersistencePort.findById(id)
-            .orElseThrow(() -> new RuntimeException("Rol no encontrado: " + id));
+      Role role = findRole(id);
       return mapToDto(role);
    }
 
    /**
     * Crea un nuevo rol
     */
-   public RoleDto createRole(String name, String description, boolean status, Set<Long> permissionIds) {
-      // Cargar permisos
-      Set<Permission> permissions = new HashSet<>();
-      if (permissionIds != null && !permissionIds.isEmpty()) {
-         for (Long permissionId : permissionIds) {
-            permissionPersistencePort.findById(permissionId)
-                  .ifPresent(permissions::add);
-         }
+   public RoleDto createRole(String name, String description, boolean status,
+                             Set<Long> permissionIds, Long actorId) {
+      String roleName = Role.normalizeName(name);
+      ensureNameIsAvailable(roleName);
+
+      Role role = new Role(roleName, description);
+      if (permissionIds == null || permissionIds.isEmpty()) {
+         throw new IllegalArgumentException("El rol debe tener al menos un permiso");
       }
+      role.replacePermissions(loadPermissions(permissionIds, Set.of()));
+      role.changeStatus(status, 0);
+      role.setCreatedBy(actorId);
 
-      // Crear rol
-      Role role = new Role(name, description);
-      if (status) {
-         role.activate();
-      } else {
-         role.deactivate();
-      }
-
-      // Asignar permisos
-      permissions.forEach(role::addPermission);
-
-      // Guardar
-      Role savedRole = rolePersistencePort.save(role);
-      return mapToDto(savedRole);
+      return mapToDto(rolePersistencePort.save(role));
    }
 
    /**
-    * Actualiza un rol existente
+    * Actualiza un rol existente. Los campos null no se modifican.
     */
-   public RoleDto updateRole(Long id, String name, String description, Boolean status, Set<Long> permissionIds) {
-      Role role = rolePersistencePort.findById(id)
-            .orElseThrow(() -> new RuntimeException("Rol no encontrado: " + id));
+   public RoleDto updateRole(Long id, String name, String description, Boolean status,
+                             Set<Long> permissionIds, Long actorId) {
+      Role role = findRole(id);
 
-      // Actualizar campos
-      if (name != null && description != null && !role.isSystemRole()) {
-         role.updateDetails(name, description);
+      if (name != null && !Role.normalizeName(name).equals(role.getName()) && !role.isSystemRole()) {
+         ensureNameIsAvailable(Role.normalizeName(name));
       }
+      role.updateDetails(
+            name != null ? name : role.getName(),
+            description != null ? description : role.getDescription());
 
       if (status != null) {
-         if (status) {
-            role.activate();
-         } else {
-            role.deactivate();
-         }
+         role.changeStatus(status, countUsers(role));
       }
 
-      // Actualizar permisos si se proporcionaron
       if (permissionIds != null) {
-         role.clearPermissions();
-         Set<Permission> permissions = new HashSet<>();
-         for (Long permissionId : permissionIds) {
-            permissionPersistencePort.findById(permissionId)
-                  .ifPresent(permissions::add);
-         }
-         permissions.forEach(role::addPermission);
+         role.replacePermissions(loadPermissions(permissionIds, role.getPermissions()));
       }
 
-      Role updatedRole = rolePersistencePort.save(role);
-      return mapToDto(updatedRole);
+      role.updateModifiedBy(actorId);
+      return mapToDto(rolePersistencePort.save(role));
    }
 
    /**
-    * Elimina un rol
+    * Elimina un rol (soft delete)
     */
-   public void deleteRole(Long id) {
-      Role role = rolePersistencePort.findById(id)
-            .orElseThrow(() -> new RuntimeException("Rol no encontrado: " + id));
-
-      if (role.isSystemRole()) {
-         throw new RuntimeException("No se pueden eliminar roles de sistema");
-      }
-
-      role.markAsDeleted(null); // TODO: Obtener ID del usuario autenticado
+   public void deleteRole(Long id, Long actorId) {
+      Role role = findRole(id);
+      role.ensureCanBeDeleted(countUsers(role));
+      role.markAsDeleted(actorId);
       rolePersistencePort.save(role);
+   }
+
+   private Role findRole(Long id) {
+      return rolePersistencePort.findById(id)
+            .orElseThrow(() -> new RoleNotFoundException(id));
+   }
+
+   private void ensureNameIsAvailable(String name) {
+      if (rolePersistencePort.existsByName(name)) {
+         throw new IllegalStateException("El nombre " + name + " ya está en uso o perteneció a un rol eliminado");
+      }
+   }
+
+   /** Un permiso inactivo solo se admite si el rol ya lo tenía. */
+   private Set<Permission> loadPermissions(Set<Long> ids, Set<Permission> current) {
+      Set<Permission> permissions = new HashSet<>();
+      for (Long permissionId : ids) {
+         permissions.add(permissionPersistencePort.findById(permissionId)
+               .filter(permission -> permission.isActive() || current.contains(permission))
+               .orElseThrow(() -> new IllegalArgumentException("Permiso no disponible: " + permissionId)));
+      }
+      return permissions;
+   }
+
+   private long countUsers(Role role) {
+      return userPersistencePort.countByCriteria(
+            new UserSearchCriteria(null, role.getId(), null, null, 0, 1, null, null));
+   }
+
+   /** Minúsculas y sin tildes, para comparar textos. */
+   private static String searchable(String value) {
+      return Normalizer.normalize(value.strip().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "");
    }
 
    /**
@@ -187,6 +206,9 @@ public class RoleService {
             role.getName(),
             role.getDescription(),
             role.isActive(),
+            role.isSystemRole(),
+            role.arePermissionsEditable(),
+            countUsers(role),
             permissionDtos,
             role.getCreatedAt(),
             role.getCreatedBy(),
@@ -195,6 +217,16 @@ public class RoleService {
             role.getDeletedAt(),
             role.getDeletedBy()
       );
+   }
+
+   /**
+    * Nombres de los roles activos, para el selector del login (público).
+    */
+   public List<String> getLoginRoles() {
+      return rolePersistencePort.findAllActive().stream()
+            .sorted(Comparator.comparing(Role::getId))
+            .map(Role::getName)
+            .toList();
    }
 
    /**

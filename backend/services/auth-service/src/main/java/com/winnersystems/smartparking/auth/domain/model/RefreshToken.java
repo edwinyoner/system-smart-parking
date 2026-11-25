@@ -33,6 +33,7 @@ public class RefreshToken {
    private Long id;
    private String token;                                 // UUID v4 en texto plano
    private Long userId;                                  // ID del usuario dueño
+   private String activeRole;                            // Rol elegido al iniciar sesión
 
    // ========================= CAMPOS DE ESTADO Y VALIDEZ =========================
 
@@ -286,6 +287,14 @@ public class RefreshToken {
 
    public void setRevokedAt(LocalDateTime revokedAt) {
       this.revokedAt = revokedAt;
+   }
+
+   public String getActiveRole() {
+      return activeRole;
+   }
+
+   public void setActiveRole(String activeRole) {
+      this.activeRole = activeRole;
    }
 
    public String getDeviceInfo() {

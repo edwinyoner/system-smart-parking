@@ -86,59 +86,6 @@ public class PermissionService {
    }
 
    /**
-    * Crea un nuevo permiso
-    */
-   public PermissionDto createPermission(String name, String description, boolean status) {
-      Permission permission = new Permission(name, description);
-      if (status) {
-         permission.activate();
-      } else {
-         permission.deactivate();
-      }
-
-      Permission savedPermission = permissionPersistencePort.save(permission);
-      return mapToDto(savedPermission);
-   }
-
-   /**
-    * Actualiza un permiso existente
-    */
-   public PermissionDto updatePermission(Long id, String name, String description, Boolean status) {
-      Permission permission = permissionPersistencePort.findById(id)
-            .orElseThrow(() -> new RuntimeException("Permiso no encontrado: " + id));
-
-      // Actualizar nombre y descripción
-      if (name != null || description != null) {
-         String newName = name != null ? name : permission.getName();
-         String newDescription = description != null ? description : permission.getDescription();
-         permission.updateDescription(newDescription, newName);
-      }
-
-      // Actualizar estado
-      if (status != null) {
-         if (status) {
-            permission.activate();
-         } else {
-            permission.deactivate();
-         }
-      }
-
-      Permission updatedPermission = permissionPersistencePort.save(permission);
-      return mapToDto(updatedPermission);
-   }
-
-   /**
-    * Elimina un permiso
-    */
-   public void deletePermission(Long id) {
-      Permission permission = permissionPersistencePort.findById(id)
-            .orElseThrow(() -> new RuntimeException("Permiso no encontrado: " + id));
-
-      permission.markAsDeleted(null); // TODO: Obtener ID del usuario autenticado
-      permissionPersistencePort.save(permission);
-   }
-
-   /**
     * Mapea Permission (domain) a PermissionDto
     */
    private PermissionDto mapToDto(Permission permission) {

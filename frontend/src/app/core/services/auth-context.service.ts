@@ -1,3 +1,4 @@
+import { getRoleIconClass, getRoleLabel } from '../utils/role.util';
 import { Injectable } from '@angular/core';
 import { TokenService } from './token.service';
 
@@ -196,18 +197,7 @@ export class AuthContextService {
    * Obtiene el icono según el rol activo
    */
   getRoleIcon(): string {
-    const activeRole = this.getActiveRole();
-    
-    switch (activeRole) {
-      case 'ADMIN':
-        return 'fas fa-user-shield';
-      case 'AUTORIDAD':
-        return 'fas fa-user-tie';
-      case 'OPERADOR':
-        return 'fas fa-user-cog';
-      default:
-        return 'fas fa-user';
-    }
+    return getRoleIconClass(this.getActiveRole());
   }
 
   /**
@@ -215,17 +205,7 @@ export class AuthContextService {
    */
   getRoleDisplayName(): string {
     const activeRole = this.getActiveRole();
-    
-    switch (activeRole) {
-      case 'ADMIN':
-        return 'Administrador';
-      case 'AUTORIDAD':
-        return 'Autoridad';
-      case 'OPERADOR':
-        return 'Operador';
-      default:
-        return 'Usuario';
-    }
+    return activeRole ? getRoleLabel(activeRole) : 'Usuario';
   }
 
   // ========== ESTADO ==========

@@ -1,5 +1,7 @@
 package com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.auth;
 
+import com.winnersystems.smartparking.auth.application.service.role.RoleService;
+import java.util.List;
 import com.winnersystems.smartparking.auth.application.dto.command.*;
 import com.winnersystems.smartparking.auth.application.dto.query.AuthResponseDto;
 import com.winnersystems.smartparking.auth.application.dto.query.UserDto;
@@ -46,6 +48,7 @@ public class AuthRestAdapter {
    private final ChangePasswordUseCase changePasswordUseCase;
    private final AuthRestMapper mapper;
    private final UpdateProfileUseCase updateProfileUseCase;
+   private final RoleService roleService;
 
    /**
     * POST /login (desde Gateway: POST /api/auth/login)
@@ -67,6 +70,15 @@ public class AuthRestAdapter {
 
       // 4. Retornar HTTP 200
       return ResponseEntity.ok(loginResponse);
+   }
+
+   /**
+    * GET /login-roles (desde Gateway: GET /api/auth/login-roles)
+    * Nombres de los roles con los que se puede iniciar sesión. Es público.
+    */
+   @GetMapping("/login-roles")
+   public ResponseEntity<List<String>> getLoginRoles() {
+      return ResponseEntity.ok(roleService.getLoginRoles());
    }
 
    /**

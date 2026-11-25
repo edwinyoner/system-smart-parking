@@ -34,7 +34,8 @@ public class UserRestMapper {
    public CreateUserCommand toCommand(
          CreateUserRequest request,
          HttpServletRequest httpRequest,
-         Long createdBy) {
+         Long createdBy,
+         String actorActiveRole) {
 
       // Convertir nombres de roles a IDs
       Set<Long> roleIds = request.roles().stream()
@@ -52,7 +53,8 @@ public class UserRestMapper {
             roleIds,                              // ✅ Set<Long>
             request.captchaToken(),
             extractIpAddress(httpRequest),        // ✅ ipAddress
-            createdBy                              // ✅ createdBy
+            createdBy,                             // ✅ createdBy
+            actorActiveRole
       );
    }
 
@@ -63,7 +65,8 @@ public class UserRestMapper {
    public UpdateUserCommand toCommand(
          Long userId,
          UpdateUserRequest request,
-         Long updatedBy) {
+         Long updatedBy,
+         String actorActiveRole) {
 
       // Convertir nombres de roles a IDs
       Set<Long> roleIds = request.roles().stream()
@@ -78,8 +81,10 @@ public class UserRestMapper {
             request.lastName(),
             request.phoneNumber(),
             null,                       // ✅ profilePicture (por ahora null)
+            request.status(),
             roleIds,                    // ✅ Set<Long>
-            updatedBy                   // ✅ updatedBy
+            updatedBy,                  // ✅ updatedBy
+            actorActiveRole
       );
    }
 

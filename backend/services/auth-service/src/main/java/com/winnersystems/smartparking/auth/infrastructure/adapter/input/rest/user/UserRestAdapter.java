@@ -9,6 +9,7 @@ import com.winnersystems.smartparking.auth.application.dto.query.UserSearchCrite
 import com.winnersystems.smartparking.auth.application.port.input.user.*;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.auth.dto.response.MessageResponse;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.request.CreateUserRequest;
+import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.request.ResendCredentialsRequest;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.request.UpdateUserRequest;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.response.UserResponse;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.mapper.UserRestMapper;
@@ -60,7 +61,8 @@ public class UserRestAdapter {
          Authentication authentication) {
 
       Long createdBy = getUserIdFromAuthentication(authentication);
-      CreateUserCommand command = mapper.toCommand(request, httpRequest, createdBy);
+      CreateUserCommand command = mapper.toCommand(
+            request, httpRequest, createdBy, getActiveRoleFromAuthentication(authentication));
       UserDto userDto = createUserUseCase.execute(command);
       UserResponse response = mapper.toResponse(userDto);
 
@@ -156,7 +158,7 @@ public class UserRestAdapter {
     * @return lista de operadores activos
     */
    @GetMapping("/operators")
-   @PreAuthorize("hasAnyRole('ADMIN', 'AUTORIDAD')")
+   @PreAuthorize("hasAuthority('users.read')")
    public ResponseEntity<List<OperatorDto>> listOperators() {
       log.debug("📋 GET /users/operators - Listando operadores activos");
 
@@ -165,6 +167,18 @@ public class UserRestAdapter {
       log.debug("✅ {} operadores encontrados", operators.size());
 
       return ResponseEntity.ok(operators);
+   }
+
+   // ========== CURRENT USER ==========
+
+   /**
+    * GET /users/me - Datos actuales de quien está autenticado.
+    * El cliente lo consulta para detectar cambios y sesiones cerradas.
+    */
+   @GetMapping("/me")
+   public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
+      UserDto userDto = getUserUseCase.execute(getUserIdFromAuthentication(authentication));
+      return ResponseEntity.ok(mapper.toResponse(userDto));
    }
 
    // ========== GET USER BY ID ==========
@@ -193,7 +207,8 @@ public class UserRestAdapter {
          Authentication authentication) {
 
       Long updatedBy = getUserIdFromAuthentication(authentication);
-      UpdateUserCommand command = mapper.toCommand(id, request, updatedBy);
+      UpdateUserCommand command = mapper.toCommand(
+            id, request, updatedBy, getActiveRoleFromAuthentication(authentication));
       UserDto userDto = updateUserUseCase.execute(command);
       UserResponse response = mapper.toResponse(userDto);
 
@@ -212,7 +227,7 @@ public class UserRestAdapter {
          Authentication authentication) {
 
       Long deletedBy = getUserIdFromAuthentication(authentication);
-      deleteUserUseCase.executeDelete(id, deletedBy);
+      deleteUserUseCase.executeDelete(id, deletedBy, getActiveRoleFromAuthentication(authentication));
 
       return ResponseEntity.ok(
             new MessageResponse("Usuario eliminado exitosamente")
@@ -243,19 +258,30 @@ public class UserRestAdapter {
     * POST /users/{id}/resend-credentials - Reenviar credenciales por email
     */
    @PostMapping("/{id}/resend-credentials")
-   @PreAuthorize("hasAuthority('users.create')")
+   @PreAuthorize("hasAuthority('users.update')")
    public ResponseEntity<MessageResponse> resendCredentials(
          @PathVariable Long id,
-         @RequestParam String password) {
+         @Valid @RequestBody ResendCredentialsRequest request,
+         Authentication authentication) {
 
-      resendCredentialsUseCase.execute(id, password);
+      resendCredentialsUseCase.execute(
+            id,
+            request.password(),
+            getUserIdFromAuthentication(authentication),
+            getActiveRoleFromAuthentication(authentication));
 
       return ResponseEntity.ok(
             new MessageResponse("Credenciales enviadas exitosamente por email")
       );
    }
 
-   // ========== MÉTODO AUXILIAR ==========
+   // ========== MÉTODOS AUXILIARES ==========
+
+   private String getActiveRoleFromAuthentication(Authentication authentication) {
+      return authentication.getPrincipal() instanceof CustomUserDetails userDetails
+            ? userDetails.getActiveRole()
+            : null;
+   }
 
    private Long getUserIdFromAuthentication(Authentication authentication) {
       Object principal = authentication.getPrincipal();

@@ -1,6 +1,6 @@
 <div align="center">
 <h1>
-Winner Systems - Smart Parking Platform
+Winner Systems - Smart Parking System
 </h1>
 
 ![Angular](https://img.shields.io/badge/Angular-20.x-DD0031?style=for-the-badge&logo=angular&logoColor=white)
@@ -20,7 +20,7 @@ Winner Systems - Smart Parking Platform
 
 ## Acerca del Proyecto
 
-**Smart Parking Platform** es una solución integral desarrollada por [Winner Systems Corporation S.A.C.](https://www.winner-systems.com) para la gestión moderna y eficiente de espacios de estacionamiento en municipalidades peruanas.
+**Smart Parking System** es una solución integral desarrollada por [Winner Systems Corporation S.A.C.](https://www.winner-systems.com) para la gestión moderna y eficiente de espacios de estacionamiento en municipalidades peruanas.
 
 ### Objetivo
 
@@ -56,8 +56,8 @@ git --version     # git version 2.x.x
 ### 1. Clonar el Repositorio
 
 ```bash
-git clone https://github.com/edwinyoner/winner-systems-smart-parking-platform.git
-cd winner-systems-smart-parking-platform
+git clone https://github.com/edwinyoner/system-smart-parking.git
+cd system-smart-parking
 ```
 
 ### 2. Instalar Dependencias

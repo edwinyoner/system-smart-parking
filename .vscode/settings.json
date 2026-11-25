@@ -79,5 +79,6 @@
         "*.synctex(busy)",
         "*.synctex.gz(busy)",
         "*.nav"
-    ]
+    ],
+    "java.compile.nullAnalysis.mode": "automatic"
 }

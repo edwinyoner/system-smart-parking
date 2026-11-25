@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.Set;
 
@@ -380,6 +381,36 @@ public class EmailAdapter implements EmailPort {
    // ========== EMAIL GENÉRICO ==========
 
    @Override
+   public void sendNewCredentialsEmail(String toEmail, String userName, String password) {
+      String subject = "Smart Parking - Nueva contraseña temporal";
+
+      String body = """
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h1 style="background: #667eea; color: white; padding: 20px; text-align: center;">Smart Parking</h1>
+                    <h2>¡Hola %s!</h2>
+                    <p>Un administrador generó una nueva contraseña temporal para tu cuenta. La anterior ya no es válida.</p>
+                    <p><strong>Usuario:</strong> %s</p>
+                    <p><strong>Contraseña temporal:</strong>
+                       <code style="font-size: 16px; background: #f0f0f0; padding: 6px 10px;">%s</code></p>
+                    <p>Inicia sesión en <a href="http://localhost:4200/login">http://localhost:4200/login</a>
+                       y cámbiala en <em>Mi Perfil</em>.</p>
+                    <p><small>Si no solicitaste este cambio, comunícate con el administrador.</small></p>
+                </div>
+            </body>
+            </html>
+            """.formatted(
+            HtmlUtils.htmlEscape(userName),
+            HtmlUtils.htmlEscape(toEmail),
+            HtmlUtils.htmlEscape(password)
+      );
+
+      sendHtmlEmail(toEmail, subject, body);
+   }
+
+   @Override
    public void sendHtmlEmail(String toEmail, String subject, String htmlBody) {
       try {
          MimeMessage message = mailSender.createMimeMessage();
@@ -646,7 +677,7 @@ public class EmailAdapter implements EmailPort {
          """.formatted(
             userName,           // Saludo
             email,              // Usuario (Email)
-            password,           // Contraseña temporal
+            HtmlUtils.htmlEscape(password), // Puede contener '&', que el HTML interpretaría
             rolesHtml.toString(), // ✅ Roles HTML
             verificationLink,   // Botón de verificación
             verificationLink,   // Link manual

@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { 
@@ -44,6 +45,8 @@ export class ProfileViewComponent implements OnInit {
   currentUser: UserInfo | null = null;
   loading = false;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private currentUserService: CurrentUserService
   ) {}
@@ -58,7 +61,7 @@ export class ProfileViewComponent implements OnInit {
   loadProfile(): void {
     this.loading = true;
 
-    this.currentUserService.currentUser$.subscribe({
+    this.currentUserService.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (user) => {
         this.currentUser = user;
         this.loading = false;

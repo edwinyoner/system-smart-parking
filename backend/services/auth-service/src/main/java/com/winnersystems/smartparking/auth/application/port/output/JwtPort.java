@@ -1,5 +1,6 @@
 package com.winnersystems.smartparking.auth.application.port.output;
 
+import java.time.Instant;
 import java.util.Set;
 
 /**
@@ -43,4 +44,6 @@ public interface JwtPort {
    String extractEmail(String token);
    boolean validateToken(String token);
    Long extractUserId(String token);
+   String extractActiveRole(String token);
+   Instant extractIssuedAt(String token);
 }

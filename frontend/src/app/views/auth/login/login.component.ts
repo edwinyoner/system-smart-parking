@@ -4,6 +4,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
+import { getSessionEndMessage } from '../../../core/models/session-end-reason.model';
+import { SYSTEM_ROLE_NAMES, getRoleIconClass, getRoleLabel } from '../../../core/utils/role.util';
 import { environment } from '../../../../environments/environment';
 
 /**
@@ -43,12 +45,8 @@ export class LoginComponent implements OnInit {
   showRegistration = environment.features.enableRegistration;
   enableCaptcha = environment.features.enableRecaptcha; // CORREGIDO
 
-  // Roles disponibles para seleccionar
-  availableRoles = [
-    { value: 'ADMIN', label: 'Admin', icon: 'fas fa-user-shield' },
-    { value: 'AUTORIDAD', label: 'Autoridad', icon: 'fas fa-user-tie' },
-    { value: 'OPERADOR', label: 'Operador', icon: 'fas fa-user-cog' }
-  ];
+  // Roles disponibles. Los del sistema se muestran mientras llega la lista completa
+  availableRoles = this.toOptions(SYSTEM_ROLE_NAMES);
 
   constructor(
     private fb: FormBuilder,
@@ -64,6 +62,7 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
     this.createForm();
+    this.loadRoles();
     
     // Obtener returnUrl de query params (si existe)
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
@@ -71,8 +70,31 @@ export class LoginComponent implements OnInit {
     // Verificar si viene de sesión expirada
     const sessionExpired = this.route.snapshot.queryParams['sessionExpired'];
     if (sessionExpired) {
-      this.errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+      this.errorMessage = getSessionEndMessage(this.route.snapshot.queryParams['reason']);
     }
+  }
+
+  /**
+   * Carga los roles activos, incluidos los creados desde la interfaz
+   */
+  private loadRoles(): void {
+    this.authService.getLoginRoles().subscribe({
+      next: (names) => {
+        this.availableRoles = this.toOptions(names);
+
+        // El rol elegido pudo desactivarse
+        const selected = this.loginForm.get('selectedRole');
+        if (selected?.value && !names.includes(selected.value)) {
+          selected.setValue('');
+        }
+      },
+      // Sin respuesta quedan los roles del sistema
+      error: () => console.warn('No se pudo cargar la lista de roles'),
+    });
+  }
+
+  private toOptions(names: string[]): { value: string; label: string }[] {
+    return names.map(value => ({ value, label: getRoleLabel(value) }));
   }
 
   /**
@@ -162,9 +184,7 @@ export class LoginComponent implements OnInit {
    * Obtiene el icono del rol seleccionado
    */
   getSelectedRoleIcon(): string {
-    const selectedRole = this.loginForm.get('selectedRole')?.value;
-    const role = this.availableRoles.find(r => r.value === selectedRole);
-    return role?.icon || 'fas fa-user';
+    return getRoleIconClass(this.loginForm.get('selectedRole')?.value);
   }
 
   /**

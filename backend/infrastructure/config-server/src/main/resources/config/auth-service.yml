@@ -18,13 +18,13 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5433/auth_service_db
-    username: postgres
-    password: postgres
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
 
   # ========== JPA / HIBERNATE ==========
   jpa:
     hibernate:
-      ddl-auto: create-drop   # Desarrollo: update | Producción: validate  --- update
+      ddl-auto: create-drop   # Desarrollo: create-drop (borra los datos en cada reinicio) | Producción: validate
     show-sql: true
     properties:
       hibernate:
@@ -36,8 +36,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: edwinyoner@gmail.com
-    password: cozkdjrftyqocbtx
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}   # Contraseña de aplicación de Gmail
     properties:
       mail:
         smtp:
@@ -73,7 +73,7 @@ eureka:
 
 # ========== JWT CONFIGURATION ==========
 jwt:
-  secret: "SmartParkingWinnerSystemsSecureKeyForJWTAuthentication2025MinimumRequired256Bits"
+  secret: ${JWT_SECRET}   # Definido en backend/.env (no versionado)
   access-token-expiration: 1800000      # 30 minutos
   refresh-token-expiration: 604800000   # 7 días
   refresh-token-expiration-remember-me: 2592000000  # 30 días
@@ -90,7 +90,7 @@ email:
 # ========== RECAPTCHA v3 CONFIGURATION ==========
 recaptcha:
   enabled: false  # Cambiar a true cuando tengas las keys
-  secret-key: TU_RECAPTCHA_V3_SECRET_KEY_AQUI
+  secret-key: ${RECAPTCHA_SECRET_KEY:}   # Opcional mientras enabled sea false
   verify-url: https://www.google.com/recaptcha/api/siteverify
   min-score: 0.5
 

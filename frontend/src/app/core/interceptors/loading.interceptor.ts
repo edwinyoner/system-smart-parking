@@ -1,7 +1,10 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpContextToken, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { finalize } from 'rxjs';
 import { LoadingService } from '../services/loading.service';
+
+/** Marca peticiones en segundo plano que no deben mostrar el spinner */
+export const SKIP_LOADING = new HttpContextToken<boolean>(() => false);
 
 /**
  * Interceptor de loading
@@ -15,7 +18,7 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
 
   // Verificar si la petición debe mostrar loading
   // Puedes excluir ciertas URLs si es necesario
-  const showLoading = !req.url.includes('/no-loading');
+  const showLoading = !req.url.includes('/no-loading') && !req.context.get(SKIP_LOADING);
 
   if (showLoading) {
     loadingService.show();

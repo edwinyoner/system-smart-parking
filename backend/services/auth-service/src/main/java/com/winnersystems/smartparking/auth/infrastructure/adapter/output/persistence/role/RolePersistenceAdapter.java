@@ -61,6 +61,11 @@ public class RolePersistenceAdapter implements RolePersistencePort {
             .map(mapper::toDomain);
    }
 
+   @Override
+   public boolean existsByName(String name) {
+      return roleRepository.existsByNameIgnoreCase(name);
+   }
+
    /**
     * ✅ MÉTODO ACTUALIZADO: Recarga permisos como entidades MANAGED
     */

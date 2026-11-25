@@ -12,8 +12,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;  // AGREGAR
 
-import java.util.Collection;
+import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -53,32 +55,31 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             user.isFullyActive(),            // accountNonLocked
             true,                            // credentialsNonExpired
             user.isFullyActive(),            // enabled
-            getAuthorities(user)             // authorities (roles + permisos)
+            getAuthoritiesByRole(user),      // autoridades de cada rol activo
+            user.getPasswordChangedAt() == null ? null
+                  : user.getPasswordChangedAt().atZone(ZoneId.systemDefault()).toInstant()
       );
    }
 
    /**
-    * Convierte roles y permisos del usuario a GrantedAuthority de Spring Security.
-    *
-    * <p>Formato:</p>
-    * <ul>
-    *   <li>Roles: "ROLE_ADMIN", "ROLE_AUTORIDAD", "ROLE_OPERADOR"</li>
-    *   <li>Permisos: "users.create", "parking.update", etc.</li>
-    * </ul>
+    * Autoridades de cada rol activo del usuario: el rol ("ROLE_ADMIN") y sus
+    * permisos ("users.create"). El filtro JWT elige las del rol de la sesión.
     */
-   private Collection<? extends GrantedAuthority> getAuthorities(User user) {
-      Set<GrantedAuthority> authorities = new HashSet<>();
+   private Map<String, Set<GrantedAuthority>> getAuthoritiesByRole(User user) {
+      Map<String, Set<GrantedAuthority>> authoritiesByRole = new HashMap<>();
 
-      // 1. Agregar ROLES (con prefijo ROLE_)
       for (Role role : user.getRoles()) {
+         if (role.isInactive()) {
+            continue;
+         }
+         Set<GrantedAuthority> authorities = new HashSet<>();
          authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
-
-         // 2. Agregar PERMISOS de cada rol
          for (Permission permission : role.getPermissions()) {
             authorities.add(new SimpleGrantedAuthority(permission.getName()));
          }
+         authoritiesByRole.put(role.getName(), authorities);
       }
 
-      return authorities;
+      return authoritiesByRole;
    }
 }

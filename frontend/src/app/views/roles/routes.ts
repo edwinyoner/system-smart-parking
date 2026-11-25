@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { RoleGuard } from '../../core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -7,7 +8,9 @@ export const routes: Routes = [
   },
   {
     path: 'create',
-    loadComponent: () => import('./role-create/role-create.component').then(m => m.RoleCreateComponent)
+    loadComponent: () => import('./role-create/role-create.component').then(m => m.RoleCreateComponent),
+    canActivate: [RoleGuard],
+    data: { requiredPermissions: ['roles.create'] }
   },
   {
     path: ':id',
@@ -15,6 +18,8 @@ export const routes: Routes = [
   },
   {
     path: ':id/edit',
-    loadComponent: () => import('./role-edit/role-edit.component').then(m => m.RoleEditComponent)
+    loadComponent: () => import('./role-edit/role-edit.component').then(m => m.RoleEditComponent),
+    canActivate: [RoleGuard],
+    data: { requiredPermissions: ['roles.update'] }
   }
 ];

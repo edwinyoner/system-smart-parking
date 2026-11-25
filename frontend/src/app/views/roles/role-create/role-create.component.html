@@ -64,7 +64,7 @@
             }
             
             <small class="form-text text-muted">
-              Nombre único del rol en mayúsculas (ej: ADMIN, SUPERVISOR)
+              Nombre único. Se guarda en mayúsculas y con guion bajo (ej: JEFE_ZONA)
             </small>
           </div>
 
@@ -74,8 +74,8 @@
               Estado
             </label>
             <select id="status" class="form-select" formControlName="status">
-              <option [value]="true">Activo</option>
-              <option [value]="false">Inactivo</option>
+              <option [ngValue]="true">Activo</option>
+              <option [ngValue]="false">Inactivo</option>
             </select>
             <small class="form-text text-muted">
               Solo los roles activos pueden ser asignados a usuarios
@@ -112,13 +112,13 @@
         <strong>
           <i class="fas fa-key me-2"></i>
           Permisos del Rol 
-          <span class="badge bg-primary ms-2">{{ getSelectedPermissionsCount() }} seleccionados</span>
+          <span class="badge bg-success text-white ms-2">{{ getSelectedPermissionsCount() }} seleccionados</span>
         </strong>
         
         <div class="btn-group btn-group-sm">
           <button
             type="button"
-            class="btn btn-outline-primary"
+            class="btn btn-outline-secondary"
             (click)="selectAllPermissions()"
             [disabled]="isLoadingPermissions">
             <i class="fas fa-check-double me-1"></i>
@@ -140,7 +140,7 @@
         <!-- Loading Permissions -->
         @if (isLoadingPermissions) {
           <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border text-success" role="status">
               <span class="visually-hidden">Cargando permisos...</span>
             </div>
             <p class="mt-2 text-muted">Cargando permisos del sistema...</p>
@@ -164,7 +164,7 @@
                     
                     <button
                       type="button"
-                      class="btn btn-sm btn-outline-primary"
+                      class="btn btn-sm btn-outline-secondary"
                       (click)="toggleModulePermissions(group)">
                       @if (areAllModulePermissionsSelected(group)) {
                         <i class="fas fa-check-square me-1"></i>

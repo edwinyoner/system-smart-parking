@@ -5,7 +5,7 @@ class ParkingListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       appBar: AppBar(title: Text('Estacionamientos')),
       body: Center(child: Text('Base lista. Aquí irá el listado.')),
     );

@@ -109,7 +109,9 @@ export class VerifyEmailComponent implements OnInit {
         if (error.status === 400 || error.status === 404) {
           this.errorMessage = 'Token inválido o expirado. Por favor, solicita un nuevo link de verificación.';
         } else if (error.status === 409) {
-          this.errorMessage = 'Este email ya ha sido verificado. Puedes iniciar sesión.';
+          // No es un fallo: la cuenta ya está activa, no hace falta reenviar el email
+          this.verificationError = false;
+          this.successMessage = 'Este email ya ha sido verificado. Puedes iniciar sesión.';
         } else {
           this.errorMessage = error.message || 'Error al verificar el email. Por favor, intenta nuevamente.';
         }

@@ -1,35 +1,14 @@
+# ================================================================================
+# CONFIGURACIÓN LOCAL - API Gateway
+# Solo lo mínimo para conectar al Config Server.
+# El resto está en config-server/src/main/resources/config/api-gateway.yml
+# ================================================================================
+
 spring:
   application:
     name: api-gateway
+
+  # ========== CONFIG SERVER CONNECTION ==========
+  # Sin "optional:": si Config Server no responde, el servicio no arranca
   config:
-    import: configserver:http://localhost:8888
-
-server:
-  port: 8080
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-    register-with-eureka: true
-    fetch-registry: true
-  instance:
-    prefer-ip-address: true
-    instance-id: ${spring.application.name}:${server.port}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
-    gateway:
-      enabled: true
-
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
-    reactor.netty: DEBUG
-    com.winnersystems: DEBUG
+    import: "configserver:http://localhost:8888"

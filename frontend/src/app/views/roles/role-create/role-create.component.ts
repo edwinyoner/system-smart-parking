@@ -183,7 +183,7 @@ export class RoleCreateComponent implements OnInit {
       },
       error: (error) => {
         this.isLoading = false;
-        this.errorMessage = error.error?.message || 'Error al crear el rol. Verifica que el nombre no esté duplicado.';
+        this.errorMessage = error.error?.message || error.error?.validationErrors?.name || 'Error al crear el rol';
         console.error('Error creating role:', error);
       }
     });

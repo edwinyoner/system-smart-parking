@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -66,6 +65,8 @@ public class UserService implements
       if (roles.size() != command.roleIds().size()) {
          throw new IllegalArgumentException("Uno o más roles no existen");
       }
+      ensureNewRolesAreActive(new HashSet<>(roles), Set.of());
+      User.ensureRolesCanBeGrantedBy(command.actorActiveRole(), new HashSet<>(roles));
 
       // 3. GUARDAR contraseña en texto plano ANTES de hashear
       String plainPassword = command.password();
@@ -146,7 +147,17 @@ public class UserService implements
       User user = userPersistencePort.findById(command.userId())
             .orElseThrow(() -> new UserNotFoundException(command.userId()));
 
-      // 2. Actualizar campos si no son null
+      // 2. Actualizar estado. Va antes que los roles para evaluar el ADMIN original
+      if (command.status() != null && command.status() != user.getStatus()) {
+         user.ensureStatusCanBeChangedBy(command.updatedBy(), command.actorActiveRole());
+         if (command.status()) {
+            user.activate();
+         } else {
+            user.deactivate();
+         }
+      }
+
+      // Actualizar campos si no son null
       if (command.firstName() != null) {
          user.setFirstName(command.firstName());
       }
@@ -169,7 +180,14 @@ public class UserService implements
          if (roles.size() != command.roleIds().size()) {
             throw new IllegalArgumentException("Uno o más roles no existen");
          }
-         user.setRoles(new HashSet<>(roles));
+         Set<Role> newRoles = new HashSet<>(roles);
+         ensureNewRolesAreActive(newRoles, user.getRoles());
+
+         // Validar solo si los roles cambian: reenviar los mismos no es un cambio
+         if (!roleNames(newRoles).equals(roleNames(user.getRoles()))) {
+            user.ensureRolesCanBeChangedBy(command.updatedBy(), command.actorActiveRole(), newRoles);
+            user.setRoles(newRoles);
+         }
       }
 
       // 4. Registrar auditoría
@@ -180,6 +198,20 @@ public class UserService implements
       User updated = userPersistencePort.save(user);
 
       return mapToDto(updated);
+   }
+
+   /** Un rol inactivo no se puede asignar; quien ya lo tiene lo conserva. */
+   private void ensureNewRolesAreActive(Set<Role> newRoles, Set<Role> currentRoles) {
+      newRoles.stream()
+            .filter(role -> role.isInactive() && !roleNames(currentRoles).contains(role.getName()))
+            .findFirst()
+            .ifPresent(role -> {
+               throw new IllegalArgumentException("El rol " + role.getName() + " está inactivo");
+            });
+   }
+
+   private Set<String> roleNames(Set<Role> roles) {
+      return roles.stream().map(Role::getName).collect(Collectors.toSet());
    }
 
    // ========== GET USER ==========
@@ -218,14 +250,14 @@ public class UserService implements
    // ========== DELETE USER (soft delete) ==========
 
    @Override
-   public void executeDelete(Long userId, Long deletedBy) {
+   public void executeDelete(Long userId, Long deletedBy, String actorActiveRole) {
       // 1. Buscar usuario
       User user = userPersistencePort.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 
-      // 2. Marcar como eliminado (soft delete)
-      user.setDeletedBy(deletedBy);
-      user.setDeletedAt(LocalDateTime.now());
+      // 2. Validar protección y marcar como eliminado (también lo desactiva)
+      user.ensureCanBeDeletedBy(deletedBy, actorActiveRole);
+      user.markAsDeleted(deletedBy);
 
       // 3. Guardar
       userPersistencePort.save(user);
@@ -256,8 +288,7 @@ public class UserService implements
       }
 
       // 3. Restaurar
-      user.setDeletedAt(null);
-      user.setDeletedBy(null);
+      user.restore(); // También reactiva: eliminar lo había desactivado
 
       // 4. Registrar auditoría
       user.setUpdatedBy(restoredBy);
@@ -279,40 +310,53 @@ public class UserService implements
    // ========== RESEND CREDENTIALS ==========
 
    @Override
-   public void execute(Long userId, String plainPassword) {
-      // 1. Buscar usuario
+   public void execute(Long userId, String plainPassword, Long actorId, String actorActiveRole) {
+      // 1. Buscar usuario y validar protección
       User user = userPersistencePort.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
+      user.ensureCredentialsCanBeResetBy(actorId, actorActiveRole);
 
-      // 2. Buscar token de verificación
-      Optional<VerificationToken> tokenOpt = tokenPersistencePort.findVerificationTokenByUserId(userId);
+      // 2. Revocar sesiones: la contraseña anterior deja de ser válida
+      tokenPersistencePort.revokeRefreshTokensByUserId(userId);
 
-      if (tokenOpt.isEmpty()) {
-         throw new IllegalStateException("No existe token de verificación para este usuario");
+      // 3. Guardar la nueva contraseña
+      user.changePassword(passwordEncoderPort.encode(plainPassword));
+      user.setUpdatedBy(actorId);
+      userPersistencePort.save(user);
+
+      // 4. Enviar el correo. Si falla, la excepción revierte todo lo anterior
+      try {
+         if (user.isEmailVerified()) {
+            emailPort.sendNewCredentialsEmail(user.getEmail(), user.getFullName(), plainPassword);
+         } else {
+            sendCredentialsWithVerification(user, plainPassword, actorId);
+         }
+      } catch (RuntimeException e) {
+         log.error("No se pudo enviar las credenciales al usuario {}", userId, e);
+         throw new IllegalStateException(
+               "No se pudo enviar el correo. La contraseña anterior no se modificó", e);
       }
+   }
 
-      VerificationToken token = tokenOpt.get();
+   /**
+    * Envía credenciales con un enlace de verificación nuevo, porque el anterior pudo vencer.
+    */
+   private void sendCredentialsWithVerification(User user, String plainPassword, Long actorId) {
+      tokenPersistencePort.deleteVerificationTokensByUserId(user.getId());
 
-      // 3. Construir link de verificación
-      String verificationLink = "http://localhost:4200/verify-email?token=" + token.getToken();
+      String tokenValue = java.util.UUID.randomUUID().toString();
+      tokenPersistencePort.saveVerificationToken(
+            new VerificationToken(tokenValue, user.getId(), actorId));
 
-      // 4. Obtener nombres de roles
-      Set<String> roleNames = user.getRoles().stream()
-            .map(Role::getName)
-            .collect(Collectors.toSet());
-
-      // 5. Enviar email con credenciales
       emailPort.sendWelcomeEmailWithCredentials(
             user.getEmail(),
             user.getFullName(),
             user.getEmail(),
             plainPassword,
-            roleNames,
-            verificationLink,
+            roleNames(user.getRoles()),
+            "http://localhost:4200/verify-email?token=" + tokenValue,
             24
       );
-
-      System.out.println("✅ Credenciales reenviadas a: " + user.getEmail());
    }
 
    // ========== LIST OPERATORS (NUEVO) ==========

@@ -10,6 +10,9 @@ import java.util.Set;
  * @param name Nombre del rol
  * @param description Descripción
  * @param status Estado (activo/inactivo)
+ * @param systemRole Rol del sistema: no se renombra, desactiva ni elimina
+ * @param permissionsEditable Si se pueden cambiar sus permisos
+ * @param userCount Usuarios que lo tienen asignado
  * @param permissions Permisos asignados
  * @param createdAt Fecha creación
  * @param createdBy Usuario creador
@@ -26,6 +29,9 @@ public record RoleDto(
       String name,
       String description,
       boolean status,
+      boolean systemRole,
+      boolean permissionsEditable,
+      long userCount,
       Set<PermissionDto> permissions,
       LocalDateTime createdAt,
       Long createdBy,

@@ -5,11 +5,13 @@ import com.winnersystems.smartparking.auth.application.dto.query.RoleDto;
 import com.winnersystems.smartparking.auth.application.service.role.RoleService;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.role.dto.request.CreateRoleRequest;
 import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.role.dto.request.UpdateRoleRequest;
+import com.winnersystems.smartparking.auth.infrastructure.config.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,13 +27,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoleRestAdapter {
 
+   /** No basta con tener ADMIN: hay que haber iniciado sesión con ese rol */
+   private static final String ACTIVE_ADMIN = "hasRole('ADMIN') and principal.activeRole == 'ADMIN'";
+
    private final RoleService roleService;
 
    /**
     * GET /roles - Lista roles con paginación
     */
    @GetMapping
-   @PreAuthorize("hasAnyRole('ADMIN', 'AUTORIDAD')")
+   @PreAuthorize("hasAuthority('roles.read')")
    public ResponseEntity<PagedResponse<RoleDto>> listRoles(
          @RequestParam(required = false) String search,
          @RequestParam(required = false) Boolean status,
@@ -47,7 +52,7 @@ public class RoleRestAdapter {
     * Usado para poblar selects en formularios de usuarios
     */
    @GetMapping("/all")
-   @PreAuthorize("hasAnyRole('ADMIN', 'AUTORIDAD')")
+   @PreAuthorize("hasAnyAuthority('roles.read', 'users.read')")
    public ResponseEntity<List<RoleDto>> getAllRoles() {
       List<RoleDto> roles = roleService.getAllActiveRoles();
       return ResponseEntity.ok(roles);
@@ -57,7 +62,7 @@ public class RoleRestAdapter {
     * GET /roles/{id} - Obtener rol por ID
     */
    @GetMapping("/{id}")
-   @PreAuthorize("hasAnyRole('ADMIN', 'AUTORIDAD')")
+   @PreAuthorize("hasAuthority('roles.read')")
    public ResponseEntity<RoleDto> getRoleById(@PathVariable Long id) {
       RoleDto role = roleService.getRoleById(id);
       return ResponseEntity.ok(role);
@@ -67,13 +72,16 @@ public class RoleRestAdapter {
     * POST /roles - Crear nuevo rol
     */
    @PostMapping
-   @PreAuthorize("hasRole('ADMIN')")
-   public ResponseEntity<RoleDto> createRole(@Valid @RequestBody CreateRoleRequest request) {
+   @PreAuthorize(ACTIVE_ADMIN)
+   public ResponseEntity<RoleDto> createRole(
+         @Valid @RequestBody CreateRoleRequest request,
+         @AuthenticationPrincipal CustomUserDetails actor) {
       RoleDto role = roleService.createRole(
             request.getName(),
             request.getDescription(),
             request.getStatus() != null ? request.getStatus() : true, // ✅ Default true
-            request.getPermissionIds()
+            request.getPermissionIds(),
+            actor.getUserId()
       );
       return ResponseEntity.status(HttpStatus.CREATED).body(role);
    }
@@ -82,17 +90,19 @@ public class RoleRestAdapter {
     * PUT /roles/{id} - Actualizar rol
     */
    @PutMapping("/{id}")
-   @PreAuthorize("hasRole('ADMIN')")
+   @PreAuthorize(ACTIVE_ADMIN)
    public ResponseEntity<RoleDto> updateRole(
          @PathVariable Long id,
-         @Valid @RequestBody UpdateRoleRequest request
+         @Valid @RequestBody UpdateRoleRequest request,
+         @AuthenticationPrincipal CustomUserDetails actor
    ) {
       RoleDto role = roleService.updateRole(
             id,
             request.getName(),
             request.getDescription(),
             request.getStatus(),
-            request.getPermissionIds()
+            request.getPermissionIds(),
+            actor.getUserId()
       );
       return ResponseEntity.ok(role);
    }
@@ -101,9 +111,11 @@ public class RoleRestAdapter {
     * DELETE /roles/{id} - Eliminar rol
     */
    @DeleteMapping("/{id}")
-   @PreAuthorize("hasRole('ADMIN')")
-   public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
-      roleService.deleteRole(id);
+   @PreAuthorize(ACTIVE_ADMIN)
+   public ResponseEntity<Void> deleteRole(
+         @PathVariable Long id,
+         @AuthenticationPrincipal CustomUserDetails actor) {
+      roleService.deleteRole(id, actor.getUserId());
       return ResponseEntity.noContent().build();
    }
 }

@@ -1,5 +1,7 @@
 package com.winnersystems.smartparking.auth.domain.model;
 
+import com.winnersystems.smartparking.auth.domain.exception.ProtectedUserException;
+
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Objects;
@@ -17,6 +19,8 @@ import java.util.Set;
  */
 public class User {
 
+   private static final String ADMIN_ROLE = "ADMIN";
+
    // ========================= CAMPOS DE IDENTIDAD =========================
 
    private Long id;
@@ -24,6 +28,7 @@ public class User {
    private String lastName;
    private String email;                                  // Único en el sistema
    private String password;                               // Hasheado con BCrypt
+   private LocalDateTime passwordChangedAt;               // Los tokens anteriores a esta fecha no valen
    private String phoneNumber;
    private String profilePicture;                         // URL de foto de perfil (opcional)
 
@@ -147,6 +152,70 @@ public class User {
       return roles.stream().anyMatch(role -> role.hasPermission(permissionName));
    }
 
+   // ========================= REGLAS DE PROTECCIÓN =========================
+
+   /**
+    * Valida que el actor pueda desactivar o activar a este usuario.
+    *
+    * @param actorId ID de quien realiza la acción
+    * @param actorActiveRole rol con el que inició sesión
+    */
+   public void ensureStatusCanBeChangedBy(Long actorId, String actorActiveRole) {
+      ensureIsNotSelf(actorId, "No puedes cambiar el estado de tu propia cuenta");
+      ensureAdminIsManagedByAdmin(actorActiveRole);
+   }
+
+   /**
+    * Valida que el actor pueda eliminar a este usuario.
+    */
+   public void ensureCanBeDeletedBy(Long actorId, String actorActiveRole) {
+      ensureIsNotSelf(actorId, "No puedes eliminar tu propia cuenta");
+      ensureAdminIsManagedByAdmin(actorActiveRole);
+   }
+
+   /**
+    * Valida que el actor pueda generar una contraseña nueva para este usuario.
+    * La propia se cambia desde el perfil, donde se exige la contraseña actual.
+    */
+   public void ensureCredentialsCanBeResetBy(Long actorId, String actorActiveRole) {
+      ensureIsNotSelf(actorId, "Para cambiar tu propia contraseña usa Mi Perfil");
+      ensureAdminIsManagedByAdmin(actorActiveRole);
+   }
+
+   /**
+    * Valida que el actor pueda reemplazar los roles de este usuario.
+    * También protege la concesión de ADMIN, para que nadie eleve privilegios.
+    */
+   public void ensureRolesCanBeChangedBy(Long actorId, String actorActiveRole, Set<Role> newRoles) {
+      ensureIsNotSelf(actorId, "No puedes cambiar tus propios roles");
+      ensureAdminIsManagedByAdmin(actorActiveRole);
+
+      ensureRolesCanBeGrantedBy(actorActiveRole, newRoles);
+   }
+
+   /**
+    * Valida que quien crea o edita un usuario pueda conceder esos roles.
+    */
+   public static void ensureRolesCanBeGrantedBy(String actorActiveRole, Set<Role> roles) {
+      boolean grantsAdmin = roles.stream().anyMatch(r -> ADMIN_ROLE.equals(r.getName()));
+      if (grantsAdmin && !ADMIN_ROLE.equals(actorActiveRole)) {
+         throw new ProtectedUserException("Solo un usuario con el rol ADMIN activo puede asignar el rol ADMIN");
+      }
+   }
+
+   private void ensureIsNotSelf(Long actorId, String message) {
+      if (this.id != null && this.id.equals(actorId)) {
+         throw new ProtectedUserException(message);
+      }
+   }
+
+   private void ensureAdminIsManagedByAdmin(String actorActiveRole) {
+      if (hasRole(ADMIN_ROLE) && !ADMIN_ROLE.equals(actorActiveRole)) {
+         throw new ProtectedUserException(
+               "Solo un usuario con el rol ADMIN activo puede administrar a un ADMIN");
+      }
+   }
+
    // ========================= MÉTODOS DE NEGOCIO - VERIFICACIÓN Y ACTIVACIÓN =========================
 
    /**
@@ -231,6 +300,7 @@ public class User {
     */
    public void changePassword(String newPassword) {
       this.password = newPassword;
+      this.passwordChangedAt = LocalDateTime.now();      // Cierra las sesiones abiertas
       this.updatedAt = LocalDateTime.now();
    }
 
@@ -360,6 +430,14 @@ public class User {
 
    public void setPassword(String password) {
       this.password = password;
+   }
+
+   public LocalDateTime getPasswordChangedAt() {
+      return passwordChangedAt;
+   }
+
+   public void setPasswordChangedAt(LocalDateTime passwordChangedAt) {
+      this.passwordChangedAt = passwordChangedAt;
    }
 
    public String getPhoneNumber() {

@@ -57,6 +57,11 @@ export class RoleDetailComponent implements OnInit {
     return this.authContext.hasPermission(permission);
   }
 
+  /** Solo quien entró como ADMIN modifica roles */
+  get isAdmin(): boolean {
+    return this.authContext.isActiveRole('ADMIN');
+  }
+
   private getRoleId(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -127,7 +132,7 @@ export class RoleDetailComponent implements OnInit {
    * Verifica si el rol es de sistema (no editable)
    */
   isSystemRole(): boolean {
-    return this.role?.name === 'ADMIN';
+    return !!this.role?.systemRole;
   }
 
   /**

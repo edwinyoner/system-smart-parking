@@ -1,6 +1,6 @@
 # =============================================================================
 # GITIGNORE - Backend Level
-# winner-systems-smart-parking-platform/backend/.gitignore
+# system-smart-parking/backend/.gitignore
 # =============================================================================
 
 # Compilación de IntelliJ a nivel backend
@@ -21,3 +21,6 @@ Desktop.ini
 
 # Logs
 *.log
+# Variables de entorno con secretos (solo se versiona .env.example)
+.env
+.env.local

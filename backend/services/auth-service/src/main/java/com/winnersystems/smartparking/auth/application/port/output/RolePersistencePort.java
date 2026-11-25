@@ -54,6 +54,11 @@ public interface RolePersistencePort {
    Optional<Role> findByName(String name);
 
    /**
+    * Indica si el nombre ya está usado, también por un rol eliminado.
+    */
+   boolean existsByName(String name);
+
+   /**
     * Guarda un nuevo rol o actualiza uno existente.
     *
     * @param role rol a guardar

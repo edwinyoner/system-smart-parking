@@ -82,16 +82,15 @@ public class AuthService implements
 
       // 5. VALIDAR QUE EL USUARIO TENGA EL ROL SELECCIONADO
       String activeRole = command.selectedRole();
-      if (activeRole != null && !activeRole.isBlank()) {
-         if (!user.hasRole(activeRole)) {
-            throw new InvalidCredentialsException("No tienes el rol seleccionado");
-         }
-      } else {
-         // Si no seleccionó rol, usar el primero que tenga
+      if (activeRole == null || activeRole.isBlank()) {
+         // Si no seleccionó rol, usar el primero que tenga activo
          activeRole = user.getRoles().stream()
+               .filter(Role::isActive)
                .findFirst()
                .map(Role::getName)
-               .orElse("OPERADOR");
+               .orElseThrow(() -> new InvalidCredentialsException("No tienes un rol activo"));
+      } else if (!hasActiveRole(user, activeRole)) {
+         throw new InvalidCredentialsException("No tienes el rol seleccionado");
       }
 
       // 6. Generar access token CON activeRole Y SUS PERMISOS
@@ -122,6 +121,7 @@ public class AuthService implements
             command.ipAddress()
       );
 
+      refreshToken.setActiveRole(activeRole);
       tokenPersistencePort.saveRefreshToken(refreshToken);
 
       // 8. Retornar respuesta
@@ -175,11 +175,11 @@ public class AuthService implements
          throw new IllegalStateException("Usuario inactivo o email no verificado");
       }
 
-      // 6. Obtener el rol activo del token anterior (o usar el primero)
-      String activeRole = user.getRoles().stream()
-            .findFirst()
-            .map(Role::getName)
-            .orElse("OPERADOR");
+      // 6. Conservar el rol con el que inició sesión, si todavía lo tiene
+      String activeRole = token.getActiveRole();
+      if (!hasActiveRole(user, activeRole)) {
+         throw new TokenExpiredException("RefreshToken", "Ya no tienes el rol con el que iniciaste sesión");
+      }
 
       // 7. Generar nuevo access token CON LOS PERMISOS DEL ROL ACTIVO
       String newAccessToken = jwtPort.generateAccessToken(
@@ -286,7 +286,7 @@ public class AuthService implements
             .orElseThrow(() -> new UserNotFoundException(token.getUserId()));
 
       String hashedPassword = passwordEncoderPort.encode(command.newPassword());
-      user.setPassword(hashedPassword);
+      user.changePassword(hashedPassword);
       user.setUpdatedAt(LocalDateTime.now());
       userPersistencePort.save(user);
 
@@ -314,12 +314,14 @@ public class AuthService implements
             .findVerificationTokenByToken(token)
             .orElseThrow(() -> new TokenInvalidException("Token de verificación inválido o no existe"));
 
-      if (verificationToken.isExpired()) {
-         throw new TokenExpiredException("VerificationToken", "El token de verificación ha expirado");
+      // Primero "ya usado": abrir otra vez el enlace no es un error de token
+      if (verificationToken.isVerified()) {
+         throw new IllegalStateException("Este email ya ha sido verificado");
       }
 
-      if (verificationToken.isVerified()) {
-         throw new TokenInvalidException("Este token ya fue utilizado previamente");
+      // No se usa TokenExpiredException (401): el cliente lo trata como sesión expirada
+      if (verificationToken.isExpired()) {
+         throw new TokenInvalidException("El enlace de verificación ha expirado");
       }
 
       User user = userPersistencePort.findById(verificationToken.getUserId())
@@ -406,7 +408,7 @@ public class AuthService implements
       }
 
       String hashedPassword = passwordEncoderPort.encode(command.newPassword());
-      user.setPassword(hashedPassword);
+      user.changePassword(hashedPassword);
       user.setUpdatedAt(LocalDateTime.now());
       userPersistencePort.save(user);
 
@@ -457,6 +459,11 @@ public class AuthService implements
             user.getCreatedAt(),
             user.getUpdatedAt()
       );
+   }
+
+   private boolean hasActiveRole(User user, String roleName) {
+      return user.getRoles().stream()
+            .anyMatch(role -> role.isActive() && role.getName().equals(roleName));
    }
 
    private Set<String> getRoleNames(User user) {

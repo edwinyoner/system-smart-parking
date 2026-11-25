@@ -46,6 +46,9 @@ public class UserEntity {
    @Column(name = "profile_picture", length = 500)
    private String profilePicture;
 
+   @Column(name = "password_changed_at")
+   private LocalDateTime passwordChangedAt;  // Invalida los tokens emitidos antes
+
    @Column(name = "status", nullable = false)
    private boolean status = false;  // false por defecto hasta verificar email
 

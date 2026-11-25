@@ -13,8 +13,10 @@ import java.util.Set;
  * @param lastName Apellido (null = no actualizar)
  * @param phoneNumber Teléfono (null = no actualizar, "" = eliminar)
  * @param profilePicture URL foto (null = no actualizar, "" = eliminar)
+ * @param status Estado (null = no actualizar)
  * @param roleIds Roles (null = no actualizar, Set vacío = remover todos)
- * @param updatedBy ID del administrador que actualiza (obligatorio)
+ * @param updatedBy ID de quien actualiza (obligatorio)
+ * @param actorActiveRole Rol con el que inició sesión quien actualiza
  *
  * @author Edwin Yoner Winner Systems - Smart Parking Platform
  * @version 1.0
@@ -25,7 +27,9 @@ public record UpdateUserCommand(
       String lastName,
       String phoneNumber,
       String profilePicture,
+      Boolean status,
       Set<Long> roleIds,
-      Long updatedBy
+      Long updatedBy,
+      String actorActiveRole
 ) {
 }

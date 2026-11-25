@@ -21,12 +21,12 @@
     <div class="d-flex align-items-center">
       <!-- Avatar -->
       <div class="user-avatar me-3">
-        @if (profilePicture) {
-          <img [src]="profilePicture" [alt]="fullName" class="rounded-circle" width="48" height="48">
+        @if (profilePicture()) {
+          <img [src]="profilePicture()" [alt]="fullName()" class="rounded-circle" width="48" height="48">
         } @else {
           <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center" 
                style="width: 48px; height: 48px; background: #1d6eb1; color: white; font-weight: 600;">
-            {{ userInitials }}
+            {{ userInitials() }}
           </div>
         }
       </div>
@@ -34,12 +34,12 @@
       <!-- Info del Usuario -->
       <div class="user-details flex-grow-1">
         <div class="user-name fw-semibold text-truncate" style="max-width: 150px; font-size: 0.9rem;">
-          {{ fullName }}
+          {{ fullName() }}
         </div>
         <div class="user-role mt-1">
-          <span class="badge" [ngClass]="roleBadgeClass" style="font-size: 0.7rem;">
+          <span class="badge" [ngClass]="roleBadgeClass()" style="font-size: 0.7rem;">
             <i class="fas fa-shield-alt me-1"></i>
-            {{ activeRole }}
+            {{ activeRole() }}
           </span>
         </div>
       </div>

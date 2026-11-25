@@ -1,5 +1,6 @@
 package com.winnersystems.smartparking.auth.infrastructure.config.security;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -57,9 +58,13 @@ public class SecurityConfig {
 
             // Configurar autorización de endpoints
             .authorizeHttpRequests(auth -> auth
+                  // El despacho interno de errores no repite el filtro JWT
+                  .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+
                   // Endpoints públicos (paths DESPUÉS del rewrite del Gateway)
                   .requestMatchers(
                         "/login",              // POST /api/auth/login → /login
+                        "/login-roles",        // GET  /api/auth/login-roles → /login-roles
                         "/refresh",            // POST /api/auth/refresh → /refresh
                         "/forgot-password",    // POST /api/auth/forgot-password → /forgot-password
                         "/reset-password",     // POST /api/auth/reset-password → /reset-password
@@ -74,6 +79,10 @@ public class SecurityConfig {
                   // Todos los demás endpoints requieren autenticación
                   .anyRequest().authenticated()
             )
+
+            // Sin sesión válida → 401 (por defecto sería 403): así el cliente vuelve al login
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(
+                  new SessionEntryPoint()))
 
             // Política de sesiones: STATELESS
             .sessionManagement(session -> session

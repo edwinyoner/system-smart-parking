@@ -8,6 +8,8 @@ export interface Role {
   description: string;
   status: boolean;
   permissions: Permission[];
+  systemRole: boolean;          // No se renombra, desactiva ni elimina
+  permissionsEditable: boolean; // false solo en ADMIN
   userCount?: number; // Cantidad de usuarios con este rol
   createdAt: string;
   updatedAt: string;

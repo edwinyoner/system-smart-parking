@@ -6,6 +6,7 @@ import { UserService } from '../../../core/services/user.service';
 import { RoleService } from '../../../core/services/role.service';
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
 import { Role } from '../../../core/models/role.model';
+import { generatePassword, maskPassword } from '../../../core/utils/password.util';
 import { CreateUserRequest } from '../../../core/models/user.model';
 
 @Component({
@@ -36,6 +37,11 @@ export class UserCreateComponent implements OnInit {
     password: string;
     loginUrl: string;
   } | null = null;
+
+  /** Solo los 3 últimos caracteres visibles */
+  get maskedPassword(): string {
+    return this.generatedCredentials ? maskPassword(this.generatedCredentials.password) : '';
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -71,23 +77,6 @@ export class UserCreateComponent implements OnInit {
     });
   }
 
-  generatePassword(): string {
-    const length = 12;
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@$!%*?&';
-    let password = '';
-    
-    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
-    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
-    password += '0123456789'[Math.floor(Math.random() * 10)];
-    password += '@$!%*?&'[Math.floor(Math.random() * 7)];
-    
-    for (let i = password.length; i < length; i++) {
-      password += charset[Math.floor(Math.random() * charset.length)];
-    }
-    
-    return password.split('').sort(() => Math.random() - 0.5).join('');
-  }
-
   onRoleChange(roleId: number, event: any): void {
     const roleIds = this.userForm.get('roleIds')?.value || [];
     
@@ -120,7 +109,7 @@ export class UserCreateComponent implements OnInit {
     this.successMessage = null;
     this.errorMessage = null;
 
-    const generatedPassword = this.generatePassword();
+    const generatedPassword = generatePassword();
     const selectedRoleIds = this.userForm.get('roleIds')?.value || [];
     const roleNames = selectedRoleIds.map((id: number) => {
       const role = this.roles.find(r => r.id === id);
