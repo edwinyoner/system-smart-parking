@@ -23,11 +23,15 @@ public class EmailAdapter implements EmailPort {
 
    private final JavaMailSender mailSender;
 
-   @Value("${mail.from:noreply@smartparking.com}")
+   @Value("${email.from:noreply@smartparking.com}")
    private String fromEmail;
 
-   @Value("${mail.from-name:Smart Parking System}")
+   @Value("${email.from-name:Smart Parking System}")
    private String fromName;
+
+   /** URL del panel Angular, para los enlaces de los correos (email.base-url en auth-service.yml) */
+   @Value("${email.base-url:{{FRONTEND_URL}}}")
+   private String frontendUrl;
 
    public EmailAdapter(JavaMailSender mailSender) {
       this.mailSender = mailSender;
@@ -389,13 +393,13 @@ public class EmailAdapter implements EmailPort {
             <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                 <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h1 style="background: #667eea; color: white; padding: 20px; text-align: center;">Smart Parking</h1>
+                    <h1 style="background: #198754; color: white; padding: 20px; text-align: center;">Smart Parking</h1>
                     <h2>¡Hola %s!</h2>
                     <p>Un administrador generó una nueva contraseña temporal para tu cuenta. La anterior ya no es válida.</p>
                     <p><strong>Usuario:</strong> %s</p>
                     <p><strong>Contraseña temporal:</strong>
                        <code style="font-size: 16px; background: #f0f0f0; padding: 6px 10px;">%s</code></p>
-                    <p>Inicia sesión en <a href="http://localhost:4200/login">http://localhost:4200/login</a>
+                    <p>Inicia sesión en <a href="{{FRONTEND_URL}}/login">{{FRONTEND_URL}}/login</a>
                        y cámbiala en <em>Mi Perfil</em>.</p>
                     <p><small>Si no solicitaste este cambio, comunícate con el administrador.</small></p>
                 </div>
@@ -419,7 +423,8 @@ public class EmailAdapter implements EmailPort {
          helper.setFrom(fromEmail, fromName);
          helper.setTo(toEmail);
          helper.setSubject(subject);
-         helper.setText(htmlBody, true); // true = HTML
+         // Las plantillas usan {{FRONTEND_URL}} en vez de una dirección fija
+         helper.setText(htmlBody.replace("{{FRONTEND_URL}}", frontendUrl), true); // true = HTML
 
          mailSender.send(message);
 
@@ -478,7 +483,7 @@ public class EmailAdapter implements EmailPort {
                      padding: 20px; 
                  }
                  .header { 
-                     background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+                     background: linear-gradient(135deg, #198754 0%%, #146c43 100%%);
                      color: white; 
                      padding: 30px 20px; 
                      text-align: center; 
@@ -495,7 +500,7 @@ public class EmailAdapter implements EmailPort {
                  }
                  .credentials-box {
                      background: white;
-                     border: 2px solid #667eea;
+                     border: 2px solid #198754;
                      border-radius: 8px;
                      padding: 20px;
                      margin: 20px 0;
@@ -508,7 +513,7 @@ public class EmailAdapter implements EmailPort {
                  }
                  .credential-label {
                      font-weight: bold;
-                     color: #667eea;
+                     color: #198754;
                      display: block;
                      margin-bottom: 5px;
                  }
@@ -545,7 +550,7 @@ public class EmailAdapter implements EmailPort {
                  .button { 
                      display: inline-block; 
                      padding: 15px 30px; 
-                     background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+                     background: linear-gradient(135deg, #198754 0%%, #146c43 100%%);
                      color: white !important; 
                      text-decoration: none; 
                      border-radius: 8px;
@@ -592,12 +597,12 @@ public class EmailAdapter implements EmailPort {
                  </div>
                  
                  <div class="content">
-                     <h2 style="color: #667eea;">¡Hola %s!</h2>
+                     <h2 style="color: #198754;">¡Hola %s!</h2>
                      
                      <p>Bienvenido a <strong>Smart Parking</strong>. Se ha creado una cuenta para ti en nuestro sistema.</p>
                      
                      <div class="credentials-box">
-                         <h3 style="margin-top: 0; color: #667eea;">
+                         <h3 style="margin-top: 0; color: #198754;">
  Tus Credenciales de Acceso
                          </h3>
                          
@@ -649,8 +654,8 @@ public class EmailAdapter implements EmailPort {
                      
                      <p><strong>Paso 2:</strong> Una vez verificado, podrás iniciar sesión en:</p>
                      <p style="text-align: center;">
-                         <a href="http://localhost:4200/login" style="color: #667eea; font-weight: bold;">
-                             http://localhost:4200/login
+                         <a href="{{FRONTEND_URL}}/login" style="color: #198754; font-weight: bold;">
+                             {{FRONTEND_URL}}/login
                          </a>
                      </p>
                      

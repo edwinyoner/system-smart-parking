@@ -1,5 +1,6 @@
 package com.winnersystems.smartparking.auth.application.service.auth;
 
+import org.springframework.beans.factory.annotation.Value;
 import com.winnersystems.smartparking.auth.application.dto.command.*;
 import com.winnersystems.smartparking.auth.application.dto.query.AuthResponseDto;
 import com.winnersystems.smartparking.auth.application.dto.query.CaptchaValidationResult;
@@ -45,6 +46,10 @@ public class AuthService implements
    private final TokenPersistencePort tokenPersistencePort;
    private final CaptchaPort captchaPort;
    private final EmailPort emailPort;
+
+   /** URL del panel Angular, para los enlaces de los correos (email.base-url en auth-service.yml) */
+   @Value("${email.base-url:http://localhost:4200}")
+   private String frontendUrl;
 
    // ========== LOGIN ==========
 
@@ -250,7 +255,7 @@ public class AuthService implements
 
       tokenPersistencePort.savePasswordResetToken(token);
 
-      String resetLink = "http://localhost:4200/reset-password?token=" + tokenValue;
+      String resetLink = frontendUrl + "/reset-password?token=" + tokenValue;
 
       try {
          emailPort.sendPasswordResetEmail(
@@ -379,7 +384,7 @@ public class AuthService implements
 
       tokenPersistencePort.saveVerificationToken(verificationToken);
 
-      String verificationLink = "http://localhost:4200/verify-email?token=" + tokenValue;
+      String verificationLink = frontendUrl + "/verify-email?token=" + tokenValue;
 
       emailPort.sendVerificationEmail(
             user.getEmail(),

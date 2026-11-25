@@ -1,5 +1,6 @@
 package com.winnersystems.smartparking.auth.infrastructure.adapter.output.captcha;
 
+import lombok.extern.slf4j.Slf4j;
 import com.winnersystems.smartparking.auth.application.dto.query.CaptchaValidationResult;
 import com.winnersystems.smartparking.auth.application.port.output.CaptchaPort;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import java.util.Map;
  * @author Edwin Yoner Winner Systems - Smart Parking Platform
  * @version 1.0
  */
+@Slf4j
 @Component
 public class RecaptchaAdapter implements CaptchaPort {
 
@@ -120,7 +122,7 @@ public class RecaptchaAdapter implements CaptchaPort {
 
       } catch (Exception e) {
 
-         System.err.println("Error validando reCAPTCHA: " + e.getMessage());
+         log.warn("Error validando reCAPTCHA: {}", e.getMessage());
 
          return new CaptchaValidationResult(
                false,

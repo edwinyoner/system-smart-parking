@@ -1,5 +1,6 @@
 package com.winnersystems.smartparking.auth.application.service.user;
 
+import org.springframework.beans.factory.annotation.Value;
 import com.winnersystems.smartparking.auth.application.dto.command.CreateUserCommand;
 import com.winnersystems.smartparking.auth.application.dto.command.UpdateUserCommand;
 import com.winnersystems.smartparking.auth.application.dto.query.OperatorDto;
@@ -51,6 +52,10 @@ public class UserService implements
    private final EmailPort emailPort;
    private final TokenPersistencePort tokenPersistencePort;
 
+   /** URL del panel Angular, para los enlaces de los correos (email.base-url en auth-service.yml) */
+   @Value("${email.base-url:http://localhost:4200}")
+   private String frontendUrl;
+
    // ========== CREATE USER ==========
 
    @Override
@@ -66,11 +71,8 @@ public class UserService implements
       ensureNewRolesAreActive(new HashSet<>(roles), Set.of());
       User.ensureRolesCanBeGrantedBy(command.actorActiveRole(), new HashSet<>(roles));
 
-      // 3. GUARDAR contraseña en texto plano ANTES de hashear
-      String plainPassword = command.password();
-
-      // 4. Hashear password
-      String hashedPassword = passwordEncoderPort.encode(plainPassword);
+      // 3-4. Hashear la contraseña: nunca se guarda en texto plano
+      String hashedPassword = passwordEncoderPort.encode(command.password());
 
       // 5. Crear usuario
       User user = new User(
@@ -91,48 +93,8 @@ public class UserService implements
       // 8. Guardar usuario
       User savedUser = userPersistencePort.save(user);
 
-      // 9. Generar y GUARDAR token de verificación
-      try {
-         String tokenValue = java.util.UUID.randomUUID().toString();
-
-         VerificationToken verificationToken = new VerificationToken(
-               tokenValue,
-               savedUser.getId(),
-               command.createdBy()
-         );
-
-         verificationToken.setIpAddress(command.ipAddress());
-
-         tokenPersistencePort.saveVerificationToken(verificationToken);
-
-         System.out.println("Token guardado: " + tokenValue);
-         System.out.println("Usuario creado (email NO enviado automáticamente)");
-
-         // Código comentado para envío de email
-         /*
-         String verificationLink = "http://localhost:4200/verify-email?token=" + tokenValue;
-         Set<String> roleNames = savedUser.getRoles().stream()
-               .map(Role::getName)
-               .collect(Collectors.toSet());
-
-         emailPort.sendWelcomeEmailWithCredentials(
-               savedUser.getEmail(),
-               savedUser.getFullName(),
-               savedUser.getEmail(),
-               plainPassword,
-               roleNames,
-               verificationLink,
-               24
-         );
-         */
-
-         System.out.println("Token guardado: " + tokenValue);
-         System.out.println("Email enviado a: " + savedUser.getEmail());
-
-      } catch (Exception e) {
-         System.err.println("Error: " + e.getMessage());
-         e.printStackTrace();
-      }
+      // 9. No se envía correo aquí: el administrador decide cuándo mandar las credenciales
+      //    (POST /users/{id}/resend-credentials), y ese paso crea el token de verificación.
 
       return mapToDto(savedUser);
    }
@@ -383,7 +345,7 @@ public class UserService implements
             user.getEmail(),
             plainPassword,
             roleNames(user.getRoles()),
-            "http://localhost:4200/verify-email?token=" + tokenValue,
+            frontendUrl + "/verify-email?token=" + tokenValue,
             24
       );
    }

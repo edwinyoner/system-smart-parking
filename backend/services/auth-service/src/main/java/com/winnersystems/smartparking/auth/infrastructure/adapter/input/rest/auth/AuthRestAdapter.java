@@ -1,5 +1,6 @@
 package com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.auth;
 
+import org.springframework.beans.factory.annotation.Value;
 import com.winnersystems.smartparking.auth.application.service.role.RoleService;
 import java.util.List;
 import com.winnersystems.smartparking.auth.application.dto.command.*;
@@ -46,6 +47,10 @@ public class AuthRestAdapter {
    private final VerifyEmailUseCase verifyEmailUseCase;
    private final ResendVerificationUseCase resendVerificationUseCase;
    private final ChangePasswordUseCase changePasswordUseCase;
+
+   /** URL del panel Angular, para los enlaces de los correos (email.base-url en auth-service.yml) */
+   @Value("${email.base-url:http://localhost:4200}")
+   private String frontendUrl;
    private final AuthRestMapper mapper;
    private final UpdateProfileUseCase updateProfileUseCase;
    private final RoleService roleService;
@@ -175,7 +180,7 @@ public class AuthRestAdapter {
       if (redirect) {
          // Redirige al login del frontend con parámetro de éxito
          return ResponseEntity.status(302)
-               .location(URI.create("http://localhost:4200/login?verified=true"))
+               .location(URI.create(frontendUrl + "/login?verified=true"))
                .build();
       }
 

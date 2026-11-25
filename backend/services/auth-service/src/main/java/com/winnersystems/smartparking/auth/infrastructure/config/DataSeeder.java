@@ -60,6 +60,10 @@ public class DataSeeder implements CommandLineRunner {
    @Value("${ADMIN_PASSWORD:}")
    private String adminPassword;
 
+   /** URL del panel Angular, para los enlaces de los correos (email.base-url en auth-service.yml) */
+   @Value("${email.base-url:http://localhost:4200}")
+   private String frontendUrl;
+
    @Override
    @Transactional
    public void run(String... args) {
@@ -362,7 +366,7 @@ public class DataSeeder implements CommandLineRunner {
 
          verificationTokenRepository.save(tokenEntity);
 
-         String verificationLink = "http://localhost:4200/verify-email?token=" + verificationToken;
+         String verificationLink = frontendUrl + "/verify-email?token=" + verificationToken;
 
          sendAdminWelcomeEmailWithVerification(admin, tempPassword, verificationLink);
 
@@ -480,28 +484,28 @@ public class DataSeeder implements CommandLineRunner {
                         background: #f8f9fa; 
                         padding: 20px; 
                         margin: 20px 0; 
-                        border-left: 4px solid #2196F3;
+                        border-left: 4px solid #198754;
                         border-radius: 5px;
                     }
                     .credentials h3 {
                         margin-top: 0;
-                        color: #2196F3;
+                        color: #198754;
                     }
                     .credentials p {
                         margin: 10px 0;
                     }
                     .credentials strong {
-                        color: #1976D2;
+                        color: #146c43;
                     }
                     .password-box {
                         background: white;
                         padding: 10px 15px;
-                        border: 2px dashed #2196F3;
+                        border: 2px dashed #198754;
                         border-radius: 5px;
                         font-family: 'Courier New', monospace;
                         font-size: 18px;
                         font-weight: bold;
-                        color: #1976D2;
+                        color: #146c43;
                         text-align: center;
                         margin: 10px 0;
                     }
