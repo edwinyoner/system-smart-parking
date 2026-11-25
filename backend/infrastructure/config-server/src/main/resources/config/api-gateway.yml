@@ -1,6 +1,10 @@
 # ================================================================================
 # ARCHIVO: api-gateway.yml (Config Server)
 # config-server/src/main/resources/config/api-gateway.yml
+#
+# Única puerta pública del sistema (puerto 8080). Convención de rutas:
+#   /api/<nombre-del-microservicio>/...  ->  ruta interna del servicio
+# Clientes: Angular (gestión, JWT), Flutter (información pública) y ESP32 (IoT).
 # ================================================================================
 
 server:
@@ -12,50 +16,68 @@ spring:
 
   cloud:
     gateway:
-      routes:
-        # ========== AUTH SERVICE ROUTES ==========
-        - id: auth-service-auth
-          uri: lb://AUTH-SERVICE
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - RewritePath=/api/auth(?<segment>/.*|), ${segment}
+      server:
+        webflux:
+          routes:
+            # ========== AUTH SERVICE (registrado en Eureka) ==========
+            - id: auth-service-auth
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - RewritePath=/api/auth(?<segment>/.*|), ${segment}
 
-        - id: auth-service-users
-          uri: lb://AUTH-SERVICE
-          predicates:
-            - Path=/api/users,/api/users/**
-          filters:
-            - RewritePath=/api(?<segment>/users.*), ${segment}
+            - id: auth-service-users
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/api/users,/api/users/**
+              filters:
+                - RewritePath=/api(?<segment>/users.*), ${segment}
 
-        - id: auth-service-roles
-          uri: lb://AUTH-SERVICE
-          predicates:
-            - Path=/api/roles,/api/roles/**
-          filters:
-            - RewritePath=/api(?<segment>/roles.*), ${segment}
+            - id: auth-service-roles
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/api/roles,/api/roles/**
+              filters:
+                - RewritePath=/api(?<segment>/roles.*), ${segment}
 
-        - id: auth-service-permissions
-          uri: lb://AUTH-SERVICE
-          predicates:
-            - Path=/api/permissions,/api/permissions/**
-          filters:
-            - RewritePath=/api(?<segment>/permissions.*), ${segment}
+            - id: auth-service-permissions
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/api/permissions,/api/permissions/**
+              filters:
+                - RewritePath=/api(?<segment>/permissions.*), ${segment}
 
-        # ========== PARKING SERVICE ROUTES (CORREGIDO) ==========
-        - id: parking-service
-          uri: lb://PARKING-SERVICE
-          predicates:
-            - Path=/api/parking-service/v1/**
-          filters:
-            - RewritePath=/api/parking-service/v1(?<segment>/.*|), ${segment}
-            # Quita /api/parking-service/v1/ completamente
-            # Ejemplo: /api/parking-service/v1/shifts → /shifts
+            # ========== PARKING SERVICE (registrado en Eureka) ==========
+            # Ejemplo: /api/parking-service/v1/shifts -> /shifts
+            # Incluye las rutas públicas sin login (/api/parking-service/v1/public/...),
+            # que parking-service deja abiertas y el resto exige JWT.
+            - id: parking-service
+              uri: lb://PARKING-SERVICE
+              predicates:
+                - Path=/api/parking-service/v1/**
+              filters:
+                - RewritePath=/api/parking-service/v1(?<segment>/.*|), ${segment}
 
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
+            # ========== IOT SERVICE (Go, NO se registra en Eureka) ==========
+            # URI fija: con lb://IOT-SERVICE el gateway respondería 503.
+            # Solo se publican las rutas que usan los dispositivos. Analítica y
+            # limpieza de caché quedan internas hasta que tengan autenticación.
+            # Ejemplo: /api/iot-service/v1/captures -> /api/v1/captures
+            - id: iot-service-devices
+              uri: ${IOT_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/iot-service/v1/captures,/api/iot-service/v1/captures/**,/api/iot-service/v1/displays/availability
+              filters:
+                - RewritePath=/api/iot-service/v1(?<segment>/.*), /api/v1${segment}
+
+            # ia-service no se publica: solo lo llama iot-service por la red interna.
+
+          # Sin "discovery locator": no se crea una ruta automática /<servicio>/**
+          # por cada servicio de Eureka. Solo existen las rutas declaradas arriba.
+          discovery:
+            locator:
+              enabled: false
 
 eureka:
   client:
@@ -67,21 +89,19 @@ eureka:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
 
+# Solo el estado, sin detalles: las rutas, métricas y configuración no se publican
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,routes
+        include: health
   endpoint:
     health:
-      show-details: always
-    gateway:
-      enabled: true
+      show-details: never
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
-    reactor.netty: DEBUG
-    com.winnersystems: DEBUG
+    root: INFO
+    com.winnersystems: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"

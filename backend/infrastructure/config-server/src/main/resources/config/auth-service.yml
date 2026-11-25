@@ -95,14 +95,8 @@ recaptcha:
   min-score: 0.5
 
 # ========== ACTUATOR (Health Checks) ==========
+# Endpoints y detalles: los del application.yml global
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
   health:
     db:
       enabled: true

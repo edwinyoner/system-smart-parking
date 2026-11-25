@@ -23,19 +23,18 @@ spring:
         #   search-paths: config
 
 
-# Actuator - endpoints de monitored
+# Actuator: solo el estado. "refresh" no se usa (ningún servicio tiene @RefreshScope)
 management:
   endpoints:
     web:
       exposure:
-        include: health, info, refresh
+        include: health, info
   endpoint:
     health:
-      show-details: always
+      show-details: never
 
 # Logging
 logging:
   level:
     root: INFO
-    com.winnersystems: DEBUG
-    org.springframework.cloud: DEBUG
+    com.winnersystems: INFO
