@@ -10,6 +10,8 @@ import { generatePassword, maskPassword } from '../../../core/utils/password.uti
 import { CreateUserRequest } from '../../../core/models/user.model';
 import { PHONE_ERROR_MESSAGE, PHONE_PATTERN, keepPhoneDigits } from '../../../core/utils/phone.util';
 
+import { sortRolesByRank } from '../../../core/utils/role.util';
+
 @Component({
   selector: 'app-user-create',
   standalone: true,
@@ -74,7 +76,7 @@ export class UserCreateComponent implements OnInit {
   private loadRoles(): void {
     this.roleService.getAllRoles().subscribe({
       next: (roles) => {
-        this.roles = roles;
+        this.roles = sortRolesByRank(roles); // ADMIN, AUTORIDAD, OPERADOR...
       },
       error: (error) => {
         console.error('Error al cargar roles:', error);

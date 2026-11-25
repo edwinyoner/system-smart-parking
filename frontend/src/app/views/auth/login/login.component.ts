@@ -5,7 +5,7 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
 import { getSessionEndMessage } from '../../../core/models/session-end-reason.model';
-import { SYSTEM_ROLE_NAMES, getRoleIconClass, getRoleLabel } from '../../../core/utils/role.util';
+import { SYSTEM_ROLE_NAMES, getRoleIconClass, sortRolesByRank, getRoleLabel } from '../../../core/utils/role.util';
 import { environment } from '../../../../environments/environment';
 
 /**
@@ -79,7 +79,8 @@ export class LoginComponent implements OnInit {
   private loadRoles(): void {
     this.authService.getLoginRoles().subscribe({
       next: (names) => {
-        this.availableRoles = this.toOptions(names);
+        // Mismo orden que en el resto del panel: ADMIN, AUTORIDAD, OPERADOR...
+        this.availableRoles = this.toOptions(sortRolesByRank(names.map(name => ({ name }))).map(role => role.name));
 
         // El rol elegido pudo desactivarse
         const selected = this.loginForm.get('selectedRole');

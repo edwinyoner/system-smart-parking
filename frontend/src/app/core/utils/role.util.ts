@@ -5,8 +5,20 @@ const SYSTEM_ROLES: Record<string, { label: string; icon: string }> = {
   OPERADOR: { label: 'Operador', icon: 'fas fa-user-cog' },
 };
 
-/** Roles que siempre existen */
+/** Roles que siempre existen, de mayor a menor privilegio */
 export const SYSTEM_ROLE_NAMES = Object.keys(SYSTEM_ROLES);
+
+/**
+ * Ordena por rango: ADMIN, AUTORIDAD, OPERADOR y luego los creados desde la interfaz, por nombre.
+ * Devuelve una copia: no modifica la lista recibida.
+ */
+export function sortRolesByRank<T extends { name: string }>(roles: T[]): T[] {
+  const rank = (name: string) => {
+    const index = SYSTEM_ROLE_NAMES.indexOf(name);
+    return index === -1 ? SYSTEM_ROLE_NAMES.length : index;
+  };
+  return [...roles].sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
+}
 
 /** Nombre legible. Un rol creado desde la interfaz: JEFE_DE_ZONA → Jefe de zona */
 export function getRoleLabel(name: string): string {

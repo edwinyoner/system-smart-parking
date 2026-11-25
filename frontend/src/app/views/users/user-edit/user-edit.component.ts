@@ -22,6 +22,8 @@ import { PHONE_ERROR_MESSAGE, PHONE_PATTERN, keepPhoneDigits, normalizePhone } f
 /**
  * Componente para editar usuarios existentes
  */
+import { sortRolesByRank } from '../../../core/utils/role.util';
+
 @Component({
   selector: "app-user-edit",
   standalone: true,
@@ -176,7 +178,7 @@ export class UserEditComponent implements OnInit {
   private loadRoles(): void {
     this.roleService.getAllRoles().subscribe({
       next: (roles) => {
-        this.roles = roles;
+        this.roles = sortRolesByRank(roles); // ADMIN, AUTORIDAD, OPERADOR...
         this.markAssignedRoles();
       },
       error: (error) => {

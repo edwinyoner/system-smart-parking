@@ -18,7 +18,7 @@ import {
   ActionKind, getActionKind, getModuleInfo, getPermissionActionLabel,
   getPermissionModule, groupPermissionsByModule
 } from '../../../core/utils/permission-module.util';
-import { SYSTEM_ROLE_NAMES, getRoleBadgeClasses, getRoleLabel } from '../../../core/utils/role.util';
+import { sortRolesByRank, getRoleBadgeClasses, getRoleLabel } from '../../../core/utils/role.util';
 
 // Components
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
@@ -93,20 +93,12 @@ export class PermissionDetailComponent implements OnInit {
     this.siblings = (group?.permissions ?? []).filter(p => p.id !== permission.id);
 
     this.rolesAvailable = roles !== null;
-    const sorted = this.sortRoles(roles ?? []);
+    const sorted = sortRolesByRank(roles ?? []);
     const has = (role: Role) => (role.permissions ?? []).some(p => p.id === permission.id);
     this.rolesWith = sorted.filter(has);
     this.rolesWithout = sorted.filter(role => !has(role));
   }
 
-  /** Primero los del sistema y luego los demás por nombre */
-  private sortRoles(roles: Role[]): Role[] {
-    const rank = (name: string) => {
-      const i = SYSTEM_ROLE_NAMES.indexOf(name);
-      return i === -1 ? SYSTEM_ROLE_NAMES.length : i;
-    };
-    return [...roles].sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
-  }
 
   hasPermission(permission: string): boolean {
     return this.authContext.hasPermission(permission);

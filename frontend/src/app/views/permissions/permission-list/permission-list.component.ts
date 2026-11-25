@@ -19,7 +19,7 @@ import {
   ACTION_KIND_OPTIONS, ActionKind, getActionKind, getModuleInfo,
   getPermissionActionLabel, getPermissionModule, groupPermissionsByModule
 } from '../../../core/utils/permission-module.util';
-import { SYSTEM_ROLE_NAMES, getRoleBadgeClasses, getRoleLabel } from '../../../core/utils/role.util';
+import { sortRolesByRank, getRoleBadgeClasses, getRoleLabel } from '../../../core/utils/role.util';
 import { normalizeText } from '../../../core/utils/text.util';
 import { liveRefresh } from '../../../core/utils/live-refresh.util';
 
@@ -150,7 +150,7 @@ export class PermissionListComponent implements OnInit {
     this.loaded = true;
     this.permissions = permissions;
     this.rolesAvailable = roles !== null;
-    this.roles = this.sortRoles(roles ?? []);
+    this.roles = sortRolesByRank(roles ?? []);
 
     this.rolesByPermission = new Map();
     for (const role of this.roles) {
@@ -172,14 +172,6 @@ export class PermissionListComponent implements OnInit {
     this.applyFilters();
   }
 
-  /** Primero los del sistema (ADMIN, AUTORIDAD, OPERADOR) y luego los demás por nombre */
-  private sortRoles(roles: Role[]): Role[] {
-    const rank = (name: string) => {
-      const i = SYSTEM_ROLE_NAMES.indexOf(name);
-      return i === -1 ? SYSTEM_ROLE_NAMES.length : i;
-    };
-    return [...roles].sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
-  }
 
   private buildModuleOptions(): void {
     const options: typeof this.moduleOptions = [];
