@@ -7,7 +7,7 @@
       <div class="sidebar-brand-full" style="width: 100%; display: flex; justify-content: center;">
         <div style="display: flex; flex-direction: column; align-items: center;">
           <div style="line-height: 1;">
-            <span style="font-size: 1.3rem; font-weight: 700; color: #1d6eb1;">SMART</span>
+            <span style="font-size: 1.3rem; font-weight: 700; color: #198754;">SMART</span>
             <span style="font-size: 1.3rem; font-weight: 700; color: #a0663a; margin-left: 0.25rem;">PARKING</span>
           </div>
           <span style="font-size: 0.5rem; font-weight: 500; color: #78909C; margin-top: 0.15rem; letter-spacing: 1px;">SYSTEM</span>
@@ -25,7 +25,7 @@
           <img [src]="profilePicture()" [alt]="fullName()" class="rounded-circle" width="48" height="48">
         } @else {
           <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center" 
-               style="width: 48px; height: 48px; background: #1d6eb1; color: white; font-weight: 600;">
+               style="width: 48px; height: 48px; background: var(--cui-primary); color: white; font-weight: 600;">
             {{ userInitials() }}
           </div>
         }

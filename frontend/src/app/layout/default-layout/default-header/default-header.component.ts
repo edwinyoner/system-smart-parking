@@ -79,7 +79,7 @@ export class DefaultHeaderComponent extends HeaderComponent {
     const colorMap: { [key: string]: string } = {
       'ADMIN': 'danger',
       'AUTORIDAD': 'warning',
-      'OPERADOR': 'info'
+      'OPERADOR': 'success'
     };
     return colorMap[this.activeRole()] || 'secondary';
   });

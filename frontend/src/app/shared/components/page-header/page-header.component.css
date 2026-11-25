@@ -159,7 +159,7 @@
 .header-right .btn.btn-primary:hover {
   background: #0b5ed7;  /* Azul más oscuro */
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
 }
 
 .header-right .btn.btn-secondary {

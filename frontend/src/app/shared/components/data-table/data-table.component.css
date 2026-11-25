@@ -125,7 +125,7 @@
 
 .badge-info {
   background-color: #dbeafe;
-  color: #1e40af;
+  color: var(--cui-info);
   border: 1px solid #93c5fd;
 }
 
@@ -180,11 +180,11 @@
 .action-buttons .btn-primary:hover {
   background-color: #0b5ed7;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+  box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
 }
 
 .action-buttons .btn-info {
-  background-color: #0dcaf0;
+  background-color: var(--cui-info);
   color: #ffffff;
 }
 

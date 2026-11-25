@@ -34,7 +34,7 @@
   background: #e7f3ff;
   padding: 1.5rem;
   border-radius: 8px;
-  border: 1px solid #39f;
+  border: 1px solid var(--cui-info);
 }
 
 dl.row {

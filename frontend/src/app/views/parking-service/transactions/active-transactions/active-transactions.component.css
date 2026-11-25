@@ -36,7 +36,7 @@
 
 .stat-card.stat-info {
   background: #e7f3ff;
-  border-color: #39f;
+  border-color: var(--cui-info);
 }
 
 .stat-value {

@@ -81,9 +81,9 @@
   // ESTADO ACTIVO - MÁS VISIBLE
   .nav-link.active {
     // Más intenso
-    background: linear-gradient(90deg, rgba(33, 150, 243, 0.35) 0%, rgba(33, 150, 243, 0.1) 100%) !important;
-    // Borde izquierdo más grueso y colorido
-    border-left: 4px solid #2196F3 !important;
+    // Verde de marca (antes azul)
+    background: linear-gradient(90deg, rgba(25, 135, 84, 0.3) 0%, rgba(25, 135, 84, 0.08) 100%) !important;
+    border-left: 4px solid var(--cui-primary) !important;
     
     .nav-icon {
       transform: scale(1.1);
@@ -180,7 +180,7 @@
   }
   
   .badge-operador {
-    background: #0dacd7ff;
+    background: #198754;
     color: white;
   }
   
