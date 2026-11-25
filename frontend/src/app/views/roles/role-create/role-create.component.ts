@@ -14,6 +14,7 @@ import { PermissionGroup } from '../../../core/models/permission.model';
 
 // Components
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
+import { PermissionSelectorComponent } from '../permission-selector/permission-selector.component';
 
 @Component({
   selector: 'app-role-create',
@@ -21,10 +22,11 @@ import { AlertMessageComponent } from '../../../shared/components/alert-message/
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    AlertMessageComponent
+    AlertMessageComponent,
+    PermissionSelectorComponent
   ],
   templateUrl: './role-create.component.html',
-  styleUrls: ['./role-create.component.scss']
+  styleUrls: ['./role-create.component.css']
 })
 export class RoleCreateComponent implements OnInit {
   
@@ -81,62 +83,6 @@ export class RoleCreateComponent implements OnInit {
   }
 
   // ========== GESTIÓN DE PERMISOS ==========
-
-  /**
-   * Verifica si un permiso está seleccionado
-   */
-  isPermissionSelected(permissionId: number): boolean {
-    return this.selectedPermissions.has(permissionId);
-  }
-
-  /**
-   * Toggle de un permiso individual
-   */
-  togglePermission(permissionId: number): void {
-    if (this.selectedPermissions.has(permissionId)) {
-      this.selectedPermissions.delete(permissionId);
-    } else {
-      this.selectedPermissions.add(permissionId);
-    }
-  }
-
-  /**
-   * Verifica si todos los permisos de un módulo están seleccionados
-   */
-  areAllModulePermissionsSelected(group: PermissionGroup): boolean {
-    return group.permissions.every(p => this.selectedPermissions.has(p.id));
-  }
-
-  /**
-   * Toggle todos los permisos de un módulo
-   */
-  toggleModulePermissions(group: PermissionGroup): void {
-    const allSelected = this.areAllModulePermissionsSelected(group);
-    
-    if (allSelected) {
-      // Deseleccionar todos
-      group.permissions.forEach(p => this.selectedPermissions.delete(p.id));
-    } else {
-      // Seleccionar todos
-      group.permissions.forEach(p => this.selectedPermissions.add(p.id));
-    }
-  }
-
-  /**
-   * Selecciona todos los permisos del sistema
-   */
-  selectAllPermissions(): void {
-    this.permissionGroups.forEach(group => {
-      group.permissions.forEach(p => this.selectedPermissions.add(p.id));
-    });
-  }
-
-  /**
-   * Deselecciona todos los permisos
-   */
-  clearAllPermissions(): void {
-    this.selectedPermissions.clear();
-  }
 
   /**
    * Obtiene el conteo de permisos seleccionados

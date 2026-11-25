@@ -457,7 +457,8 @@ public class AuthService implements
             user.isEmailVerified(),
             getRoleNames(user),
             user.getCreatedAt(),
-            user.getUpdatedAt()
+            user.getUpdatedAt(),
+            user.getDeletedAt()
       );
    }
 

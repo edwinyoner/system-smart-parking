@@ -47,6 +47,19 @@ public interface UserPersistencePort {
    Optional<User> findById(Long id);
 
    /**
+    * Busca un usuario SOLO si está eliminado (soft delete).
+    * Se usa únicamente para restaurarlo; el resto del sistema usa {@link #findById}.
+    */
+   Optional<User> findDeletedById(Long id);
+
+   /**
+    * Busca un correo sin distinguir mayúsculas, INCLUIDOS los eliminados.
+    * En la BD el correo es único aunque el usuario esté eliminado, por eso
+    * crear o cambiar un correo debe comprobarlo con este método.
+    */
+   Optional<User> findByEmailIncludingDeleted(String email);
+
+   /**
     * Busca un usuario por su email único.
     *
     * <p>Usado en:</p>

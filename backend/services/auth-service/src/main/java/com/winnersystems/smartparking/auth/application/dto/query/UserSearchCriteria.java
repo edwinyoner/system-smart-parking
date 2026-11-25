@@ -11,6 +11,7 @@ public record UserSearchCriteria(
       Long roleId,             // Filtro por rol (ID)
       Boolean status,          // Filtro por estado (activo/inactivo)
       Boolean emailVerified,   // Filtro por email verificado
+      boolean deleted,         // true = solo eliminados (papelera); false = solo no eliminados
       int page,                // Página actual (0-based)
       int size,                // Tamaño de página
       String sortBy,           // Campo de ordenamiento
@@ -59,6 +60,7 @@ public record UserSearchCriteria(
             roleId,
             status,
             emailVerified,
+            false,
             page,
             size,
             sortBy,
@@ -75,6 +77,7 @@ public record UserSearchCriteria(
             null,
             null,
             null,
+            false,
             page,
             size,
             "id",

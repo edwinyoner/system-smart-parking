@@ -12,6 +12,7 @@ import {
 } from '../models/permission.model';
 import { PaginatedResponse } from '../models/pagination.model';
 import { TokenService } from './token.service';
+import { groupPermissionsByModule } from '../utils/permission-module.util';
 
 /**
  * Servicio para gestión de permisos
@@ -66,7 +67,7 @@ export class PermissionService {
    */
   getPermissionsGrouped(): Observable<PermissionGroup[]> {
     return this.getAllPermissions().pipe(
-      map(permissions => this.groupPermissionsByModule(permissions))
+      map(permissions => groupPermissionsByModule(permissions))
     );
   }
 
@@ -164,27 +165,6 @@ export class PermissionService {
   }
 
   // ========== UTILIDADES ==========
-
-  /**
-   * Agrupa permisos por módulo
-   */
-  private groupPermissionsByModule(permissions: Permission[]): PermissionGroup[] {
-    const grouped = permissions.reduce((acc, permission) => {
-      const module = permission.module || 'general';
-      
-      if (!acc[module]) {
-        acc[module] = [];
-      }
-      
-      acc[module].push(permission);
-      return acc;
-    }, {} as { [key: string]: Permission[] });
-
-    return Object.entries(grouped).map(([module, perms]) => ({
-      module,
-      permissions: perms
-    }));
-  }
 
   // ========== MANEJO DE ERRORES ==========
 

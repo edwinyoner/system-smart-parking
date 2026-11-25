@@ -52,7 +52,8 @@ public record CreateUserRequest(
       )
       String password,
 
-      @Size(max = 20, message = "Teléfono no debe exceder 20 caracteres")
+      // Celular peruano; vacío = sin teléfono
+      @Pattern(regexp = "^(9\\d{8})?$", message = "El teléfono debe tener 9 dígitos y empezar por 9 (ej. 987654321)")
       String phoneNumber,
 
       @NotEmpty(message = "Debe asignar al menos un rol")

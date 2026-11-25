@@ -49,6 +49,28 @@
   --bs-danger-rgb: 220, 53, 69;
 }
 
+// Tonos suaves propios para ambos modos. CoreUI usa en modo oscuro los mismos
+// valores claros para --cui-success-bg-subtle / --cui-success-text-emphasis,
+// así que los componentes usan estas variables (--sp-*) en su lugar.
+:root,
+[data-coreui-theme=light] {
+  --sp-success-soft-bg: #d1f0dd;
+  --sp-success-soft-border: #96dbad;
+  --sp-success-strong: #146c43;
+  --sp-warning-soft-bg: #fff3cd;
+  --sp-warning-soft-border: #ffda6a;
+  --sp-warning-strong: #664d03;
+}
+
+[data-coreui-theme=dark] {
+  --sp-success-soft-bg: rgba(25, 135, 84, 0.24);
+  --sp-success-soft-border: rgba(25, 135, 84, 0.65);
+  --sp-success-strong: #75d39c;
+  --sp-warning-soft-bg: rgba(255, 193, 7, 0.14);
+  --sp-warning-soft-border: rgba(255, 193, 7, 0.5);
+  --sp-warning-strong: #ffda6a;
+}
+
 // Asegurar que el spinner/preloader use el nuevo color primary
 .spinner-border {
   border-color: var(--cui-primary);
@@ -69,8 +91,11 @@
   --cui-btn-active-border-color: #154996;
 }
 
-// Botones de crear/guardar: verde con texto blanco
-.btn-success {
+// Botones de crear/guardar: verde con texto blanco EN AMBOS MODOS.
+// En modo oscuro CoreUI aplica "[data-coreui-theme=dark] .btn-success" (texto casi negro),
+// que es más específico que ".btn-success"; por eso se repite el selector del tema oscuro.
+.btn-success,
+[data-coreui-theme=dark] .btn-success {
   --cui-btn-color: #fff;
   --cui-btn-bg: #198754;
   --cui-btn-border-color: #198754;
@@ -85,8 +110,35 @@
   --cui-btn-disabled-border-color: #198754;
 }
 
+// Botones de eliminar/peligro: rojo con texto blanco en ambos modos (mismo motivo)
+.btn-danger,
+[data-coreui-theme=dark] .btn-danger {
+  --cui-btn-color: #fff;
+  --cui-btn-bg: #dc3545;
+  --cui-btn-border-color: #dc3545;
+  --cui-btn-hover-color: #fff;
+  --cui-btn-hover-bg: #bb2d3b;
+  --cui-btn-hover-border-color: #b02a37;
+  --cui-btn-active-color: #fff;
+  --cui-btn-active-bg: #b02a37;
+  --cui-btn-active-border-color: #a52834;
+  --cui-btn-disabled-color: #fff;
+  --cui-btn-disabled-bg: #dc3545;
+  --cui-btn-disabled-border-color: #dc3545;
+}
+
+// Avisos informativos (.alert-info sueltos): gris neutro en ambos modos, sin azul
+.alert-info,
+[data-coreui-theme=dark] .alert-info {
+  --cui-alert-color: var(--cui-body-color);
+  --cui-alert-bg: var(--cui-tertiary-bg);
+  --cui-alert-border-color: var(--cui-border-color);
+  --cui-alert-link-color: var(--cui-body-color);
+}
+
 // Paginación: número visible también en la página actual
-.pagination {
+.pagination,
+[data-coreui-theme=dark] .pagination {
   --cui-pagination-color: var(--cui-body-color);
   --cui-pagination-hover-color: #198754;
   --cui-pagination-focus-color: #198754;

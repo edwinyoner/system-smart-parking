@@ -152,31 +152,13 @@
 
       <!-- Permisos -->
       <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header">
           <strong>
             <i class="fas fa-key me-2"></i>
-            Permisos del Rol 
+            Permisos del Rol
             <span class="badge bg-success text-white ms-2">{{ getSelectedPermissionsCount() }} seleccionados</span>
           </strong>
-          
-          <div class="btn-group btn-group-sm">
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              (click)="selectAllPermissions()"
-              [disabled]="isLoadingPermissions || !role.permissionsEditable">
-              <i class="fas fa-check-double me-1"></i>
-              Seleccionar Todos
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              (click)="clearAllPermissions()"
-              [disabled]="isLoadingPermissions || !role.permissionsEditable">
-              <i class="fas fa-times me-1"></i>
-              Limpiar
-            </button>
-          </div>
+          <small class="d-block text-body-secondary mt-1">Agrupados por módulo. Marca la casilla del módulo para seleccionar todos sus permisos.</small>
         </div>
         
         <div class="card-body">
@@ -191,76 +173,13 @@
             </div>
           }
 
-          <!-- Permissions by Module -->
-          @if (!isLoadingPermissions && permissionGroups.length > 0) {
-            <div class="row g-3">
-              @for (group of permissionGroups; track group.module) {
-                <div class="col-12">
-                  <div class="permission-module">
-                    
-                    <!-- Module Header -->
-                    <div class="module-header d-flex justify-content-between align-items-center">
-                      <h6 class="mb-0">
-                        <i class="fas fa-folder-open me-2"></i>
-                        {{ group.module | titlecase }}
-                        <span class="badge bg-secondary ms-2">{{ group.permissions.length }}</span>
-                      </h6>
-                      
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-outline-secondary"
-                        [disabled]="!role.permissionsEditable"
-                        (click)="toggleModulePermissions(group)">
-                        @if (areAllModulePermissionsSelected(group)) {
-                          <i class="fas fa-check-square me-1"></i>
-                          Deseleccionar todos
-                        } @else {
-                          <i class="far fa-square me-1"></i>
-                          Seleccionar todos
-                        }
-                      </button>
-                    </div>
-
-                    <!-- Module Permissions -->
-                    <div class="module-permissions">
-                      <div class="row g-2">
-                        @for (permission of group.permissions; track permission.id) {
-                          <div class="col-md-6 col-lg-4">
-                            <div class="form-check permission-item">
-                              <input
-                                type="checkbox"
-                                class="form-check-input"
-                                [id]="'permission-' + permission.id"
-                                [checked]="isPermissionSelected(permission.id)"
-                                [disabled]="!role.permissionsEditable"
-                                (change)="togglePermission(permission.id)">
-                              
-                              <label 
-                                class="form-check-label"
-                                [for]="'permission-' + permission.id">
-                                <strong>{{ permission.name }}</strong>
-                                @if (permission.description) {
-                                  <br>
-                                  <small class="text-muted">{{ permission.description }}</small>
-                                }
-                              </label>
-                            </div>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- No Permissions -->
-          @if (!isLoadingPermissions && permissionGroups.length === 0) {
-            <div class="text-center py-4">
-              <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
-              <p class="text-muted">No hay permisos disponibles en el sistema</p>
-            </div>
+          <!-- Selector agrupado por módulo (compartido con crear/editar) -->
+          @if (!isLoadingPermissions) {
+            <app-permission-selector
+              [groups]="permissionGroups"
+              [(selectedIds)]="selectedPermissions"
+              [disabled]="isLoading || !role.permissionsEditable">
+            </app-permission-selector>
           }
         </div>
       </div>

@@ -8,6 +8,7 @@ import { AlertMessageComponent } from '../../../shared/components/alert-message/
 import { Role } from '../../../core/models/role.model';
 import { generatePassword, maskPassword } from '../../../core/utils/password.util';
 import { CreateUserRequest } from '../../../core/models/user.model';
+import { PHONE_ERROR_MESSAGE, PHONE_PATTERN, keepPhoneDigits } from '../../../core/utils/phone.util';
 
 @Component({
   selector: 'app-user-create',
@@ -18,7 +19,7 @@ import { CreateUserRequest } from '../../../core/models/user.model';
     AlertMessageComponent
   ],
   templateUrl: './user-create.component.html',
-  styleUrls: ['./user-create.component.scss']
+  styleUrls: ['./user-create.component.css']
 })
 export class UserCreateComponent implements OnInit {
 
@@ -50,6 +51,11 @@ export class UserCreateComponent implements OnInit {
     private router: Router
   ) {}
 
+  /** Solo números en el teléfono, máximo 9 */
+  onPhoneInput(event: Event): void {
+    keepPhoneDigits(event, this.userForm.get('phoneNumber'));
+  }
+
   ngOnInit(): void {
     this.initForm();
     this.loadRoles();
@@ -60,7 +66,7 @@ export class UserCreateComponent implements OnInit {
       firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       email: ['', [Validators.required, Validators.email]],
-      phoneNumber: ['', [Validators.pattern(/^\+?[1-9]\d{1,14}$/)]],
+      phoneNumber: ['', [Validators.pattern(PHONE_PATTERN)]],
       roleIds: [[], [Validators.required]]
     });
   }
@@ -214,7 +220,7 @@ export class UserCreateComponent implements OnInit {
       const maxLength = field.errors?.['maxlength'].requiredLength;
       return `No puede exceder ${maxLength} caracteres`;
     }
-    if (field?.hasError('pattern')) return 'Formato inválido. Ejemplo: +51987654321';
+    if (field?.hasError('pattern')) return PHONE_ERROR_MESSAGE;
     
     return '';
   }

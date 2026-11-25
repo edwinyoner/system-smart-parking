@@ -18,7 +18,8 @@ public record UserResponse(
       boolean emailVerified,
       Set<RoleInfo> roles,
       LocalDateTime createdAt,
-      LocalDateTime updatedAt
+      LocalDateTime updatedAt,
+      LocalDateTime deletedAt      // null si no está eliminado
 ) {
    /**
     * Información de rol asignado al usuario.

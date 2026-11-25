@@ -27,7 +27,7 @@ interface PermissionsByModule {
     AlertMessageComponent
   ],
   templateUrl: './role-detail.component.html',
-  styleUrls: ['./role-detail.component.scss']
+  styleUrls: ['./role-detail.component.css']
 })
 export class RoleDetailComponent implements OnInit {
   

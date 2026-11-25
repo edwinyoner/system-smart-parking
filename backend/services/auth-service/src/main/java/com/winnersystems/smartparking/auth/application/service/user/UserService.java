@@ -55,10 +55,8 @@ public class UserService implements
 
    @Override
    public UserDto execute(CreateUserCommand command) {
-      // 1. Validar email único
-      if (userPersistencePort.findByEmail(command.email()).isPresent()) {
-         throw new EmailAlreadyExistsException(command.email());
-      }
+      // 1. Validar email único (también frente a usuarios eliminados: en la BD es único)
+      ensureEmailIsAvailable(command.email());
 
       // 2. Validar que roles existen
       List<Role> roles = rolePersistencePort.findAllByIds(command.roleIds());
@@ -166,6 +164,16 @@ public class UserService implements
          user.setLastName(command.lastName());
       }
 
+      // Correo: solo si cambia. Queda sin verificar hasta que confirme el nuevo
+      boolean emailChanged = command.email() != null
+            && !command.email().equalsIgnoreCase(user.getEmail());
+      if (emailChanged) {
+         ensureEmailIsAvailable(command.email());
+         user.changeEmail(command.email(), command.updatedBy(), command.actorActiveRole());
+      } else if (command.email() != null && !command.email().equals(user.getEmail())) {
+         user.setEmail(command.email()); // Solo cambian mayúsculas: mismo buzón, sigue verificado
+      }
+
       if (command.phoneNumber() != null) {
          user.setPhoneNumber(command.phoneNumber());
       }
@@ -197,7 +205,25 @@ public class UserService implements
       // 5. Guardar
       User updated = userPersistencePort.save(user);
 
+      // 6. Correo nuevo: cerrar sesiones e invalidar enlaces enviados al correo anterior
+      if (emailChanged) {
+         tokenPersistencePort.revokeRefreshTokensByUserId(user.getId());
+         tokenPersistencePort.deleteVerificationTokensByUserId(user.getId());
+         tokenPersistencePort.revokePasswordResetTokensByUserId(user.getId());
+      }
+
       return mapToDto(updated);
+   }
+
+   /**
+    * El correo no debe pertenecer a otro usuario, ni siquiera a uno eliminado.
+    */
+   private void ensureEmailIsAvailable(String email) {
+      userPersistencePort.findByEmailIncludingDeleted(email).ifPresent(owner -> {
+         throw new EmailAlreadyExistsException(email, owner.getDeletedAt() != null
+               ? String.format("El email '%s' pertenece a un usuario eliminado. Restáuralo desde Eliminados o usa otro correo", email)
+               : String.format("El email '%s' ya está registrado en el sistema", email));
+      });
    }
 
    /** Un rol inactivo no se puede asignar; quien ya lo tiene lo conserva. */
@@ -277,18 +303,18 @@ public class UserService implements
    // ========== RESTORE USER ==========
 
    @Override
-   public UserDto executeRestore(Long userId, Long restoredBy) {
-      // 1. Buscar usuario
-      User user = userPersistencePort.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(userId));
+   public UserDto executeRestore(Long userId, Long restoredBy, String actorActiveRole) {
+      // 1. Buscar entre los eliminados (findById los excluye, por eso fallaba antes)
+      User user = userPersistencePort.findDeletedById(userId)
+            .orElseThrow(() -> userPersistencePort.findById(userId).isPresent()
+                  ? new IllegalStateException("El usuario no está eliminado")
+                  : new UserNotFoundException(userId));
 
-      // 2. Validar que esté eliminado
-      if (user.getDeletedAt() == null) {
-         throw new IllegalStateException("Usuario no está eliminado");
-      }
+      // 2. Reglas de protección: a un ADMIN solo lo restaura quien entró como ADMIN
+      user.ensureCanBeRestoredBy(actorActiveRole);
 
-      // 3. Restaurar
-      user.restore(); // También reactiva: eliminar lo había desactivado
+      // 3. Restaurar (el dominio también lo reactiva: eliminar lo había desactivado)
+      user.restore();
 
       // 4. Registrar auditoría
       user.setUpdatedBy(restoredBy);
@@ -297,7 +323,10 @@ public class UserService implements
       // 5. Guardar
       User restored = userPersistencePort.save(user);
 
-      // 6. Enviar email de notificación (opcional)
+      // 6. Las sesiones anteriores a la eliminación no vuelven a servir: debe iniciar sesión otra vez
+      tokenPersistencePort.revokeRefreshTokensByUserId(userId);
+
+      // 7. Enviar email de notificación (opcional)
       try {
          emailPort.sendAccountActivatedEmail(user.getEmail(), user.getFullName());
       } catch (Exception e) {
@@ -404,7 +433,8 @@ public class UserService implements
             user.isEmailVerified(),
             getRoleNames(user),
             user.getCreatedAt(),
-            user.getUpdatedAt()
+            user.getUpdatedAt(),
+            user.getDeletedAt()
       );
    }
 

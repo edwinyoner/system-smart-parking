@@ -1,0 +1,209 @@
+.user-create-container {
+  padding: 1.5rem;
+}
+
+/* Solo variables de CoreUI (--cui-*): se adaptan solas a modo claro y oscuro.
+   Verde como color de acento (sin azules ni morados). */
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+  margin: 0;
+}
+
+.card {
+  border: 1px solid var(--cui-border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Tarjeta principal: encabezado verde con texto blanco en ambos modos */
+.card.card-cyan {
+  border-top: 4px solid var(--cui-success);
+}
+
+.card.card-cyan .card-header {
+  background-color: var(--cui-success);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 12px 12px 0 0;
+}
+
+/* Tarjeta de credenciales: amarillo con texto oscuro (se lee en ambos modos) */
+.card.card-warning {
+  border-top: 4px solid var(--cui-warning);
+}
+
+.card.card-warning .card-header {
+  background-color: var(--cui-warning);
+  color: #212529;
+  font-weight: 600;
+  border-radius: 12px 12px 0 0;
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--cui-body-color);
+  margin-bottom: 0.5rem;
+}
+
+.form-label i {
+  color: var(--cui-success);
+}
+
+.form-control {
+  border-radius: 8px;
+  border: 2px solid var(--cui-border-color);
+  padding: 0.625rem 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+  border-color: var(--cui-success);
+  box-shadow: 0 0 0 0.2rem rgba(var(--cui-success-rgb), 0.25);
+}
+
+.form-control.is-invalid {
+  border-color: var(--cui-danger);
+}
+
+.form-control.is-invalid:focus {
+  box-shadow: 0 0 0 0.2rem rgba(var(--cui-danger-rgb), 0.25);
+}
+
+.form-control:read-only {
+  background-color: var(--cui-secondary-bg);
+  cursor: not-allowed;
+}
+
+.roles-container,
+.status-toggle,
+.credentials-info {
+  background: var(--cui-tertiary-bg);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid var(--cui-border-color);
+}
+
+.roles-container .form-check {
+  margin-bottom: 0.5rem;
+}
+
+.roles-container .form-check:last-child {
+  margin-bottom: 0;
+}
+
+.roles-container .form-check-input,
+.roles-container .form-check-label {
+  cursor: pointer;
+}
+
+.roles-container .form-check-label {
+  font-weight: 500;
+}
+
+.form-check-input:checked {
+  background-color: var(--cui-success);
+  border-color: var(--cui-success);
+}
+
+.form-check-input:focus {
+  border-color: var(--cui-success);
+  box-shadow: 0 0 0 0.2rem rgba(var(--cui-success-rgb), 0.25);
+}
+
+.status-toggle .form-check-input {
+  width: 3rem;
+  height: 1.5rem;
+  cursor: pointer;
+}
+
+.status-toggle .form-check-label {
+  margin-left: 0.5rem;
+}
+
+/* Contraseña generada y credenciales */
+.credentials-box {
+  background: var(--sp-warning-soft-bg);
+  border: 2px solid var(--sp-warning-soft-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.credential-item,
+.credential-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.credential-row {
+  margin-bottom: 0.75rem;
+}
+
+.credential-item:last-child,
+.credential-row:last-child {
+  margin-bottom: 0;
+}
+
+.credential-item strong {
+  color: var(--sp-warning-strong);
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.credential-row strong {
+  font-size: 0.875rem;
+  color: var(--cui-secondary-color);
+  margin-bottom: 0.25rem;
+}
+
+.credential-item span,
+.credential-item a,
+.credential-row span,
+.credential-row a {
+  font-size: 1rem;
+  word-break: break-all;
+}
+
+.password-text,
+.new-password-box .password-display {
+  font-family: "Courier New", monospace;
+  font-weight: 600;
+  color: var(--sp-success-strong);
+  background: var(--sp-success-soft-bg);
+  border: 1px solid var(--sp-success-soft-border);
+}
+
+.password-text {
+  display: inline-block;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.new-password-box .password-display {
+  padding: 1rem;
+  border-radius: 8px;
+  border-width: 2px;
+  font-size: 1.125rem;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.btn {
+  border-radius: 8px;
+  padding: 0.625rem 1.25rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn.btn-lg {
+  padding: 0.875rem 1.5rem;
+  font-size: 1.125rem;
+}

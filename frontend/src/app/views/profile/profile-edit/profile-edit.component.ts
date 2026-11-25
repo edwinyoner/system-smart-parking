@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { CurrentUserService } from '../../../core/services/current-user.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
+import { PHONE_ERROR_MESSAGE, PHONE_PATTERN, keepPhoneDigits, normalizePhone } from '../../../core/utils/phone.util';
 
 @Component({
   selector: 'app-profile-edit',
@@ -32,6 +33,11 @@ export class ProfileEditComponent implements OnInit {
     private router: Router
   ) {}
 
+  /** Solo números en el teléfono, máximo 9 */
+  onPhoneInput(event: Event): void {
+    keepPhoneDigits(event, this.profileForm.get('phoneNumber'));
+  }
+
   ngOnInit(): void {
     this.initForm();
     this.loadUserData();
@@ -41,7 +47,7 @@ export class ProfileEditComponent implements OnInit {
     this.profileForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      phoneNumber: ['', [Validators.pattern(/^\+?[1-9]\d{1,14}$/)]],
+      phoneNumber: ['', [Validators.pattern(PHONE_PATTERN)]],
       profilePicture: ['', [Validators.maxLength(500)]],
       email: [{ value: '', disabled: true }]
     });
@@ -54,7 +60,7 @@ export class ProfileEditComponent implements OnInit {
       this.profileForm.patchValue({
         firstName: currentUser.firstName,
         lastName: currentUser.lastName,
-        phoneNumber: currentUser.phoneNumber || '',
+        phoneNumber: normalizePhone(currentUser.phoneNumber),
         profilePicture: currentUser.profilePicture || '',
         email: currentUser.email
       });
@@ -127,7 +133,7 @@ export class ProfileEditComponent implements OnInit {
       const maxLength = field.errors?.['maxlength'].requiredLength;
       return `No puede exceder ${maxLength} caracteres`;
     }
-    if (field?.hasError('pattern')) return 'Formato inválido. Ejemplo: +51987654321';
+    if (field?.hasError('pattern')) return PHONE_ERROR_MESSAGE;
     
     return '';
   }

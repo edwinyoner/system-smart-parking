@@ -52,6 +52,14 @@ export class UserListComponent implements OnInit {
   userToDelete: User | null = null;
   deleteBlockedReason: string | null = null;
 
+  // Papelera: muestra solo los usuarios eliminados
+  showDeleted = false;
+
+  // Confirmación de restauración
+  showRestoreConfirm = false;
+  userToRestore: User | null = null;
+  restoreBlockedReason: string | null = null;
+
   // Filtros vigentes. Son distintos de los del formulario mientras se escribe
   appliedFilters: UserFilters = {};
 
@@ -188,7 +196,22 @@ export class UserListComponent implements OnInit {
   }
 
   private buildQuery(): UserFilters {
-    return { ...this.appliedFilters, page: this.currentPage - 1, size: this.pageSize };
+    return {
+      ...this.appliedFilters,
+      deleted: this.showDeleted || undefined,
+      page: this.currentPage - 1,
+      size: this.pageSize
+    };
+  }
+
+  /** Cambia entre la lista normal y la papelera, conservando los filtros */
+  setShowDeleted(deleted: boolean): void {
+    if (this.showDeleted === deleted) return;
+    this.showDeleted = deleted;
+    this.currentPage = 1;
+    this.users = [];
+    this.loaded = false;
+    this.loadUsers();
   }
 
   private showPage(res: PaginatedResponse<User>): void {
@@ -284,6 +307,42 @@ export class UserListComponent implements OnInit {
         this.isLoading = false;
         this.errorMessage = err.error?.message || "No se pudo eliminar el usuario";
         this.showDeleteConfirm = false;
+      }
+    });
+  }
+
+  confirmRestore(user: User): void {
+    this.userToRestore = user;
+    // Misma regla que el backend: a un ADMIN solo lo restaura quien entró como ADMIN
+    const isAdmin = user.roles?.some(role => role.name === 'ADMIN');
+    this.restoreBlockedReason = isAdmin && !this.userProtection.canManageAdmins()
+      ? 'Este usuario tiene el rol ADMIN: solo otro usuario con el rol ADMIN activo puede restaurarlo.'
+      : null;
+    this.showRestoreConfirm = true;
+  }
+
+  cancelRestore(): void {
+    this.showRestoreConfirm = false;
+    this.userToRestore = null;
+  }
+
+  restoreUser(): void {
+    const user = this.userToRestore;
+    if (!user) return;
+    this.isLoading = true;
+
+    this.userService.restoreUser(user.id).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.successMessage = `Usuario "${user.firstName} ${user.lastName}" restaurado: ya puede iniciar sesión`;
+        this.cancelRestore();
+        this.loadUsers();
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.error?.message || "No se pudo restaurar el usuario";
+        this.cancelRestore();
+        this.loadUsers();
       }
     });
   }
