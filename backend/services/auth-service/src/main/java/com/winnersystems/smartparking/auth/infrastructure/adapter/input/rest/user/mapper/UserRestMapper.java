@@ -79,8 +79,9 @@ public class UserRestMapper {
             userId,
             request.firstName(),
             request.lastName(),
+            request.email() != null ? request.email().strip() : null,
             request.phoneNumber(),
-            null,                       // ✅ profilePicture (por ahora null)
+            null,                       // profilePicture (por ahora null)
             request.status(),
             roleIds,                    // ✅ Set<Long>
             updatedBy,                  // ✅ updatedBy
@@ -110,7 +111,8 @@ public class UserRestMapper {
                   ))
                   .collect(Collectors.toSet()) : null,
             dto.createdAt(),
-            dto.updatedAt()              // ✅ SIN lastLoginAt
+            dto.updatedAt(),
+            dto.deletedAt()
       );
    }
 

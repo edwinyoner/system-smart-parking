@@ -20,7 +20,7 @@ public record UpdateProfileRequest(
       @Size(min = 2, max = 100, message = "El apellido debe tener entre 2 y 100 caracteres")
       String lastName,
 
-      @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Formato de teléfono inválido")
+      @Pattern(regexp = "^(9\\d{8})?$", message = "El teléfono debe tener 9 dígitos y empezar por 9 (ej. 987654321)")
       String phoneNumber,
 
       @Size(max = 500, message = "La URL de la foto no puede exceder 500 caracteres")

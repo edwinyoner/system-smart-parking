@@ -1,1 +1,79 @@
-<p>permission-selector works!</p>
+<!-- Barra de herramientas -->
+<div class="selector-toolbar">
+  <div class="input-group input-group-sm selector-search">
+    <span class="input-group-text"><i class="fas fa-search"></i></span>
+    <input type="text" class="form-control" placeholder="Buscar módulo o permiso..." aria-label="Buscar permisos"
+      [value]="searchTerm" (input)="onSearch($event)">
+    @if (searchTerm) {
+      <button type="button" class="btn btn-outline-secondary" aria-label="Borrar búsqueda" (click)="clearSearch()">
+        <i class="fas fa-times"></i>
+      </button>
+    }
+  </div>
+
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <span class="selector-count">
+      <strong>{{ selectedIds.size }}</strong> de {{ totalCount }} seleccionados
+    </span>
+    <div class="btn-group btn-group-sm">
+      <button type="button" class="btn btn-outline-success" [disabled]="disabled" (click)="selectAllVisible()">
+        <i class="fas fa-check-double me-1"></i>{{ searchTerm ? 'Marcar resultados' : 'Marcar todos' }}
+      </button>
+      <button type="button" class="btn btn-outline-secondary" [disabled]="disabled || selectedIds.size === 0" (click)="clearAll()">
+        <i class="fas fa-eraser me-1"></i>Limpiar
+      </button>
+    </div>
+  </div>
+</div>
+
+@for (section of sections; track section.name) {
+  <section class="permission-section">
+    <h6 class="section-title">{{ section.name }}</h6>
+
+    <div class="row g-3">
+      @for (group of section.groups; track group.module) {
+        <div class="col-md-6 col-xxl-4">
+          <div class="module-card" [class.module-card--full]="isGroupFull(group)">
+
+            <!-- Encabezado del módulo: el checkbox marca o desmarca todo el módulo -->
+            <label class="module-header">
+              <input type="checkbox" class="form-check-input mt-0"
+                [checked]="isGroupFull(group)" [indeterminate]="isGroupPartial(group)"
+                [disabled]="disabled" (change)="toggleGroup(group)"
+                [attr.aria-label]="'Todos los permisos de ' + group.label">
+              <i class="fas {{ group.icon }} module-icon"></i>
+              <span class="module-name">{{ group.label }}</span>
+              <span class="module-count" [class.module-count--some]="selectedInGroup(group) > 0">
+                {{ selectedInGroup(group) }}/{{ group.permissions.length }}
+              </span>
+            </label>
+
+            <ul class="module-permissions">
+              @for (permission of group.permissions; track permission.id) {
+                <li>
+                  <label class="permission-row" [class.permission-row--on]="isSelected(permission)"
+                    [title]="permission.name">
+                    <input type="checkbox" class="form-check-input mt-0"
+                      [checked]="isSelected(permission)" [disabled]="disabled" (change)="toggle(permission)">
+                    <span class="permission-text">
+                      <span class="permission-action">{{ actionLabel(permission) }}</span>
+                      @if (permission.description) {
+                        <span class="permission-description">{{ permission.description }}</span>
+                      }
+                    </span>
+                    <code class="permission-code">{{ permission.name }}</code>
+                  </label>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+} @empty {
+  <div class="text-center py-4 text-body-secondary">
+    <i class="fas fa-search fa-2x mb-2"></i>
+    <p class="mb-0">{{ searchTerm ? 'Ningún permiso coincide con la búsqueda' : 'No hay permisos disponibles en el sistema' }}</p>
+  </div>
+}

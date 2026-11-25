@@ -1,5 +1,7 @@
 package com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.user.dto.request;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -36,7 +38,13 @@ public record UpdateUserRequest(
       @Size(max = 100, message = "Apellido no debe exceder 100 caracteres")
       String lastName,
 
-      @Size(max = 20, message = "Teléfono no debe exceder 20 caracteres")
+      // Opcional: null = no cambiar. Si cambia, debe verificarse otra vez
+      @Email(message = "Formato de email inválido")
+      @Size(max = 255, message = "El email no debe exceder 255 caracteres")
+      String email,
+
+      // Celular peruano; vacío = sin teléfono
+      @Pattern(regexp = "^(9\\d{8})?$", message = "El teléfono debe tener 9 dígitos y empezar por 9 (ej. 987654321)")
       String phoneNumber,
 
       Boolean status,  // Boolean en lugar de UserStatus enum

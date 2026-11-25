@@ -76,6 +76,19 @@ public class UserPersistenceAdapter implements UserPersistencePort {
    }
 
    @Override
+   public Optional<User> findByEmailIncludingDeleted(String email) {
+      return userRepository.findFirstByEmailIgnoreCase(email)
+            .map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<User> findDeletedById(Long id) {
+      return userRepository.findById(id)
+            .filter(entity -> entity.getDeletedAt() != null)
+            .map(mapper::toDomain);
+   }
+
+   @Override
    public Optional<User> findByEmail(String email) {
       return userRepository.findByEmail(email)
             .filter(entity -> entity.getDeletedAt() == null)
@@ -169,8 +182,10 @@ public class UserPersistenceAdapter implements UserPersistencePort {
             predicates.add(cb.equal(root.get("emailVerified"), criteria.emailVerified()));
          }
 
-         // EXCLUIR ELIMINADOS
-         predicates.add(cb.isNull(root.get("deletedAt")));
+         // ELIMINADOS: la papelera muestra solo eliminados; el listado normal los excluye
+         predicates.add(criteria.deleted()
+               ? cb.isNotNull(root.get("deletedAt"))
+               : cb.isNull(root.get("deletedAt")));
 
          // COMBINAR TODOS LOS PREDICADOS
          return cb.and(predicates.toArray(new Predicate[0]));

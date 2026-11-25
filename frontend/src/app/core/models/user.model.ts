@@ -17,6 +17,7 @@ export interface User {
   roles: Role[];
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;   // Solo viene con valor en la papelera
   createdBy?: string;
   updatedBy?: string;
 }
@@ -42,6 +43,7 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
   firstName: string;
   lastName: string;
+  email?: string;      // Si cambia, el usuario debe verificarlo otra vez
   phoneNumber?: string;
   status: boolean;
   roles: string[]; // CAMBIO: string[] en lugar de roleIds: number[]
@@ -55,6 +57,7 @@ export interface UserFilters {
   roleId?: number;
   status?: boolean;
   emailVerified?: boolean;
+  deleted?: boolean;           // true = papelera (exige users.restore)
   page?: number;
   size?: number;
   sortBy?: string;

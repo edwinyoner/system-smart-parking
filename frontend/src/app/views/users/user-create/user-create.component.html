@@ -89,9 +89,10 @@
                 <i class="fas fa-phone me-2"></i>
                 Teléfono (opcional)
               </label>
-              <input type="tel" id="phoneNumber" class="form-control"
-                [class.is-invalid]="hasError('phoneNumber', 'pattern')" formControlName="phoneNumber"
-                placeholder="+51987654321">
+              <input type="tel" id="phoneNumber" class="form-control" inputmode="numeric" maxlength="9"
+                autocomplete="tel-national" [class.is-invalid]="hasError('phoneNumber', 'pattern')"
+                formControlName="phoneNumber" (input)="onPhoneInput($event)" placeholder="987654321">
+              <div class="form-text">Celular de 9 dígitos, sin +51.</div>
               @if (hasError('phoneNumber', 'pattern')) {
               <div class="invalid-feedback">
                 {{ getErrorMessage('phoneNumber') }}
@@ -206,7 +207,7 @@
             El usuario podrá usar estas credenciales para iniciar sesión.
           </div>
 
-          <button type="button" class="btn btn-primary" (click)="sendCredentialsByEmail()" [disabled]="isSendingEmail">
+          <button type="button" class="btn btn-success" (click)="sendCredentialsByEmail()" [disabled]="isSendingEmail">
             @if (!isSendingEmail) {
             <i class="fas fa-paper-plane me-2"></i>
             <span>Enviar Credenciales por Email</span>

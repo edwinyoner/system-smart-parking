@@ -11,15 +11,18 @@ import com.winnersystems.smartparking.auth.infrastructure.adapter.output.persist
 import com.winnersystems.smartparking.auth.infrastructure.adapter.output.persistence.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Data Seeder - Inicializa datos por defecto en la base de datos.
@@ -43,6 +46,19 @@ public class DataSeeder implements CommandLineRunner {
    private final VerificationTokenRepository verificationTokenRepository;
    private final PasswordEncoder passwordEncoder;
    private final EmailPort emailPort;
+
+   // Misma política que exigen los formularios de contraseña (ResetPasswordRequest)
+   private static final Pattern PASSWORD_POLICY = Pattern.compile(
+         "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,128}$");
+   private static final Pattern EMAIL_FORMAT = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+
+   // Credenciales del admin inicial: se leen de backend/.env (no versionado).
+   // El valor por defecto vacío permite mostrar un mensaje claro si faltan.
+   @Value("${ADMIN_EMAIL:}")
+   private String adminEmail;
+
+   @Value("${ADMIN_PASSWORD:}")
+   private String adminPassword;
 
    @Override
    @Transactional
@@ -295,7 +311,9 @@ public class DataSeeder implements CommandLineRunner {
     * Crea el usuario admin por defecto CON LOS 3 ROLES.
     */
    private void seedAdminUser() {
-      if (userRepository.existsByEmail("edwinyoner@gmail.com")) {
+      validateAdminCredentials();
+
+      if (userRepository.existsByEmail(adminEmail)) {
          log.info("Usuario admin ya existe. Saltando...");
          return;
       }
@@ -312,15 +330,15 @@ public class DataSeeder implements CommandLineRunner {
       RoleEntity operadorRole = roleRepository.findByName("OPERADOR")
             .orElseThrow(() -> new RuntimeException("Rol OPERADOR no encontrado"));
 
-      String tempPassword = "Admin123!";
+      String tempPassword = adminPassword;
 
       // Crear usuario con los 3 roles
       UserEntity admin = UserEntity.builder()
             .firstName("Admin")
             .lastName("System")
-            .email("edwinyoner@gmail.com")
+            .email(adminEmail)
             .password(passwordEncoder.encode(tempPassword))
-            .phoneNumber("+51987654321")
+            .phoneNumber("987654321")
             .status(true)
             .emailVerified(false)
             .roles(Set.of(adminRole, autoridadRole, operadorRole))
@@ -329,8 +347,8 @@ public class DataSeeder implements CommandLineRunner {
       userRepository.save(admin);
 
       log.info("Usuario admin creado con {} roles", admin.getRoles().size());
-      log.info("   - Email: edwinyoner@gmail.com");
-      log.info("   - Password: {}", tempPassword);
+      log.info("   - Email: {}", adminEmail);
+      log.info("   - Password: definida en ADMIN_PASSWORD (backend/.env)");
       log.info("   - Roles: ADMIN, AUTORIDAD, OPERADOR");
       log.info("  IMPORTANTE: Verificar email antes del primer login");
 
@@ -351,7 +369,6 @@ public class DataSeeder implements CommandLineRunner {
          sendAdminWelcomeEmailWithVerification(admin, tempPassword, verificationLink);
 
          log.info("Email de verificación enviado a: {}", admin.getEmail());
-         log.info("Token: {}", verificationToken);
          log.info("Expira en: 24 horas");
       } catch (Exception e) {
          log.error("Error al enviar email de verificación: {}", e.getMessage());
@@ -360,6 +377,27 @@ public class DataSeeder implements CommandLineRunner {
    }
 
    // ========== HELPERS ==========
+
+   /**
+    * Verifica que ADMIN_EMAIL y ADMIN_PASSWORD estén definidos en backend/.env
+    * y que la contraseña cumpla la misma política que el resto del sistema.
+    * Si fallan, el servicio no arranca: es preferible a crear un admin inválido.
+    */
+   private void validateAdminCredentials() {
+      if (adminEmail == null || adminEmail.isBlank() || adminPassword == null || adminPassword.isBlank()) {
+         throw new IllegalStateException(
+               "Faltan ADMIN_EMAIL o ADMIN_PASSWORD en backend/.env (ver backend/.env.example)");
+      }
+      adminEmail = adminEmail.trim().toLowerCase();
+      if (!EMAIL_FORMAT.matcher(adminEmail).matches()) {
+         throw new IllegalStateException("ADMIN_EMAIL no tiene un formato de correo válido");
+      }
+      if (!PASSWORD_POLICY.matcher(adminPassword).matches()) {
+         throw new IllegalStateException(
+               "ADMIN_PASSWORD debe tener de 8 a 128 caracteres, con mayúscula, minúscula, "
+                     + "número y un carácter especial (@$!%*?&)");
+      }
+   }
 
    /**
     * Obtiene todos los permisos del sistema.
@@ -589,7 +627,7 @@ public class DataSeeder implements CommandLineRunner {
             verificationLink,
             verificationLink,
             user.getEmail(),
-            tempPassword
+            HtmlUtils.htmlEscape(tempPassword)
       );
 
       emailPort.sendHtmlEmail(user.getEmail(), subject, htmlBody);

@@ -173,7 +173,7 @@ public class RoleService {
 
    private long countUsers(Role role) {
       return userPersistencePort.countByCriteria(
-            new UserSearchCriteria(null, role.getId(), null, null, 0, 1, null, null));
+            new UserSearchCriteria(null, role.getId(), null, null, false, 0, 1, null, null));
    }
 
    /** Minúsculas y sin tildes, para comparar textos. */

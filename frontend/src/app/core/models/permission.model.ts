@@ -51,6 +51,9 @@ export interface PermissionFilters {
  * Permisos agrupados por módulo
  */
 export interface PermissionGroup {
-  module: string;
+  module: string;          // Clave técnica: "users", "zones"...
+  label?: string;          // Nombre para mostrar: "Usuarios"
+  icon?: string;           // Clase de Font Awesome
+  section?: string;        // Agrupación superior: "Seguridad y accesos"...
   permissions: Permission[];
 }

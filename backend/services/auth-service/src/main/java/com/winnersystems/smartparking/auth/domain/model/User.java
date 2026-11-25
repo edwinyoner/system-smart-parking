@@ -174,6 +174,29 @@ public class User {
    }
 
    /**
+    * Cambia el correo de acceso (p. ej. se registró con un error de tipeo).
+    * El nuevo correo debe verificarse otra vez: hasta entonces no se puede iniciar sesión.
+    * El propio correo no se cambia aquí: lo hace otro administrador.
+    *
+    * @param newEmail correo nuevo (ya validado como único por el servicio)
+    */
+   public void changeEmail(String newEmail, Long actorId, String actorActiveRole) {
+      ensureIsNotSelf(actorId, "Tu propio correo debe cambiarlo otro administrador");
+      ensureAdminIsManagedByAdmin(actorActiveRole);
+      this.email = newEmail;
+      this.emailVerified = false;
+      this.updatedAt = LocalDateTime.now();
+   }
+
+   /**
+    * Valida que el actor pueda restaurar a este usuario eliminado.
+    * No hace falta impedir la auto-restauración: un usuario eliminado no puede iniciar sesión.
+    */
+   public void ensureCanBeRestoredBy(String actorActiveRole) {
+      ensureAdminIsManagedByAdmin(actorActiveRole);
+   }
+
+   /**
     * Valida que el actor pueda generar una contraseña nueva para este usuario.
     * La propia se cambia desde el perfil, donde se exige la contraseña actual.
     */
@@ -283,6 +306,9 @@ public class User {
     * Reactiva la cuenta pero mantiene emailVerified en su estado actual.
     */
    public void restore() {
+      if (this.deletedAt == null) {
+         throw new IllegalStateException("El usuario no está eliminado");
+      }
       this.deletedAt = null;
       this.deletedBy = null;
       this.status = true;                            // Reactivar al restaurar

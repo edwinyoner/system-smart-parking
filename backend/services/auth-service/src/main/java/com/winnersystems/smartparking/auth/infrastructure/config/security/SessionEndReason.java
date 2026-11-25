@@ -11,6 +11,7 @@ public enum SessionEndReason {
 
    ACCOUNT_DISABLED("Tu usuario fue desactivado. Comunícate con el administrador."),
    ACCOUNT_DELETED("Tu usuario fue dado de baja. Comunícate con el administrador."),
+   EMAIL_CHANGED("Tu correo de acceso fue cambiado. Verifica el nuevo correo e inicia sesión con él."),
    PASSWORD_CHANGED("Tu contraseña fue cambiada. Inicia sesión con la nueva."),
    ROLE_REMOVED("Ya no tienes el rol con el que iniciaste sesión. Vuelve a entrar con otro."),
    SESSION_EXPIRED("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");

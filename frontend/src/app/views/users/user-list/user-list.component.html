@@ -106,13 +106,25 @@
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
       <strong>
-        <i class="fas fa-list me-2"></i>
-        Lista de Usuarios ({{ totalItems }} {{ totalItems === 1 ? 'usuario' : 'usuarios' }})
+        <i class="fas me-2" [class.fa-list]="!showDeleted" [class.fa-trash-restore]="showDeleted"></i>
+        {{ showDeleted ? 'Usuarios Eliminados' : 'Lista de Usuarios' }} ({{ totalItems }} {{ totalItems === 1 ? 'usuario' : 'usuarios' }})
         @if (isLoading && loaded) {
           <i class="fas fa-spinner fa-spin ms-2 text-muted" aria-label="Actualizando"></i>
         }
       </strong>
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        @if (hasPermission('users.restore')) {
+          <div class="btn-group btn-group-sm" role="group" aria-label="Registros a mostrar">
+            <button type="button" class="btn" [class.btn-success]="!showDeleted" [class.btn-outline-secondary]="showDeleted"
+              [attr.aria-pressed]="!showDeleted" (click)="setShowDeleted(false)">
+              <i class="fas fa-users me-1"></i>Vigentes
+            </button>
+            <button type="button" class="btn" [class.btn-danger]="showDeleted" [class.btn-outline-secondary]="!showDeleted"
+              [attr.aria-pressed]="showDeleted" (click)="setShowDeleted(true)">
+              <i class="fas fa-trash me-1"></i>Eliminados
+            </button>
+          </div>
+        }
         <label class="mb-0 fw-semibold" for="page-size">Mostrar:</label>
         <select id="page-size" class="form-select form-select-sm w-auto" (change)="onPageSizeChange($event)">
           @for (size of pageSizeOptions; track size) {
@@ -126,7 +138,7 @@
       @if (isLoading && !loaded) {
         <div class="text-center py-5">
           <div class="spinner-border text-success" role="status"><span class="visually-hidden">Cargando...</span></div>
-          <p class="mt-3 text-muted">Cargando usuarios...</p>
+          <p class="mt-3 text-muted">{{ showDeleted ? 'Cargando usuarios eliminados...' : 'Cargando usuarios...' }}</p>
         </div>
       }
 
@@ -141,7 +153,7 @@
                 <th>Roles</th>
                 <th class="text-center">Estado</th>
                 <th class="text-center">Email Verificado</th>
-                <th class="text-center">Fecha Registro</th>
+                <th class="text-center">{{ showDeleted ? 'Fecha Eliminación' : 'Fecha Registro' }}</th>
                 <th class="text-center" style="width: 200px;">Acciones</th> 
               </tr>
             </thead>
@@ -188,12 +200,23 @@
                   </td>
 
                   <td class="text-center">
-                    <small class="text-muted">{{ formatDate(user.createdAt) }}</small>
+                    <small class="text-muted">{{ formatDate((showDeleted ? user.deletedAt : user.createdAt) || '') }}</small>
                   </td>
 
                   <td class="text-center">
                     <div class="btn-group btn-group-sm" role="group">
-                      
+                      @if (showDeleted) {
+                        <!-- En la papelera: mismos íconos (deshabilitados) y el botón Restaurar -->
+                        <button class="btn btn-outline-secondary" disabled title="No disponible para usuarios eliminados" aria-label="Ver detalles">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-warning" disabled title="No disponible para usuarios eliminados" aria-label="Editar">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-success" (click)="confirmRestore(user)" title="Restaurar" aria-label="Restaurar">
+                          <i class="fas fa-trash-restore me-1"></i>Restaurar
+                        </button>
+                      } @else {
                       @if (hasPermission('users.read')) {
                         <button class="btn btn-outline-secondary" (click)="viewUser(user.id)" title="Ver detalles" aria-label="Ver detalles">
                           <i class="fas fa-eye"></i>
@@ -210,6 +233,7 @@
                         <button class="btn btn-outline-danger" (click)="confirmDelete(user)" title="Eliminar" aria-label="Eliminar">
                           <i class="fas fa-trash"></i>
                         </button>
+                      }
                       }
                     </div>
                   </td>
@@ -250,7 +274,9 @@
       @if (loaded && users.length === 0) {
         <div class="text-center py-5">
           <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
-          @if (activeFilterCount > 0) {
+          @if (showDeleted && activeFilterCount === 0) {
+            <h5 class="text-muted">No hay usuarios eliminados</h5>
+          } @else if (activeFilterCount > 0) {
             <h5 class="text-muted">Ningún usuario coincide con los filtros</h5>
             <button type="button" class="btn btn-secondary text-white mt-2" (click)="clearFilters()">
               <i class="fas fa-times me-2"></i>Limpiar Filtros
@@ -282,13 +308,49 @@
               <p class="mb-0"><i class="fas fa-lock me-2"></i>Este usuario no se puede eliminar. {{ deleteBlockedReason }}</p>
             } @else {
             <p>¿Estás seguro de eliminar al usuario <strong>"{{ userToDelete.firstName }} {{ userToDelete.lastName }}"</strong>?</p>
-            <p class="text-danger mb-0"><i class="fas fa-exclamation-circle me-2"></i>El usuario perderá el acceso de inmediato.</p>
+            <p class="text-danger mb-0"><i class="fas fa-exclamation-circle me-2"></i>El usuario perderá el acceso de inmediato. Podrás restaurarlo desde <strong>Eliminados</strong>.</p>
             }
           </div>
-          <div class="modal-footer bg-light">
+          <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancelar</button>
             @if (!deleteBlockedReason) {
               <button type="button" class="btn btn-danger" (click)="deleteUser()">Eliminar</button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+  @if (showRestoreConfirm && userToRestore) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header text-white" [class.bg-success]="!restoreBlockedReason" [class.bg-danger]="restoreBlockedReason">
+            <h5 class="modal-title">
+              <i class="fas me-2" [class.fa-trash-restore]="!restoreBlockedReason" [class.fa-lock]="restoreBlockedReason"></i>
+              {{ restoreBlockedReason ? 'Acción no permitida' : 'Restaurar Usuario' }}
+            </h5>
+            <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" (click)="cancelRestore()"></button>
+          </div>
+          <div class="modal-body p-4">
+            @if (restoreBlockedReason) {
+              <p class="mb-0"><i class="fas fa-lock me-2"></i>{{ restoreBlockedReason }}</p>
+            } @else {
+              <p>¿Restaurar al usuario <strong>"{{ userToRestore.firstName }} {{ userToRestore.lastName }}"</strong>?</p>
+              <ul class="mb-0 small text-body-secondary">
+                <li>Su cuenta vuelve a estar <strong>activa</strong> con los mismos roles.</li>
+                <li>Recibirá un correo avisando que su cuenta fue reactivada.</li>
+                <li>Las sesiones que tenía antes de la eliminación ya no sirven: deberá iniciar sesión otra vez.</li>
+              </ul>
+            }
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="cancelRestore()">Cancelar</button>
+            @if (!restoreBlockedReason) {
+              <button type="button" class="btn btn-success" (click)="restoreUser()">
+                <i class="fas fa-trash-restore me-2"></i>Restaurar
+              </button>
             }
           </div>
         </div>

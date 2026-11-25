@@ -18,6 +18,7 @@ import java.util.Set;
  * @param roles Conjunto de nombres de roles
  * @param createdAt Fecha creación
  * @param updatedAt Fecha última actualización
+ * @param deletedAt Fecha de eliminación (null si no está eliminado)
  *
  * @author Edwin Yoner Winner Systems - Smart Parking Platform
  * @version 1.0
@@ -33,6 +34,7 @@ public record UserDto(
       boolean emailVerified,
       Set<String> roles,
       LocalDateTime createdAt,
-      LocalDateTime updatedAt
+      LocalDateTime updatedAt,
+      LocalDateTime deletedAt
 ) {
 }

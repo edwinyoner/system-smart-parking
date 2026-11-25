@@ -1,0 +1,100 @@
+/* Solo variables de CoreUI (--cui-*): se adaptan solas a modo claro y oscuro */
+.role-detail-container {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+}
+
+/* Datos del rol */
+.detail-item .detail-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cui-secondary-color);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-item .detail-value {
+  font-size: 1rem;
+  color: var(--cui-body-color);
+  font-weight: 500;
+  padding: 0.75rem;
+  background-color: var(--cui-tertiary-bg);
+  border-radius: 0.375rem;
+  border: 1px solid var(--cui-border-color);
+}
+
+/* Módulos de permisos */
+.permission-module {
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.permission-module .module-header {
+  background-color: var(--cui-tertiary-bg);
+  padding: 1rem;
+  border-bottom: 1px solid var(--cui-border-color);
+}
+
+.permission-module .module-header h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+}
+
+.permission-module .module-permissions {
+  padding: 1rem;
+  background-color: var(--cui-body-bg);
+}
+
+.permission-badge {
+  display: flex;
+  align-items: start;
+  padding: 0.75rem;
+  background-color: var(--sp-success-soft-bg);
+  border: 1px solid var(--sp-success-soft-border);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.permission-badge strong {
+  color: var(--cui-body-color);
+}
+
+.permission-badge small {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .role-detail-container {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .page-header .btn-group {
+    width: 100%;
+  }
+
+  .page-header .btn-group .btn {
+    flex: 1;
+  }
+}

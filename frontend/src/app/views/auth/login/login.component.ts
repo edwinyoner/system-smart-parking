@@ -107,15 +107,6 @@ export class LoginComponent implements OnInit {
       selectedRole: ['', [Validators.required]],
       rememberMe: [false]
     });
-
-    // Auto-completar en desarrollo (solo si está habilitado en environment)
-    // if (!environment.production && environment.features.showDebugInfo) {
-    //   this.loginForm.patchValue({
-    //     email: 'admin@smartparking.com',
-    //     password: 'Admin123!',
-    //     selectedRole: 'ADMIN'
-    //   });
-    // }
   }
 
   /**

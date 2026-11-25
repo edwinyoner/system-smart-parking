@@ -1,0 +1,22 @@
+/* Solo variables de CoreUI (--cui-*): se adaptan a modo claro y oscuro */
+.role-create-container {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+}
+
+@media (max-width: 768px) {
+  .role-create-container {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+}

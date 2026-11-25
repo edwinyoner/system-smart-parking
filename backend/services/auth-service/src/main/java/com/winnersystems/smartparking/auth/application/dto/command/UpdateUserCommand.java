@@ -25,6 +25,7 @@ public record UpdateUserCommand(
       Long userId,
       String firstName,
       String lastName,
+      String email,          // null = sin cambios
       String phoneNumber,
       String profilePicture,
       Boolean status,

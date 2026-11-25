@@ -41,6 +41,8 @@ export class UserService {
         params = params.set("status", filters.status.toString());
       if (filters.emailVerified !== undefined)
         params = params.set("emailVerified", filters.emailVerified.toString());
+      if (filters.deleted)
+        params = params.set("deleted", "true");
       if (filters.page !== undefined)
         params = params.set("page", filters.page.toString());
       if (filters.size !== undefined)

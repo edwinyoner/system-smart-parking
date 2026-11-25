@@ -58,6 +58,9 @@ public interface UserRepository extends JpaRepository<UserEntity, Long>, JpaSpec
     */
    boolean existsByEmail(String email);
 
+   /** Correo sin distinguir mayúsculas, incluidos los eliminados */
+   Optional<UserEntity> findFirstByEmailIgnoreCase(String email);
+
    // ========== NUEVO MÉTODO AGREGADO ==========
 
    /**

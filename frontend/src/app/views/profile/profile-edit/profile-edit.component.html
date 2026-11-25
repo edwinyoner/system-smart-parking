@@ -108,9 +108,13 @@
           type="tel"
           id="phoneNumber"
           class="form-control"
+          inputmode="numeric"
+          maxlength="9"
+          autocomplete="tel-national"
           [class.error]="hasError('phoneNumber', 'pattern')"
           formControlName="phoneNumber"
-          placeholder="+51987654321">
+          (input)="onPhoneInput($event)"
+          placeholder="987654321">
         <div class="input-border"></div>
       </div>
       @if (hasError('phoneNumber', 'pattern')) {

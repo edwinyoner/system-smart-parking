@@ -17,6 +17,7 @@ import { generatePassword, maskPassword } from "../../../core/utils/password.uti
 import { Role } from "../../../core/models/role.model";
 import { User } from "../../../core/models/user.model";
 import { UpdateUserRequest } from "../../../core/models/user.model";
+import { PHONE_ERROR_MESSAGE, PHONE_PATTERN, keepPhoneDigits, normalizePhone } from "../../../core/utils/phone.util";
 
 /**
  * Componente para editar usuarios existentes
@@ -26,7 +27,7 @@ import { UpdateUserRequest } from "../../../core/models/user.model";
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, AlertMessageComponent],
   templateUrl: "./user-edit.component.html",
-  styleUrls: ["./user-edit.component.scss"],
+  styleUrls: ["./user-edit.component.css"],
 })
 export class UserEditComponent implements OnInit {
   userForm!: FormGroup;
@@ -38,6 +39,9 @@ export class UserEditComponent implements OnInit {
   isLoadingData = false;
   successMessage: string | null = null;
   errorMessage: string | null = null;
+
+  // Confirmación del cambio de correo
+  showEmailConfirm = false;
 
   // Nueva contraseña generada
   newGeneratedPassword: string | null = null;
@@ -53,6 +57,11 @@ export class UserEditComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute
   ) {}
+
+  /** Solo números en el teléfono, máximo 9 */
+  onPhoneInput(event: Event): void {
+    keepPhoneDigits(event, this.userForm.get("phoneNumber"));
+  }
 
   ngOnInit(): void {
     this.initForm();
@@ -94,8 +103,9 @@ export class UserEditComponent implements OnInit {
           Validators.maxLength(100),
         ],
       ],
-      email: [{ value: "", disabled: true }], // Email no editable
-      phoneNumber: ["", [Validators.pattern(/^\+?[1-9]\d{1,14}$/)]],
+      // Editable para corregir errores de tipeo (salvo en la propia cuenta o un ADMIN protegido)
+      email: ["", [Validators.required, Validators.email, Validators.maxLength(255)]],
+      phoneNumber: ["", [Validators.pattern(PHONE_PATTERN)]],
       status: [true],
       roleIds: [[], [Validators.required]],
     });
@@ -114,10 +124,13 @@ export class UserEditComponent implements OnInit {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
-          phoneNumber: user.phoneNumber || "",
+          phoneNumber: normalizePhone(user.phoneNumber), // Adapta formatos antiguos (+51...)
           status: user.status,
         });
         this.blockedReason = this.userProtection.getBlockedReason(user);
+        if (this.blockedReason) {
+          this.userForm.get("email")?.disable();
+        }
         this.markAssignedRoles();
         this.isLoadingData = false;
       },
@@ -210,11 +223,37 @@ export class UserEditComponent implements OnInit {
     this.userForm.patchValue({ status: isActive });
   }
 
+  /** Correo escrito en el formulario, sin espacios a los lados */
+  get newEmail(): string {
+    return (this.userForm.get("email")?.value ?? "").trim();
+  }
+
+  /** El correo cambió (sin contar mayúsculas: es el mismo buzón) */
+  get emailChanged(): boolean {
+    return !!this.user && this.newEmail.toLowerCase() !== this.user.email.toLowerCase();
+  }
+
   onSubmit(): void {
     if (this.userForm.invalid) {
       this.userForm.markAllAsTouched();
       return;
     }
+
+    // Cambiar el correo tiene consecuencias: se confirma antes de guardar
+    if (this.emailChanged && !this.showEmailConfirm) {
+      this.showEmailConfirm = true;
+      return;
+    }
+    this.showEmailConfirm = false;
+    this.saveUser();
+  }
+
+  cancelEmailChange(): void {
+    this.showEmailConfirm = false;
+  }
+
+  private saveUser(): void {
+    const emailChanged = this.emailChanged;
 
     this.isLoading = true;
     this.successMessage = null;
@@ -232,6 +271,8 @@ export class UserEditComponent implements OnInit {
     const updateData: UpdateUserRequest = {
       firstName: this.userForm.get("firstName")?.value,
       lastName: this.userForm.get("lastName")?.value,
+      // Deshabilitado = no se puede cambiar: no se envía
+      email: this.userForm.get("email")?.disabled ? undefined : this.newEmail,
       phoneNumber: this.userForm.get("phoneNumber")?.value || "", // "" = borrar el teléfono
       status: this.userForm.get("status")?.value,
       roles: roleNames, // ["ADMIN", "AUTORIDAD"]
@@ -246,6 +287,14 @@ export class UserEditComponent implements OnInit {
           this.currentUserService.applyProfile(response);
         }
 
+        // Correo nuevo: la contraseña anterior pudo llegar a un buzón equivocado,
+        // así que se genera otra y se envía al correo corregido
+        if (emailChanged) {
+          this.user = response;
+          this.sendCredentialsToNewEmail(response.email);
+          return;
+        }
+
         this.successMessage = "Usuario actualizado exitosamente";
 
         // Redirigir después de 1.5s
@@ -258,6 +307,27 @@ export class UserEditComponent implements OnInit {
         this.errorMessage =
           error.error?.message || "Error al actualizar el usuario";
         console.error("Error completo:", error);
+      },
+    });
+  }
+
+  /**
+   * Tras corregir el correo: nueva contraseña + enlace de verificación al correo nuevo
+   */
+  private sendCredentialsToNewEmail(email: string): void {
+    this.isLoading = true;
+    this.userService.resendCredentials(this.userId, generatePassword()).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.successMessage = `Correo actualizado. Se enviaron una nueva contraseña y el enlace de verificación a ${email}`;
+        window.scrollTo({ top: 0 });
+        setTimeout(() => this.router.navigate(["/users"]), 3000);
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.errorMessage = `El correo se actualizó, pero no se pudieron enviar las credenciales (${
+          error.error?.message || "error de envío"}). Usa "Generar Nueva Contraseña" para reenviarlas.`;
+        window.scrollTo({ top: 0 });
       },
     });
   }
@@ -335,7 +405,7 @@ export class UserEditComponent implements OnInit {
       return `No puede exceder ${maxLength} caracteres`;
     }
     if (field?.hasError("pattern"))
-      return "Formato inválido. Ejemplo: +51987654321";
+      return PHONE_ERROR_MESSAGE;
 
     return "";
   }

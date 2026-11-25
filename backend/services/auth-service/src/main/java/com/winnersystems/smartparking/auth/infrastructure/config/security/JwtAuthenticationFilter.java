@@ -1,6 +1,7 @@
 package com.winnersystems.smartparking.auth.infrastructure.config.security;
 
 import com.winnersystems.smartparking.auth.application.port.output.JwtPort;
+import com.winnersystems.smartparking.auth.application.port.output.UserPersistencePort;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,12 +38,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
    private final JwtPort jwtService;
    private final UserDetailsService userDetailsService;
+   private final UserPersistencePort userPersistencePort;
 
    public JwtAuthenticationFilter(
          JwtPort jwtService,
-         UserDetailsService userDetailsService) {
+         UserDetailsService userDetailsService,
+         UserPersistencePort userPersistencePort) {
       this.jwtService = jwtService;
       this.userDetailsService = userDetailsService;
+      this.userPersistencePort = userPersistencePort;
    }
 
    @Override
@@ -87,7 +91,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                userDetails = userDetailsService.loadUserByUsername(userEmail);
             } catch (UsernameNotFoundException e) {
-               request.setAttribute(SessionEndReason.REQUEST_ATTRIBUTE, SessionEndReason.ACCOUNT_DELETED);
+               // El token guarda el correo: si el usuario sigue existiendo, lo que cambió fue su correo
+               request.setAttribute(SessionEndReason.REQUEST_ATTRIBUTE, emailWasChanged(jwt)
+                     ? SessionEndReason.EMAIL_CHANGED
+                     : SessionEndReason.ACCOUNT_DELETED);
                throw e;
             }
             System.out.println("✅ UserDetails loaded: " + userDetails.getClass().getName());
@@ -148,5 +155,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       return userDetails instanceof CustomUserDetails customUser
             ? customUser.acceptsTokenIssuedAt(jwtService.extractIssuedAt(jwt))
             : userDetails.isEnabled();
+   }
+
+   /** El usuario del token existe (no eliminado), pero ya no con ese correo */
+   private boolean emailWasChanged(String jwt) {
+      try {
+         Long userId = jwtService.extractUserId(jwt);
+         return userId != null && userPersistencePort.findById(userId).isPresent();
+      } catch (RuntimeException e) {
+         return false;
+      }
    }
 }

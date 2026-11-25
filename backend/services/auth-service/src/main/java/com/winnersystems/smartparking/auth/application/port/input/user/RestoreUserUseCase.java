@@ -47,7 +47,8 @@ public interface RestoreUserUseCase {
     * @param restoredBy ID del administrador que ejecuta la restauración
     * @return usuario restaurado con datos actualizados
     * @throws UserNotFoundException si el usuario no existe
+    * @param actorActiveRole rol con el que inició sesión quien restaura
     * @throws IllegalStateException si el usuario no está eliminado
     */
-   UserDto executeRestore(Long userId, Long restoredBy);
+   UserDto executeRestore(Long userId, Long restoredBy, String actorActiveRole);
 }

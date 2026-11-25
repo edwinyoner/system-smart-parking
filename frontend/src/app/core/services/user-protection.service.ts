@@ -23,7 +23,7 @@ export class UserProtectionService {
    */
   getBlockedReason(user: User): string | null {
     if (this.currentUserService.getCurrentUser()?.id === user.id) {
-      return 'Es tu propia cuenta: no puedes desactivarla, eliminarla ni cambiar sus roles.';
+      return 'Es tu propia cuenta: no puedes desactivarla, eliminarla ni cambiar sus roles o su correo.';
     }
 
     const isAdmin = user.roles?.some(role => role.name === 'ADMIN');

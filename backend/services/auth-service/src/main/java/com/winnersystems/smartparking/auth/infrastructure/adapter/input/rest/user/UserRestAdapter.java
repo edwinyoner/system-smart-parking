@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -81,16 +82,24 @@ public class UserRestAdapter {
          @RequestParam(required = false) Long roleId,
          @RequestParam(required = false) Boolean status,
          @RequestParam(required = false) Boolean emailVerified,
+         @RequestParam(defaultValue = "false") boolean deleted,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "10") int size,
          @RequestParam(defaultValue = "id") String sortBy,
-         @RequestParam(defaultValue = "desc") String sortDirection
+         @RequestParam(defaultValue = "desc") String sortDirection,
+         Authentication authentication
    ) {
+      // Ver la papelera exige además poder restaurar
+      if (deleted && !hasAuthority(authentication, "users.restore")) {
+         throw new AccessDeniedException("No tienes permiso para ver usuarios eliminados");
+      }
+
       UserSearchCriteria criteria = new UserSearchCriteria(
             search,
             roleId,
             status,
             emailVerified,
+            deleted,
             page,
             size,
             sortBy,
@@ -126,7 +135,7 @@ public class UserRestAdapter {
          @RequestParam(defaultValue = "10") int size) {
 
       UserSearchCriteria criteria = new UserSearchCriteria(
-            null, null, true, null,
+            null, null, true, null, false,
             page, size, "id", "desc"
       );
 
@@ -246,7 +255,8 @@ public class UserRestAdapter {
          Authentication authentication) {
 
       Long restoredBy = getUserIdFromAuthentication(authentication);
-      UserDto userDto = restoreUserUseCase.executeRestore(id, restoredBy);
+      UserDto userDto = restoreUserUseCase.executeRestore(
+            id, restoredBy, getActiveRoleFromAuthentication(authentication));
       UserResponse response = mapper.toResponse(userDto);
 
       return ResponseEntity.ok(response);
@@ -276,6 +286,11 @@ public class UserRestAdapter {
    }
 
    // ========== MÉTODOS AUXILIARES ==========
+
+   private boolean hasAuthority(Authentication authentication, String authority) {
+      return authentication != null && authentication.getAuthorities().stream()
+            .anyMatch(granted -> authority.equals(granted.getAuthority()));
+   }
 
    private String getActiveRoleFromAuthentication(Authentication authentication) {
       return authentication.getPrincipal() instanceof CustomUserDetails userDetails

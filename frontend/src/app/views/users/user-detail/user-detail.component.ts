@@ -17,7 +17,7 @@ import { AlertMessageComponent } from '../../../shared/components/alert-message/
     AlertMessageComponent
   ],
   templateUrl: './user-detail.component.html',
-  styleUrl: './user-detail.component.scss'
+  styleUrl: './user-detail.component.css'
 })
 export class UserDetailComponent implements OnInit {
 
