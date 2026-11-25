@@ -1,5 +1,6 @@
 package com.winnersystems.smartparking.parking.infrastructure.config.security;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,8 +42,8 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/error",
-                        // TEMPORALMENTE PERMITIR TODOS LOS ENDPOINTS
-                        "/shifts/**",
+                        // TEMPORAL: módulos aún sin revisar. Al revisar cada uno se quita de aquí
+                        // y sus endpoints se protegen con @PreAuthorize por permiso.
                         "/rates/**",
                         "/parkings/**",
                         "/zones/**",
@@ -54,6 +55,16 @@ public class SecurityConfig {
 
                   // Todos los demás endpoints requieren autenticación
                   .anyRequest().authenticated()
+            )
+
+            // Sin token o con un token inválido: 401 (no 403), para que el cliente renueve la sesión
+            .exceptionHandling(handling -> handling
+                  .authenticationEntryPoint((request, response, ex) -> {
+                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                     response.setContentType("application/json;charset=UTF-8");
+                     response.getWriter().write(
+                           "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Inicia sesión para continuar\"}");
+                  })
             )
 
             // Sin estado (stateless) - No crear sesiones

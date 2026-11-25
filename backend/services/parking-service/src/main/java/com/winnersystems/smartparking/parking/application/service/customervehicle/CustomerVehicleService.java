@@ -34,13 +34,16 @@ public class CustomerVehicleService implements
    private final CustomerVehiclePersistencePort customerVehiclePersistencePort;
    private final CustomerPersistencePort customerPersistencePort;
    private final VehiclePersistencePort vehiclePersistencePort;
+   private final CurrentUserPort currentUserPort;
 
    // ========================= CONSTRUCTOR =========================
 
    public CustomerVehicleService(
          CustomerVehiclePersistencePort customerVehiclePersistencePort,
          CustomerPersistencePort customerPersistencePort,
-         VehiclePersistencePort vehiclePersistencePort) {
+         VehiclePersistencePort vehiclePersistencePort,
+         CurrentUserPort currentUserPort) {
+      this.currentUserPort = currentUserPort;
       this.customerVehiclePersistencePort = customerVehiclePersistencePort;
       this.customerPersistencePort = customerPersistencePort;
       this.vehiclePersistencePort = vehiclePersistencePort;
@@ -189,8 +192,8 @@ public class CustomerVehicleService implements
 
    // ========================= HELPERS - UTILIDADES =========================
 
+   /** Usuario del JWT, para la auditoría. Vacío solo si la petición no trae token */
    private Long getCurrentUserId() {
-      // TODO: Obtener desde SecurityContext
-      return 1L;
+      return currentUserPort.getCurrentUserId().orElse(null);
    }
 }

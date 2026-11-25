@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 
 // Services
+import { crossesMidnight, formatShiftDuration, shiftDurationHours, shiftTimeValidator } from '../../../../core/utils/shift.util';
 import { ShiftService } from '../../../../core/services/parking-service/shift.service';
 
 // Models
@@ -49,24 +50,31 @@ export class ShiftEditComponent implements OnInit {
   private initForm(): void {
     this.shiftForm = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
-      code: ['', [Validators.required, Validators.maxLength(50)]],
+      code: [{ value: '', disabled: true }],   // No se cambia: lo usan las tarifas
       description: [''],
       startTime: ['', Validators.required],
       endTime: ['', Validators.required],
       status: [true]
     }, {
-      validators: this.timeRangeValidator
+      validators: shiftTimeValidator
     });
   }
 
-  private timeRangeValidator(form: FormGroup): { [key: string]: boolean } | null {
-    const startTime = form.get('startTime')?.value;
-    const endTime = form.get('endTime')?.value;
+  /** Fin menor que inicio: el turno termina al día siguiente (válido) */
+  get crossesMidnight(): boolean {
+    return crossesMidnight(this.shiftForm.get('startTime')?.value, this.shiftForm.get('endTime')?.value);
+  }
 
-    if (startTime && endTime && startTime >= endTime) {
-      return { timeRangeInvalid: true };
-    }
-    return null;
+  get durationLabel(): string {
+    const hours = shiftDurationHours(this.shiftForm.get('startTime')?.value, this.shiftForm.get('endTime')?.value);
+    return hours == null ? '' : formatShiftDuration(hours);
+  }
+
+  /** Desactivar un turno en uso: esos parqueos dejan de operar en este horario */
+  get deactivationWarning(): string | null {
+    const parkings = this.currentShift?.usedByParkings ?? [];
+    const willDeactivate = this.currentShift?.status && !this.shiftForm.get('status')?.value;
+    return willDeactivate && parkings.length > 0 ? parkings.join(', ') : null;
   }
 
   private loadShift(): void {
@@ -136,7 +144,8 @@ export class ShiftEditComponent implements OnInit {
     const field = this.shiftForm.get(fieldName);
     if (field?.errors) {
       if (field.errors['required']) return 'Este campo es obligatorio';
-      if (field.errors['maxLength']) return `Máximo ${field.errors['maxLength'].requiredLength} caracteres`;
+      if (field.errors['maxlength']) return `Máximo ${field.errors['maxlength'].requiredLength} caracteres`;
+      if (field.errors['pattern']) return 'Solo letras, números y guiones bajos (sin espacios)';
     }
     return '';
   }

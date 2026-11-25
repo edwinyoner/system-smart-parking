@@ -16,17 +16,23 @@ public interface ShiftPersistencePort {
 
    Shift save(Shift shift);
 
+   /** Solo turnos no eliminados */
    Optional<Shift> findById(Long id);
 
+   /** Solo turnos no eliminados */
    Optional<Shift> findByCode(String code);
+
+   /**
+    * Busca el código también entre los eliminados: en la base de datos es único
+    * para todos, así que no se puede reutilizar el de un turno eliminado.
+    */
+   Optional<Shift> findByCodeIncludingDeleted(String code);
 
    List<Shift> findAllActive();
 
+   /**
+    * @param search texto a buscar en el nombre o el código (null = sin filtro)
+    * @param status estado (null = todos)
+    */
    PageResult<Shift> findAll(PageRequest pageRequest, String search, Boolean status);
-
-   void delete(Long id);
-
-   boolean existsByCode(String code);
-
-   boolean existsByCodeAndIdNot(String code, Long id);
 }

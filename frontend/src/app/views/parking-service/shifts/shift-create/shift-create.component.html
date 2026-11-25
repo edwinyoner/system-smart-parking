@@ -57,7 +57,8 @@
               type="text" 
               class="form-control" 
               formControlName="code"
-              placeholder="Ej: TURNO_MANANA"
+              placeholder="Ej: MANANA"
+              style="text-transform: uppercase;"
               [class.is-invalid]="isFieldInvalid('code')">
             @if (isFieldInvalid('code')) {
             <div class="invalid-feedback">{{ getFieldError('code') }}</div>
@@ -105,11 +106,17 @@
             @if (isFieldInvalid('endTime')) {
             <div class="invalid-feedback">{{ getFieldError('endTime') }}</div>
             }
-            @if (shiftForm.errors?.['timeRangeInvalid'] && (shiftForm.get('endTime')?.touched || shiftForm.get('endTime')?.dirty)) {
+            @if (shiftForm.errors?.['sameTime'] && (shiftForm.get('endTime')?.touched || shiftForm.get('endTime')?.dirty)) {
             <div class="text-danger small mt-1">
               <i class="fas fa-exclamation-circle me-1"></i>
-              La hora de fin debe ser posterior a la hora de inicio
+              La hora de inicio y la de fin no pueden ser iguales. Para todo el día usa 00:00 - 23:59
             </div>
+            } @else if (durationLabel) {
+            <small class="form-text text-muted d-block mt-1">
+              <i class="fas fa-hourglass-half me-1"></i>
+              Duración: {{ durationLabel }}{{ crossesMidnight ? ' (termina al día siguiente)' : '' }}.
+              La hora de fin se incluye: 06:00 - 13:59 son 8 h.
+            </small>
             }
           </div>
 

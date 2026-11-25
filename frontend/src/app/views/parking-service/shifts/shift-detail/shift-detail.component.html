@@ -141,7 +141,10 @@
                   <i class="fas fa-hourglass-half me-2"></i>Duración
                 </label>
                 <div class="detail-value">
-                  <span class="badge bg-primary fs-5">{{ calculateDuration(shift.startTime, shift.endTime) }}</span>
+                  <span class="badge bg-primary fs-5">{{ durationLabel(shift) }}</span>
+                  @if (shift.crossesMidnight) {
+                  <small class="d-block text-muted mt-1"><i class="fas fa-moon me-1"></i>Termina al día siguiente</small>
+                  }
                 </div>
               </div>
             </div>
@@ -170,6 +173,28 @@
           <p class="mt-3 mb-0 text-muted small">
             {{ shift.status ? 'Este turno está disponible para ser asignado' : 'Este turno no está disponible' }}
           </p>
+        </div>
+      </div>
+
+      <!-- Parqueos que lo usan en sus tarifas -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <strong>
+            <i class="fas fa-square-parking me-2"></i>
+            Usado por
+          </strong>
+        </div>
+        <div class="card-body">
+          @if (shift.usedByParkings?.length) {
+          <ul class="list-unstyled mb-2">
+            @for (parking of shift.usedByParkings; track parking) {
+            <li><i class="fas fa-check text-success me-2"></i>{{ parking }}</li>
+            }
+          </ul>
+          <small class="text-muted">No se puede eliminar mientras lo use un parqueo; sí desactivar.</small>
+          } @else {
+          <small class="text-muted">Ningún parqueo lo usa todavía.</small>
+          }
         </div>
       </div>
 

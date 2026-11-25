@@ -34,4 +34,10 @@ public interface ParkingShiftRatePersistencePort {
     * Útil para evitar duplicados.
     */
    boolean existsByParkingIdAndShiftId(Long parkingId, Long shiftId);
+
+   /**
+    * Nombres de los parqueos (no eliminados) que usan el turno en sus tarifas.
+    * Sirve para impedir eliminar un turno en uso y para avisar antes de desactivarlo.
+    */
+   List<String> findParkingNamesUsingShift(Long shiftId);
 }

@@ -7,7 +7,11 @@ import com.winnersystems.smartparking.parking.application.dto.query.PageResult;
 import com.winnersystems.smartparking.parking.application.dto.query.PagedResponse;
 import com.winnersystems.smartparking.parking.application.dto.query.ShiftDto;
 import com.winnersystems.smartparking.parking.application.port.input.shift.*;
+import com.winnersystems.smartparking.parking.application.port.output.CurrentUserPort;
+import com.winnersystems.smartparking.parking.application.port.output.ParkingShiftRatePersistencePort;
 import com.winnersystems.smartparking.parking.application.port.output.ShiftPersistencePort;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceConflictException;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
 import com.winnersystems.smartparking.parking.domain.model.Shift;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,11 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Servicio de aplicación para gestión de turnos horarios.
- * Implementa todos los casos de uso relacionados con Shift.
+ * Casos de uso de los turnos horarios.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Reglas:
+ * - El código es único entre todos los turnos, también los eliminados (409 si se repite).
+ * - Un turno que usa algún parqueo no se elimina (409 con los nombres de los parqueos).
+ *   Sí se puede desactivar: esos parqueos dejan de operar en ese horario.
+ * - La auditoría (createdBy, updatedBy, deletedBy) es el usuario del JWT.
  */
 @Slf4j
 @Service
@@ -33,101 +39,78 @@ public class ShiftService implements
       ListShiftsUseCase,
       ToggleShiftStatusUseCase {
 
-   private final ShiftPersistencePort shiftPersistencePort;
+   private static final String RESOURCE = "Turno";
 
-   public ShiftService(ShiftPersistencePort shiftPersistencePort) {
+   private final ShiftPersistencePort shiftPersistencePort;
+   private final ParkingShiftRatePersistencePort parkingShiftRatePersistencePort;
+   private final CurrentUserPort currentUserPort;
+
+   public ShiftService(
+         ShiftPersistencePort shiftPersistencePort,
+         ParkingShiftRatePersistencePort parkingShiftRatePersistencePort,
+         CurrentUserPort currentUserPort) {
       this.shiftPersistencePort = shiftPersistencePort;
+      this.parkingShiftRatePersistencePort = parkingShiftRatePersistencePort;
+      this.currentUserPort = currentUserPort;
    }
 
    // ========================= CREATE =========================
 
    @Override
    public ShiftDto createShift(CreateShiftCommand command) {
-      log.info("Creando turno: {}", command.getName());
+      Long userId = currentUserPort.requireCurrentUserId();
 
-      // Validar código único
-      if (shiftPersistencePort.existsByCode(command.getCode())) {
-         throw new IllegalArgumentException(
-               "Ya existe un turno con el código: " + command.getCode()
-         );
-      }
+      // El dominio valida nombre, código y horario, y normaliza el código a mayúsculas
+      Shift shift = Shift.create(
+            command.name(),
+            command.code(),
+            command.startTime(),
+            command.endTime(),
+            command.description(),
+            command.status() == null || command.status(),
+            userId);
 
-      // Crear entidad de dominio usando constructor
-      Shift shift = new Shift(
-            command.getName(),
-            command.getCode(),
-            command.getStartTime(),
-            command.getEndTime(),
-            command.getDescription()
-      );
+      ensureCodeIsAvailable(shift.getCode());
 
-      // Configurar estado inicial
-//      if (Boolean.TRUE.equals(command.getStatus())) {
-//         shift.activate();
-//      } // else: permanece inactivo (valor por defecto)
-
-      // Persistir
-      Shift savedShift = shiftPersistencePort.save(shift);
-
-      log.info("Turno creado con ID: {}", savedShift.getId());
-      return mapToDto(savedShift);
+      Shift saved = shiftPersistencePort.save(shift);
+      log.info("Turno creado: id={}, código={}, usuario={}", saved.getId(), saved.getCode(), userId);
+      return mapToDto(saved);
    }
 
    // ========================= UPDATE =========================
 
    @Override
    public ShiftDto updateShift(Long shiftId, UpdateShiftCommand command) {
-      log.info("Actualizando turno ID: {}", shiftId);
+      Shift shift = findShift(shiftId);
 
-      // Buscar entidad existente
-      Shift shift = shiftPersistencePort.findById(shiftId)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Turno no encontrado con ID: " + shiftId
-            ));
+      shift.updateBasicInfo(command.name(), command.description());
+      shift.updateSchedule(command.startTime(), command.endTime());
 
-      // Actualizar información básica
-      shift.updateBasicInfo(command.getName(), command.getDescription());
-
-      // Actualizar horario
-      if (command.getStartTime() != null && command.getEndTime() != null) {
-         shift.updateSchedule(command.getStartTime(), command.getEndTime());
+      if (command.status() != null && command.status() != shift.isActive()) {
+         changeStatus(shift, command.status());
       }
 
-      // Actualizar estado
-      if (command.getStatus() != null) {
-         if (command.getStatus()) {
-            shift.activate();
-         } else {
-            shift.deactivate();
-         }
-      }
-
-      // Persistir cambios
-      Shift updatedShift = shiftPersistencePort.save(shift);
-
-      log.info("Turno actualizado");
-      return mapToDto(updatedShift);
+      shift.updateModifiedBy(currentUserPort.requireCurrentUserId());
+      return mapToDto(shiftPersistencePort.save(shift));
    }
 
    // ========================= DELETE =========================
 
    @Override
    public void deleteShift(Long id) {
-      log.info("Eliminando turno ID: {}", id);
+      Shift shift = findShift(id);
 
-      // Buscar entidad existente
-      Shift shift = shiftPersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Turno no encontrado con ID: " + id
-            ));
+      // Un turno en uso no se elimina: el parqueo perdería ese horario sin aviso
+      List<String> parkings = parkingShiftRatePersistencePort.findParkingNamesUsingShift(id);
+      if (!parkings.isEmpty()) {
+         throw new ResourceConflictException(
+               "No se puede eliminar el turno " + shift.getName() + ": lo usa " + describe(parkings)
+                     + ". Quítalo de esos parqueos o desactívalo.");
+      }
 
-      // Soft delete (marcar como eliminado)
-      shift.markAsDeleted(null);  // TODO: Obtener userId del contexto de seguridad
-
-      // Persistir cambios
+      shift.markAsDeleted(currentUserPort.requireCurrentUserId());
       shiftPersistencePort.save(shift);
-
-      log.info("Turno eliminado (soft delete)");
+      log.info("Turno eliminado (soft delete): id={}", id);
    }
 
    // ========================= GET =========================
@@ -135,14 +118,7 @@ public class ShiftService implements
    @Override
    @Transactional(readOnly = true)
    public ShiftDto getShiftById(Long id) {
-      log.debug("Buscando turno ID: {}", id);
-
-      Shift shift = shiftPersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Turno no encontrado con ID: " + id
-            ));
-
-      return mapToDto(shift);
+      return mapToDto(findShift(id));
    }
 
    // ========================= LIST =========================
@@ -150,91 +126,84 @@ public class ShiftService implements
    @Override
    @Transactional(readOnly = true)
    public PagedResponse<ShiftDto> listAllShifts(int page, int size, String search, Boolean status) {
-      log.debug("Listando turnos - página: {}, tamaño: {}, search: {}, status: {}", page, size, search, status);
-
       PageRequest pageRequest = PageRequest.of(page, size, "id", "ASC");
-      PageResult<Shift> pageResult = shiftPersistencePort.findAll(pageRequest, search, status);
-
-      return pageResult.toPagedResponse(this::mapToDto);
+      PageResult<Shift> result = shiftPersistencePort.findAll(pageRequest, search, status);
+      return result.toPagedResponse(this::mapToDto);
    }
 
    @Override
    @Transactional(readOnly = true)
    public List<ShiftDto> listAllActiveShifts() {
-      log.debug("Listando turnos activos");
-
-      List<Shift> activeShifts = shiftPersistencePort.findAllActive();
-
-      return activeShifts.stream()
+      return shiftPersistencePort.findAllActive().stream()
             .map(this::mapToDto)
             .toList();
    }
 
-   // ========================= TOGGLE STATUS =========================
+   // ========================= ESTADO =========================
 
    @Override
    public ShiftDto toggleShiftStatus(Long id) {
-      log.info("Cambiando estado del turno ID: {}", id);
-
-      Shift shift = shiftPersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Turno no encontrado con ID: " + id
-            ));
-
-      // Toggle usando lógica de dominio
-      if (shift.isActive()) {
-         shift.deactivate();
-      } else {
-         shift.activate();
-      }
-
-      Shift updatedShift = shiftPersistencePort.save(shift);
-
-      log.info("Estado cambiado a: {}", updatedShift.getStatus() ? "ACTIVO" : "INACTIVO");
-      return mapToDto(updatedShift);
+      Shift shift = findShift(id);
+      return saveStatus(shift, !shift.isActive());
    }
 
    @Override
    public ShiftDto activateShift(Long id) {
-      log.info("Activando turno ID: {}", id);
-
-      Shift shift = shiftPersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Turno no encontrado con ID: " + id
-            ));
-
-      shift.activate();
-      Shift updatedShift = shiftPersistencePort.save(shift);
-
-      log.info("Turno activado");
-      return mapToDto(updatedShift);
+      return saveStatus(findShift(id), true);
    }
 
    @Override
    public ShiftDto deactivateShift(Long id) {
-      log.info("Desactivando turno ID: {}", id);
-
-      Shift shift = shiftPersistencePort.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Turno no encontrado con ID: " + id
-            ));
-
-      shift.deactivate();
-      Shift updatedShift = shiftPersistencePort.save(shift);
-
-      log.info("Turno desactivado");
-      return mapToDto(updatedShift);
+      return saveStatus(findShift(id), false);
    }
 
-   // ========================= MAPPER =========================
+   private ShiftDto saveStatus(Shift shift, boolean active) {
+      changeStatus(shift, active);
+      shift.updateModifiedBy(currentUserPort.requireCurrentUserId());
+      return mapToDto(shiftPersistencePort.save(shift));
+   }
 
-   /**
-    * Mapea una entidad de dominio Shift a ShiftDto.
-    *
-    * @param shift entidad de dominio
-    * @return DTO para capa de presentación
-    */
+   /** Desactivar un turno en uso está permitido; queda registrado en el log */
+   private void changeStatus(Shift shift, boolean active) {
+      if (active) {
+         shift.activate();
+         return;
+      }
+      List<String> parkings = parkingShiftRatePersistencePort.findParkingNamesUsingShift(shift.getId());
+      if (!parkings.isEmpty()) {
+         log.warn("Turno {} desactivado estando en uso por: {}", shift.getCode(), parkings);
+      }
+      shift.deactivate();
+   }
+
+   // ========================= AUXILIARES =========================
+
+   private Shift findShift(Long id) {
+      return shiftPersistencePort.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException(RESOURCE, id));
+   }
+
+   private void ensureCodeIsAvailable(String code) {
+      shiftPersistencePort.findByCodeIncludingDeleted(code).ifPresent(existing -> {
+         throw new ResourceConflictException(existing.isDeleted()
+               ? "El código " + code + " pertenece a un turno eliminado. Usa otro código."
+               : "Ya existe un turno con el código " + code);
+      });
+   }
+
+   /** "el parqueo San Martín" o "los parqueos San Martín y Las Banderas" */
+   private static String describe(List<String> parkings) {
+      if (parkings.size() == 1) {
+         return "el parqueo " + parkings.get(0);
+      }
+      String last = parkings.get(parkings.size() - 1);
+      return "los parqueos " + String.join(", ", parkings.subList(0, parkings.size() - 1)) + " y " + last;
+   }
+
    private ShiftDto mapToDto(Shift shift) {
+      List<String> usedBy = shift.getId() == null
+            ? List.of()
+            : parkingShiftRatePersistencePort.findParkingNamesUsingShift(shift.getId());
       return new ShiftDto(
             shift.getId(),
             shift.getName(),
@@ -243,8 +212,13 @@ public class ShiftService implements
             shift.getStartTime(),
             shift.getEndTime(),
             shift.getStatus(),
+            shift.crossesMidnight(),
+            shift.getDurationHours(),
+            usedBy,
             shift.getCreatedAt(),
-            shift.getUpdatedAt()
+            shift.getCreatedBy(),
+            shift.getUpdatedAt(),
+            shift.getUpdatedBy()
       );
    }
 }

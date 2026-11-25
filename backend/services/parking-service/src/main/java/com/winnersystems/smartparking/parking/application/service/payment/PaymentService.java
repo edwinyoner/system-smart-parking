@@ -34,13 +34,16 @@ public class PaymentService implements
    private final PaymentPersistencePort paymentPersistencePort;
    private final PaymentTypePersistencePort paymentTypePersistencePort;
    private final TransactionPersistencePort transactionPersistencePort;
+   private final CurrentUserPort currentUserPort;
 
    // ========================= CONSTRUCTOR =========================
 
    public PaymentService(
          PaymentPersistencePort paymentPersistencePort,
          PaymentTypePersistencePort paymentTypePersistencePort,
-         TransactionPersistencePort transactionPersistencePort) {
+         TransactionPersistencePort transactionPersistencePort,
+         CurrentUserPort currentUserPort) {
+      this.currentUserPort = currentUserPort;
       this.paymentPersistencePort = paymentPersistencePort;
       this.paymentTypePersistencePort = paymentTypePersistencePort;
       this.transactionPersistencePort = transactionPersistencePort;
@@ -249,8 +252,8 @@ public class PaymentService implements
 
    // ========================= HELPERS - UTILIDADES =========================
 
+   /** Usuario del JWT, para la auditoría. Vacío solo si la petición no trae token */
    private Long getCurrentUserId() {
-      // TODO: Obtener desde SecurityContext cuando se integre Spring Security
-      return 1L; // Placeholder
+      return currentUserPort.getCurrentUserId().orElse(null);
    }
 }

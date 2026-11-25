@@ -4,45 +4,46 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
- * Detalles del usuario extraídos del JWT Token.
- * Contiene el ID del usuario para auditoría JPA.
+ * Usuario autenticado, armado con los claims del JWT que emite auth-service.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * parking-service no tiene tabla de usuarios: confía en el token firmado por auth-service.
+ * Las autoridades son los permisos del rol activo ("shifts.create") y el propio rol
+ * ("ROLE_ADMIN"), igual que en auth-service, para proteger cada endpoint por permiso.
  */
 public class CustomUserDetails implements UserDetails {
 
    private final Long id;
    private final String email;
-   private final String role;
+   private final String activeRole;
    private final Collection<? extends GrantedAuthority> authorities;
 
    public CustomUserDetails(
          Long id,
          String email,
-         String role,
+         String activeRole,
          Collection<? extends GrantedAuthority> authorities
    ) {
       this.id = id;
       this.email = email;
-      this.role = role;
-      this.authorities = authorities;
+      this.activeRole = activeRole;
+      this.authorities = authorities == null ? List.of() : List.copyOf(authorities);
    }
 
-   /**
-    * Obtiene el ID del usuario (para auditoría).
-    */
+   /** ID del usuario en auth-service (para la auditoría) */
    public Long getId() {
       return id;
    }
 
-   /**
-    * Obtiene el rol del usuario.
-    */
-   public String getRole() {
-      return role;
+   public String getEmail() {
+      return email;
+   }
+
+   /** Rol con el que inició sesión (claim activeRole) */
+   public String getActiveRole() {
+      return activeRole;
    }
 
    @Override
@@ -52,7 +53,7 @@ public class CustomUserDetails implements UserDetails {
 
    @Override
    public String getPassword() {
-      return null; // No se necesita, token ya validado
+      return null; // No aplica: el token ya fue validado
    }
 
    @Override

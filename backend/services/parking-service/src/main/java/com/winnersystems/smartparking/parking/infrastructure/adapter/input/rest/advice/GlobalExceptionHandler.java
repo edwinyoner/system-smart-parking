@@ -1,7 +1,9 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.advice;
 
 import com.winnersystems.smartparking.parking.domain.exception.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -21,6 +23,7 @@ import java.util.Map;
  * @author Edwin Yoner - Winner Systems - Smart Parking Platform
  * @version 1.0
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -117,6 +120,35 @@ public class GlobalExceptionHandler {
    }
 
    /**
+    * Recurso inexistente o eliminado: 404.
+    */
+   @ExceptionHandler(ResourceNotFoundException.class)
+   public ResponseEntity<ErrorResponse> handleNotFound(
+         ResourceNotFoundException ex, WebRequest request) {
+      return build(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request);
+   }
+
+   /**
+    * Código repetido o registro en uso: 409.
+    */
+   @ExceptionHandler(ResourceConflictException.class)
+   public ResponseEntity<ErrorResponse> handleConflict(
+         ResourceConflictException ex, WebRequest request) {
+      return build(HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request);
+   }
+
+   private ResponseEntity<ErrorResponse> build(HttpStatus status, String error, String message, WebRequest request) {
+      ErrorResponse body = ErrorResponse.builder()
+            .timestamp(LocalDateTime.now())
+            .status(status.value())
+            .error(error)
+            .message(message)
+            .path(request.getDescription(false).replace("uri=", ""))
+            .build();
+      return ResponseEntity.status(status).body(body);
+   }
+
+   /**
     * Maneja excepción base del dominio de parking.
     */
    @ExceptionHandler(ParkingDomainException.class)
@@ -183,6 +215,25 @@ public class GlobalExceptionHandler {
    }
 
    /**
+    * Permiso insuficiente: un @PreAuthorize denegado.
+    * Sin este manejador, el genérico de abajo lo convertiría en 500.
+    */
+   @ExceptionHandler(AccessDeniedException.class)
+   public ResponseEntity<ErrorResponse> handleAccessDenied(
+         AccessDeniedException ex, WebRequest request) {
+
+      ErrorResponse error = ErrorResponse.builder()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.FORBIDDEN.value())
+            .error("Forbidden")
+            .message("No tienes permiso para realizar esta acción")
+            .path(request.getDescription(false).replace("uri=", ""))
+            .build();
+
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+   }
+
+   /**
     * Maneja cualquier otra excepción no capturada.
     */
    @ExceptionHandler(Exception.class)
@@ -197,8 +248,7 @@ public class GlobalExceptionHandler {
             .path(request.getDescription(false).replace("uri=", ""))
             .build();
 
-      // Log the exception for debugging
-      ex.printStackTrace();
+      log.error("Error no controlado en {}", request.getDescription(false), ex);
 
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
    }

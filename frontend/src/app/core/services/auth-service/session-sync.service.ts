@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { EMPTY, Observable, catchError, exhaustMap, filter, map, tap } from 'rxjs';
+import { EMPTY, Observable, catchError, concatMap, exhaustMap, filter, map, of } from 'rxjs';
 import { liveRefresh } from '../../utils/live-refresh.util';
+import { AuthService } from './auth.service';
 import { CurrentUserService } from './current-user.service';
 import { UserService } from './user.service';
 
@@ -13,6 +14,8 @@ const SYNC_INTERVAL_MS = 10_000;
  * - Si otro usuario cambió los datos, actualiza cabecera, menú y perfil.
  * - Si la cuenta se desactivó o eliminó, o cambió la contraseña, el backend
  *   responde 401 y errorInterceptor cierra la sesión.
+ * - Si cambiaron los permisos del rol, renueva el token: los demás microservicios
+ *   (parking-service...) leen los permisos del token y así los ven de inmediato.
  */
 @Injectable({
   providedIn: 'root'
@@ -21,7 +24,8 @@ export class SessionSyncService {
 
   constructor(
     private userService: UserService,
-    private currentUserService: CurrentUserService
+    private currentUserService: CurrentUserService,
+    private authService: AuthService
   ) {}
 
   /**
@@ -35,8 +39,21 @@ export class SessionSyncService {
         catchError(() => EMPTY)
       )),
       filter(user => user.id === this.currentUserService.getCurrentUser()?.id),
-      tap(user => this.currentUserService.applyProfile(user)),
+      concatMap(user => {
+        const before = this.currentUserService.getCurrentUser()?.permissions ?? [];
+        this.currentUserService.applyProfile(user);
+        // Un fallo al renovar no debe detener la sincronización
+        return this.samePermissions(before, user.activePermissions ?? before)
+          ? of(undefined)
+          : this.authService.refreshToken().pipe(map(() => undefined), catchError(() => EMPTY));
+      }),
       map(() => undefined)
     );
+  }
+
+  /** Mismos permisos sin importar el orden */
+  private samePermissions(a: string[], b: string[]): boolean {
+    const set = new Set(a);
+    return a.length === b.length && b.every(permission => set.has(permission));
   }
 }

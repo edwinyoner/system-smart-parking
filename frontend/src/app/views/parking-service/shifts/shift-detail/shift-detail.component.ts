@@ -8,6 +8,7 @@ import { ShiftService } from '../../../../core/services/parking-service/shift.se
 
 // Models
 import { Shift } from '../../../../core/models/parking-service/shift.model';
+import { formatShiftDuration } from '../../../../core/utils/shift.util';
 
 // Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
@@ -66,19 +67,9 @@ export class ShiftDetailComponent implements OnInit {
     return time.substring(0, 5);
   }
 
-  calculateDuration(startTime: string, endTime: string): string {
-    if (!startTime || !endTime) return 'N/A';
-    
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
-    
-    let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
-    if (totalMinutes < 0) totalMinutes += 24 * 60;
-    
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    
-    return minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
+  /** Duración calculada por el backend, contando el minuto final (06:00 - 13:59 = 8 h) */
+  durationLabel(shift: Shift): string {
+    return formatShiftDuration(shift.durationHours);
   }
 
   dismissError(): void {

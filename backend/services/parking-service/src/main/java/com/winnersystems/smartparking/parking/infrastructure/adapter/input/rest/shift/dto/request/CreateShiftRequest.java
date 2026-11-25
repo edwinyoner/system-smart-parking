@@ -1,4 +1,3 @@
-// parking-service/.../shift/dto/request/CreateShiftRequest.java
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
@@ -24,7 +23,7 @@ public class CreateShiftRequest {
 
    @NotBlank(message = "El código del turno es obligatorio")
    @Size(max = 50, message = "El código no puede exceder 50 caracteres")
-   @Pattern(regexp = "^[A-Z_]+$", message = "El código solo puede contener mayúsculas y guiones bajos")
+   @Pattern(regexp = "^[A-Za-z0-9_]+$", message = "El código solo puede contener letras, números y guiones bajos")
    private String code;
 
    @Size(max = 500, message = "La descripción no puede exceder 500 caracteres")
@@ -36,5 +35,5 @@ public class CreateShiftRequest {
    @NotNull(message = "La hora de fin es obligatoria")
    private LocalTime endTime;
 
-   private Boolean status; // Por defecto true en el backend
+   private Boolean status; // null = activo
 }

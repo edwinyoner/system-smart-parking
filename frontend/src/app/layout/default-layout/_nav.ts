@@ -56,7 +56,7 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Turnos",
     url: "/shifts",
     icon: "fa-solid fa-clock-rotate-left",
-    // requiredPermissions: ["shifts.read"],
+    requiredPermissions: ["shifts.read"],
   },
   {
     name: "Tarifas",

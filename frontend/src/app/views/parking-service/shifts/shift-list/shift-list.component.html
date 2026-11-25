@@ -8,10 +8,12 @@
                 Gestión de Turnos
             </h2>
 
-            <button class="btn btn-success" (click)="createShift()" style="color: aliceblue;">
+            @if (hasPermission('shifts.create')) {
+            <button class="btn btn-success" (click)="createShift()">
                 <i class="fas fa-plus-circle me-2"></i>
                 Crear Nuevo Turno
             </button>
+            }
         </div>
     </div>
 
@@ -134,7 +136,12 @@
                             </td>
 
                             <td class="text-center">
-                                <small class="text-muted">8 horas</small>
+                                <small class="text-muted">{{ formatDuration(shift) }}</small>
+                                @if (shift.crossesMidnight) {
+                                <small class="d-block text-muted" title="Termina al día siguiente">
+                                    <i class="fas fa-moon me-1"></i>cruza medianoche
+                                </small>
+                                }
                             </td>
 
                             <td class="text-center">
@@ -153,15 +160,22 @@
                                         <i class="fas fa-eye"></i>
                                     </button>
 
+                                    @if (hasPermission('shifts.update')) {
                                     <button class="btn btn-outline-warning" (click)="editShift(shift.id!)"
                                         title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                    }
 
-                                    <button class="btn btn-outline-danger" (click)="confirmDelete(shift)"
-                                        title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    @if (hasPermission('shifts.delete')) {
+                                    <!-- El span recibe el title: un botón deshabilitado no muestra tooltip -->
+                                    <span class="d-inline-block" [title]="isInUse(shift) ? deleteBlockedReason(shift) : 'Eliminar'">
+                                        <button class="btn btn-outline-danger btn-sm" (click)="confirmDelete(shift)"
+                                            [disabled]="isInUse(shift)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </span>
+                                    }
                                 </div>
                             </td>
                         </tr>
@@ -203,10 +217,12 @@
             <div class="text-center py-5">
                 <i class="fas fa-clock-rotate-left fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">No se encontraron turnos</h5>
+                @if (hasPermission('shifts.create')) {
                 <button class="btn btn-success" (click)="createShift()">
                     <i class="fas fa-plus-circle me-2"></i>
                     Crear Turno
                 </button>
+                }
             </div>
             }
         </div>
@@ -227,9 +243,9 @@
                 </div>
                 <div class="modal-body p-4">
                     <p>¿Estás seguro de eliminar el turno <strong>"{{ shiftToDelete.name }}"</strong>?</p>
-                    <p class="text-danger mb-0">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        Esta acción no se puede deshacer.
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ningún parqueo lo usa. Dejará de aparecer en la lista de turnos.
                     </p>
                 </div>
                 <div class="modal-footer bg-light">

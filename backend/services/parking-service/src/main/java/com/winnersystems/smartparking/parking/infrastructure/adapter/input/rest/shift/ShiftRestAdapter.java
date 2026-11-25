@@ -1,34 +1,34 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import com.winnersystems.smartparking.parking.application.dto.query.PagedResponse;
-import com.winnersystems.smartparking.parking.application.dto.query.ShiftDto;
 import com.winnersystems.smartparking.parking.application.port.input.shift.*;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.dto.request.CreateShiftRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.dto.request.UpdateShiftRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.dto.response.ShiftResponse;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.mapper.ShiftRestMapper;
-
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 /**
- * REST Adapter para gestión de turnos (Shifts).
- * Implementa CRUD completo + operaciones de estado.
+ * Endpoints de turnos horarios. Por el gateway: /api/parking-service/v1/shifts.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Cada endpoint exige un permiso del rol activo (shifts.read, shifts.create...), que
+ * llega en el JWT. La lista de turnos activos solo exige sesión: la usan los formularios
+ * de parqueos para elegir horarios, aunque el usuario no administre turnos.
  */
-@Slf4j
 @RestController
 @RequestMapping("/shifts")
 @RequiredArgsConstructor
 public class ShiftRestAdapter {
+
+   /** Tamaño máximo de página, para que nadie pida la tabla completa de una vez */
+   private static final int MAX_PAGE_SIZE = 100;
 
    private final CreateShiftUseCase createShiftUseCase;
    private final UpdateShiftUseCase updateShiftUseCase;
@@ -38,110 +38,74 @@ public class ShiftRestAdapter {
    private final ToggleShiftStatusUseCase toggleShiftStatusUseCase;
    private final ShiftRestMapper mapper;
 
+   /**
+    * Lista paginada. search busca en el nombre y el código; status: true, false o vacío (todos).
+    */
    @GetMapping
+   @PreAuthorize("hasAuthority('shifts.read')")
    public ResponseEntity<PagedResponse<ShiftResponse>> listAllShifts(
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size,
          @RequestParam(required = false) String search,
-         @RequestParam(required = false) String status) {
-
-      log.info("Obteniendo turnos - página: {}, tamaño: {}, search: {}, status: {}", page, size, search, status);
-
-      // Convertir status String → Boolean (null si no viene)
-      Boolean statusBool = (status != null && !status.isBlank()) ? Boolean.parseBoolean(status) : null;
-
-      PagedResponse<ShiftDto> pagedDto = listShiftsUseCase.listAllShifts(page, size, search, statusBool);
-      PagedResponse<ShiftResponse> response = pagedDto.map(mapper::toResponse);
-
-      log.info("Se encontraron {} turnos", response.totalElements());
-      return ResponseEntity.ok(response);
+         @RequestParam(required = false) Boolean status) {
+      int safePage = Math.max(page, 0);
+      int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+      return ResponseEntity.ok(
+            listShiftsUseCase.listAllShifts(safePage, safeSize, search, status).map(mapper::toResponse));
    }
 
    @GetMapping("/active")
+   @PreAuthorize("isAuthenticated()")
    public ResponseEntity<List<ShiftResponse>> listActiveShifts() {
-      log.info("Obteniendo turnos activos");
-
-      List<ShiftDto> activeShiftsDto = listShiftsUseCase.listAllActiveShifts();
-
-      List<ShiftResponse> responses = activeShiftsDto.stream()
+      return ResponseEntity.ok(listShiftsUseCase.listAllActiveShifts().stream()
             .map(mapper::toResponse)
-            .toList();  // Stream moderno
-
-      log.info("Se encontraron {} turnos activos", responses.size());
-      return ResponseEntity.ok(responses);
+            .toList());
    }
 
    @GetMapping("/{id}")
+   @PreAuthorize("hasAuthority('shifts.read')")
    public ResponseEntity<ShiftResponse> getShiftById(@PathVariable Long id) {
-      log.info("Buscando turno con ID: {}", id);
-
-      ShiftDto dto = getShiftUseCase.getShiftById(id);  // Retorna directo (sin Optional)
-
-      log.info("Turno encontrado: {}", dto.name());
-      return ResponseEntity.ok(mapper.toResponse(dto));
+      return ResponseEntity.ok(mapper.toResponse(getShiftUseCase.getShiftById(id)));
    }
 
    @PostMapping
+   @PreAuthorize("hasAuthority('shifts.create')")
    public ResponseEntity<ShiftResponse> createShift(@Valid @RequestBody CreateShiftRequest request) {
-      log.info("Creando nuevo turno: {} [{}]", request.getName(), request.getCode());
-
-      ShiftDto createdDto = createShiftUseCase.createShift(mapper.toCommand(request));
-
-      log.info("Turno creado exitosamente con ID: {}", createdDto.id());
-      return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(createdDto));
+      return ResponseEntity.status(HttpStatus.CREATED)
+            .body(mapper.toResponse(createShiftUseCase.createShift(mapper.toCommand(request))));
    }
 
    @PutMapping("/{id}")
+   @PreAuthorize("hasAuthority('shifts.update')")
    public ResponseEntity<ShiftResponse> updateShift(
          @PathVariable Long id,
          @Valid @RequestBody UpdateShiftRequest request) {
-
-      log.info("Actualizando turno con ID: {}", id);
-
-      // id separado del Command
-      ShiftDto updatedDto = updateShiftUseCase.updateShift(id, mapper.toCommand(request));
-
-      log.info("Turno actualizado exitosamente");
-      return ResponseEntity.ok(mapper.toResponse(updatedDto));
+      return ResponseEntity.ok(mapper.toResponse(updateShiftUseCase.updateShift(id, mapper.toCommand(request))));
    }
 
+   /** 409 si algún parqueo usa el turno */
    @DeleteMapping("/{id}")
+   @PreAuthorize("hasAuthority('shifts.delete')")
    public ResponseEntity<Void> deleteShift(@PathVariable Long id) {
-      log.info("Eliminando turno con ID: {}", id);
-
       deleteShiftUseCase.deleteShift(id);
-
-      log.info("Turno eliminado exitosamente");
       return ResponseEntity.noContent().build();
    }
 
    @PatchMapping("/{id}/toggle-status")
+   @PreAuthorize("hasAuthority('shifts.update')")
    public ResponseEntity<ShiftResponse> toggleStatus(@PathVariable Long id) {
-      log.info("Cambiando estado de turno con ID: {}", id);
-
-      ShiftDto updatedDto = toggleShiftStatusUseCase.toggleShiftStatus(id);
-
-      log.info("Estado cambiado a: {}", updatedDto.status() ? "ACTIVO" : "INACTIVO");
-      return ResponseEntity.ok(mapper.toResponse(updatedDto));
+      return ResponseEntity.ok(mapper.toResponse(toggleShiftStatusUseCase.toggleShiftStatus(id)));
    }
 
    @PatchMapping("/{id}/activate")
+   @PreAuthorize("hasAuthority('shifts.update')")
    public ResponseEntity<ShiftResponse> activateShift(@PathVariable Long id) {
-      log.info("Activando turno con ID: {}", id);
-
-      ShiftDto updatedDto = toggleShiftStatusUseCase.activateShift(id);
-
-      log.info("Turno activado");
-      return ResponseEntity.ok(mapper.toResponse(updatedDto));
+      return ResponseEntity.ok(mapper.toResponse(toggleShiftStatusUseCase.activateShift(id)));
    }
 
    @PatchMapping("/{id}/deactivate")
+   @PreAuthorize("hasAuthority('shifts.update')")
    public ResponseEntity<ShiftResponse> deactivateShift(@PathVariable Long id) {
-      log.info("Desactivando turno con ID: {}", id);
-
-      ShiftDto updatedDto = toggleShiftStatusUseCase.deactivateShift(id);
-
-      log.info("Turno desactivado");
-      return ResponseEntity.ok(mapper.toResponse(updatedDto));
+      return ResponseEntity.ok(mapper.toResponse(toggleShiftStatusUseCase.deactivateShift(id)));
    }
 }

@@ -76,7 +76,7 @@
             @if (isFieldInvalid('code')) {
             <div class="invalid-feedback">{{ getFieldError('code') }}</div>
             }
-            <small class="form-text text-muted">Código único para identificar el turno</small>
+            <small class="form-text text-muted">El código no se cambia: lo usan las tarifas de los parqueos</small>
           </div>
 
           <!-- Descripción -->
@@ -119,11 +119,17 @@
             @if (isFieldInvalid('endTime')) {
             <div class="invalid-feedback">{{ getFieldError('endTime') }}</div>
             }
-            @if (shiftForm.errors?.['timeRangeInvalid'] && (shiftForm.get('endTime')?.touched || shiftForm.get('endTime')?.dirty)) {
+            @if (shiftForm.errors?.['sameTime'] && (shiftForm.get('endTime')?.touched || shiftForm.get('endTime')?.dirty)) {
             <div class="text-danger small mt-1">
               <i class="fas fa-exclamation-circle me-1"></i>
-              La hora de fin debe ser posterior a la hora de inicio
+              La hora de inicio y la de fin no pueden ser iguales. Para todo el día usa 00:00 - 23:59
             </div>
+            } @else if (durationLabel) {
+            <small class="form-text text-muted d-block mt-1">
+              <i class="fas fa-hourglass-half me-1"></i>
+              Duración: {{ durationLabel }}{{ crossesMidnight ? ' (termina al día siguiente)' : '' }}.
+              La hora de fin se incluye: 06:00 - 13:59 son 8 h.
+            </small>
             }
           </div>
 
@@ -152,6 +158,13 @@
                   </label>
                 </div>
               </div>
+              @if (deactivationWarning) {
+              <div class="alert alert-warning mt-3 mb-0">
+                <i class="fas fa-triangle-exclamation me-2"></i>
+                Lo usa: <strong>{{ deactivationWarning }}</strong>. Al desactivarlo, esos parqueos
+                dejarán de operar en este horario hasta que lo vuelvas a activar.
+              </div>
+              }
             </div>
           </div>
 

@@ -100,4 +100,9 @@ public class ParkingShiftRatePersistenceAdapter implements ParkingShiftRatePersi
    public boolean existsByParkingIdAndShiftId(Long parkingId, Long shiftId) {
       return repository.existsByParkingIdAndShiftId(parkingId, shiftId);
    }
+
+   @Override
+   public List<String> findParkingNamesUsingShift(Long shiftId) {
+      return repository.findParkingNamesUsingShift(shiftId);
+   }
 }

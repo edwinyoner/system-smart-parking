@@ -16,8 +16,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Filtro de autenticación JWT.
@@ -46,26 +47,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       // 2. Si hay token y es válido, autenticar
       if (token != null && jwtService.validateToken(token)) {
          try {
-            // 3. Extraer claims del JWT
+            // 3. Extraer claims del JWT (los emite auth-service)
             Claims claims = jwtService.extractAllClaims(token);
-
             Long userId = claims.get("userId", Long.class);
             String email = claims.getSubject();
-            String role = claims.get("role", String.class);
+            String activeRole = claims.get("activeRole", String.class);
 
-            log.debug("JWT válido: userId={}, email={}, role={}", userId, email, role);
+            // 4. Autoridades: los permisos del rol activo y el rol ("ROLE_ADMIN")
+            List<GrantedAuthority> authorities = new ArrayList<>();
+            if (claims.get("permissions") instanceof Collection<?> permissions) {
+               for (Object permission : permissions) {
+                  authorities.add(new SimpleGrantedAuthority(String.valueOf(permission)));
+               }
+            }
+            if (activeRole != null) {
+               authorities.add(new SimpleGrantedAuthority("ROLE_" + activeRole));
+            }
+            log.debug("JWT válido: userId={}, activeRole={}, permisos={}", userId, activeRole, authorities.size());
 
-            // 4. Crear authorities (roles y permisos)
-            Collection<GrantedAuthority> authorities =
-                  Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
-
-            // 5. Crear CustomUserDetails con el userId
-            CustomUserDetails userDetails = new CustomUserDetails(
-                  userId,
-                  email,
-                  role,
-                  authorities
-            );
+            // 5. Usuario autenticado con su ID, para la auditoría
+            CustomUserDetails userDetails = new CustomUserDetails(userId, email, activeRole, authorities);
 
             // 6. Establecer autenticación en el contexto de Spring Security
             UsernamePasswordAuthenticationToken authentication =
@@ -80,7 +81,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.debug("Usuario autenticado: userId={}", userId);
 
          } catch (Exception e) {
-            log.error("Error al procesar JWT: {}", e.getMessage());
+            // Token con claims inesperados: la petición sigue sin autenticar y Spring responde 401
+            log.debug("JWT rechazado: {}", e.getClass().getSimpleName());
          }
       }
 

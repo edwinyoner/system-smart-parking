@@ -10,6 +10,8 @@ import { Shift } from '../../../../core/models/parking-service/shift.model';
 import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
+import { formatShiftDuration } from '../../../../core/utils/shift.util';
+import { AuthContextService } from '../../../../core/services/auth-service/auth-context.service';
 
 @Component({
   selector: 'app-shift-list',
@@ -42,7 +44,8 @@ export class ShiftListComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private shiftService: ShiftService,
-    private router: Router
+    private router: Router,
+    private authContext: AuthContextService
   ) {
     this.successMessage = takeSuccessMessage();
     if (this.successMessage) {
@@ -161,6 +164,24 @@ export class ShiftListComponent implements OnInit {
         this.showDeleteConfirm = false;
       }
     });
+  }
+
+  /** Los botones se muestran según los permisos del rol activo (se actualizan en vivo) */
+  hasPermission(permission: string): boolean {
+    return this.authContext.hasPermission(permission);
+  }
+
+  /** Un turno que usa algún parqueo no se puede eliminar (el backend responde 409) */
+  isInUse(shift: Shift): boolean {
+    return (shift.usedByParkings?.length ?? 0) > 0;
+  }
+
+  deleteBlockedReason(shift: Shift): string {
+    return `No se puede eliminar: lo usa ${shift.usedByParkings?.join(', ')}. Puedes desactivarlo.`;
+  }
+
+  formatDuration(shift: Shift): string {
+    return formatShiftDuration(shift.durationHours);
   }
 
   formatTime(time: string): string {

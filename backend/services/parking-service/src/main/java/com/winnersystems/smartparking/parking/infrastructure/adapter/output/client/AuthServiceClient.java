@@ -12,19 +12,20 @@ import java.util.List;
  * Permite a parking-service obtener información de usuarios/operadores
  * desde auth-service de manera síncrona.
  *
+ * Va directo por Eureka (lb://auth-service), sin pasar por el gateway: es tráfico interno.
+ * auth-service no tiene el prefijo /auth en sus rutas (lo quita el gateway), por eso
+ * aquí no hay "path". FeignAuthConfig reenvía el token del usuario en cada llamada.
+ *
  * @author Edwin Yoner - Winner Systems - Smart Parking Platform
  * @version 1.0
  */
-@FeignClient(
-      name = "auth-service",
-      path = "/auth"
-)
+@FeignClient(name = "auth-service")
 public interface AuthServiceClient {
 
    /**
     * Obtiene la lista de operadores activos desde auth-service.
     *
-    * Llama a: GET http://auth-service/auth/users/operators
+    * Llama a: GET http://auth-service/users/operators (exige users.read)
     *
     * @return lista de operadores activos
     */
@@ -34,7 +35,7 @@ public interface AuthServiceClient {
    /**
     * Obtiene un usuario específico por ID desde auth-service.
     *
-    * Llama a: GET http://auth-service/auth/users/{userId}
+    * Llama a: GET http://auth-service/users/{userId} (exige users.read)
     *
     * @param userId ID del usuario
     * @return información del usuario

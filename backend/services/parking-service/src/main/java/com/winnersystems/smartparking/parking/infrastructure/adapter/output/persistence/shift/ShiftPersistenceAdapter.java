@@ -3,6 +3,7 @@ package com.winnersystems.smartparking.parking.infrastructure.adapter.output.per
 import com.winnersystems.smartparking.parking.application.dto.query.PageRequest;
 import com.winnersystems.smartparking.parking.application.dto.query.PageResult;
 import com.winnersystems.smartparking.parking.application.port.output.ShiftPersistencePort;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
 import com.winnersystems.smartparking.parking.domain.model.Shift;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.shift.entity.ShiftEntity;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.shift.mapper.ShiftPersistenceMapper;
@@ -40,9 +41,7 @@ public class ShiftPersistenceAdapter implements ShiftPersistencePort {
       if (shift.getId() != null) {
          // Actualizar existente
          entity = repository.findById(shift.getId())
-               .orElseThrow(() -> new IllegalArgumentException(
-                     "Turno no encontrado con ID: " + shift.getId()
-               ));
+               .orElseThrow(() -> new ResourceNotFoundException("Turno", shift.getId()));
          mapper.updateEntity(entity, shift);
       } else {
          // Crear nuevo
@@ -57,22 +56,25 @@ public class ShiftPersistenceAdapter implements ShiftPersistencePort {
 
    @Override
    public Optional<Shift> findById(Long id) {
-      return repository.findByIdAndDeletedAtIsNull(id)
-            .map(mapper::toDomain);
+      return repository.findByIdAndDeletedAtIsNull(id).map(mapper::toDomain);
    }
 
    @Override
    public Optional<Shift> findByCode(String code) {
-      return repository.findByCodeAndDeletedAtIsNull(code)
-            .map(mapper::toDomain);
+      return repository.findByCodeAndDeletedAtIsNull(code).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Shift> findByCodeIncludingDeleted(String code) {
+      return repository.findFirstByCodeIgnoreCase(code).map(mapper::toDomain);
    }
 
    // ========================= LIST =========================
 
+   /** Ordenados por hora de inicio: así se muestran en la configuración de tarifas */
    @Override
    public List<Shift> findAllActive() {
-      // FIX: OrderByIdAsc en lugar de OrderByNameAsc
-      return repository.findByStatusTrueAndDeletedAtIsNullOrderByIdAsc()
+      return repository.findByStatusTrueAndDeletedAtIsNullOrderByStartTimeAsc()
             .stream()
             .map(mapper::toDomain)
             .toList();
@@ -80,24 +82,12 @@ public class ShiftPersistenceAdapter implements ShiftPersistencePort {
 
    @Override
    public PageResult<Shift> findAll(PageRequest pageRequest, String search, Boolean status) {
-      Pageable pageable = buildPageable(pageRequest);
-
-      boolean hasSearch = search != null && !search.trim().isEmpty();
-      boolean hasStatus = status != null;
-
-      Page<ShiftEntity> page;
-
-      if (hasSearch && hasStatus) {
-         page = repository.findByDeletedAtIsNullAndNameContainingIgnoreCaseAndStatus(
-               search.trim(), status, pageable);
-      } else if (hasSearch) {
-         page = repository.findByDeletedAtIsNullAndNameContainingIgnoreCase(
-               search.trim(), pageable);
-      } else if (hasStatus) {
-         page = repository.findByDeletedAtIsNullAndStatus(status, pageable);
-      } else {
-         page = repository.findByDeletedAtIsNull(pageable);
+      String text = search == null || search.isBlank() ? null : search.trim().toLowerCase();
+      // %, _ y \ escritos por el usuario se buscan como texto, no como comodines
+      if (text != null) {
+         text = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
       }
+      Page<ShiftEntity> page = repository.search(text, status, buildPageable(pageRequest));
 
       return PageResult.of(
             page.getContent().stream().map(mapper::toDomain).toList(),
@@ -108,37 +98,9 @@ public class ShiftPersistenceAdapter implements ShiftPersistencePort {
    }
 
    private Pageable buildPageable(PageRequest req) {
-      if (req.hasSorting()) {
-         return org.springframework.data.domain.PageRequest.of(
-               req.page(), req.size(),
-               Sort.by(Sort.Direction.fromString(req.sortDirection()), req.sortBy())
-         );
-      }
-      return org.springframework.data.domain.PageRequest.of(
-            req.page(), req.size(),
-            Sort.by(Sort.Direction.ASC, "id")
-      );
-   }
-
-
-   // ========================= VALIDATION =========================
-
-   @Override
-   public boolean existsByCode(String code) {
-      return repository.existsByCodeAndDeletedAtIsNull(code);
-   }
-
-   @Override
-   public boolean existsByCodeAndIdNot(String code, Long id) {
-      Optional<ShiftEntity> existing = repository.findByCodeAndDeletedAtIsNull(code);
-      return existing.isPresent() && !existing.get().getId().equals(id);
-   }
-
-   // ========================= DELETE =========================
-
-   @Override
-   public void delete(Long id) {
-      // Hard delete (eliminar físicamente de la BD)
-      repository.deleteById(id);
+      Sort sort = req.hasSorting()
+            ? Sort.by(Sort.Direction.fromString(req.sortDirection()), req.sortBy())
+            : Sort.by(Sort.Direction.ASC, "id");
+      return org.springframework.data.domain.PageRequest.of(req.page(), req.size(), sort);
    }
 }

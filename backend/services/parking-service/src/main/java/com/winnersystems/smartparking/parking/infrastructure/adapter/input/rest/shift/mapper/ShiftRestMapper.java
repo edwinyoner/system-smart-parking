@@ -1,55 +1,40 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.mapper;
 
-import org.springframework.stereotype.Component;
 import com.winnersystems.smartparking.parking.application.dto.command.CreateShiftCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.UpdateShiftCommand;
 import com.winnersystems.smartparking.parking.application.dto.query.ShiftDto;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.dto.request.CreateShiftRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.dto.request.UpdateShiftRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.shift.dto.response.ShiftResponse;
+import org.springframework.stereotype.Component;
 
 /**
- * Mapper para conversión entre DTOs REST y DTOs de aplicación para turnos.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre los DTO REST y los de la capa de aplicación.
  */
 @Component
 public class ShiftRestMapper {
 
-   /**
-    * Convierte CreateShiftRequest a CreateShiftCommand.
-    */
    public CreateShiftCommand toCommand(CreateShiftRequest request) {
-      return CreateShiftCommand.builder()
-            .name(request.getName())
-            .code(request.getCode())
-            .description(request.getDescription())
-            .startTime(request.getStartTime())
-            .endTime(request.getEndTime())
-//            .status(request.getStatus())
-            .build();
+      return new CreateShiftCommand(
+            request.getName(),
+            request.getCode(),
+            request.getDescription(),
+            request.getStartTime(),
+            request.getEndTime(),
+            request.getStatus());   // Antes se descartaba y el turno nacía siempre inactivo
    }
 
-   /**
-    * Convierte UpdateShiftRequest a UpdateShiftCommand.
-    */
    public UpdateShiftCommand toCommand(UpdateShiftRequest request) {
-      return UpdateShiftCommand.builder()
-            .name(request.getName())
-            .description(request.getDescription())
-            .startTime(request.getStartTime())
-            .endTime(request.getEndTime())
-            .status(request.getStatus())
-            .build();
+      return new UpdateShiftCommand(
+            request.getName(),
+            request.getDescription(),
+            request.getStartTime(),
+            request.getEndTime(),
+            request.getStatus());
    }
 
-   /**
-    * Convierte ShiftDto a ShiftResponse.
-    */
    public ShiftResponse toResponse(ShiftDto dto) {
       if (dto == null) return null;
-
       return new ShiftResponse(
             dto.id(),
             dto.name(),
@@ -58,8 +43,12 @@ public class ShiftRestMapper {
             dto.startTime(),
             dto.endTime(),
             dto.status(),
+            dto.crossesMidnight(),
+            dto.durationHours(),
+            dto.usedByParkings(),
             dto.createdAt(),
-            dto.updatedAt()
-      );
+            dto.createdBy(),
+            dto.updatedAt(),
+            dto.updatedBy());
    }
 }

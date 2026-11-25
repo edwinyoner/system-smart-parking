@@ -41,6 +41,7 @@ public class InfractionService implements
    private final ZonePersistencePort zonePersistencePort;
    private final VehiclePersistencePort vehiclePersistencePort;
    private final CustomerPersistencePort customerPersistencePort;
+   private final CurrentUserPort currentUserPort;
 
    // ========================= CONSTRUCTOR =========================
 
@@ -49,7 +50,9 @@ public class InfractionService implements
          ParkingPersistencePort parkingPersistencePort,
          ZonePersistencePort zonePersistencePort,
          VehiclePersistencePort vehiclePersistencePort,
-         CustomerPersistencePort customerPersistencePort) {
+         CustomerPersistencePort customerPersistencePort,
+         CurrentUserPort currentUserPort) {
+      this.currentUserPort = currentUserPort;
       this.infractionPersistencePort = infractionPersistencePort;
       this.parkingPersistencePort = parkingPersistencePort;
       this.zonePersistencePort = zonePersistencePort;
@@ -398,8 +401,8 @@ public class InfractionService implements
 
    // ========================= HELPERS - UTILIDADES =========================
 
+   /** Usuario del JWT, para la auditoría. Vacío solo si la petición no trae token */
    private Long getCurrentUserId() {
-      // TODO: Obtener desde SecurityContext
-      return 1L;
+      return currentUserPort.getCurrentUserId().orElse(null);
    }
 }

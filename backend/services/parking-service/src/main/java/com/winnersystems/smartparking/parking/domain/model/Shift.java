@@ -1,27 +1,32 @@
 package com.winnersystems.smartparking.parking.domain.model;
 
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
+
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 /**
  * Entidad de dominio que representa un TURNO horario de operación.
  *
- * Un turno define un periodo del día con un horario específico de inicio y fin.
- * Los turnos se usan para configurar tarifas diferenciadas según la hora del día.
+ * Un turno define un periodo del día con hora de inicio y de fin. Los turnos son globales:
+ * cada parqueo elige cuáles usa y con qué tarifa mediante ParkingShiftRate. Si un horario no
+ * está cubierto por ningún turno del parqueo, el parqueo no opera en ese horario.
  *
- * Ejemplos típicos:
- * - MAÑANA:  06:00 - 13:59 (horario comercial matutino)
- * - TARDE:   14:00 - 19:59 (horario pico comercial)
- * - NOCHE:   20:00 - 05:59 (horario nocturno)
+ * Convención de horario: el inicio y el fin se incluyen y se comparan al minuto.
+ * - MAÑANA: 06:00 - 13:59  (13:59:30 sigue siendo Mañana; 14:00 ya es Tarde)
+ * - TARDE:  14:00 - 19:59
+ * - NOCHE:  20:00 - 05:59  (cruza la medianoche)
  *
- * Cada zona de estacionamiento puede tener tarifas diferentes según el turno,
- * reflejando la demanda y el contexto operativo de cada periodo del día.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Los turnos pueden solaparse entre sí (un parqueo usa "Día completo" y otro "Mañana" y
+ * "Tarde"). El solapamiento solo importa dentro de un mismo parqueo y se valida en
+ * ParkingShiftRate.
  */
 public class Shift {
+
+   /** Minutos de un día: para turnos que cruzan la medianoche */
+   private static final int MINUTES_PER_DAY = 24 * 60;
 
    // ========================= CAMPOS DE IDENTIDAD =========================
 
@@ -32,8 +37,8 @@ public class Shift {
 
    // ========================= CAMPOS DE HORARIO =========================
 
-   private LocalTime startTime;                           // Hora de inicio (ej: 06:00)
-   private LocalTime endTime;                             // Hora de fin (ej: 13:59)
+   private LocalTime startTime;                           // Hora de inicio, incluida (ej: 06:00)
+   private LocalTime endTime;                             // Hora de fin, incluida (ej: 13:59)
 
    // ========================= CAMPOS DE ESTADO =========================
 
@@ -51,22 +56,18 @@ public class Shift {
    // ========================= CONSTRUCTORES =========================
 
    /**
-    * Constructor vacío - Inicializa con valores por defecto.
-    * Turno empieza INACTIVO hasta ser configurado completamente.
+    * Constructor vacío: lo usan los mappers al reconstruir desde la base de datos.
+    * Un turno nuevo empieza inactivo salvo que se active explícitamente.
     */
    public Shift() {
       this.status = false;
       this.createdAt = LocalDateTime.now();
-      this.updatedAt = LocalDateTime.now();
+      this.updatedAt = this.createdAt;
    }
 
    /**
-    * Constructor con campos básicos.
-    *
-    * @param name nombre del turno
-    * @param code código único
-    * @param startTime hora de inicio
-    * @param endTime hora de fin
+    * Constructor con los datos básicos. No valida: sirve también para reconstruir datos guardados.
+    * Para crear un turno nuevo usar {@link #create}.
     */
    public Shift(String name, String code, LocalTime startTime, LocalTime endTime) {
       this();
@@ -76,25 +77,32 @@ public class Shift {
       this.endTime = endTime;
    }
 
-   /**
-    * Constructor completo.
-    *
-    * @param name nombre del turno
-    * @param code código único
-    * @param startTime hora de inicio
-    * @param endTime hora de fin
-    * @param description descripción
-    */
    public Shift(String name, String code, LocalTime startTime, LocalTime endTime, String description) {
       this(name, code, startTime, endTime);
       this.description = description;
    }
 
+   /**
+    * Crea un turno nuevo validando sus datos.
+    *
+    * @param active    si nace activo
+    * @param createdBy usuario que lo crea (auditoría)
+    * @throws ParkingDomainException si el nombre, el código o el horario no son válidos
+    */
+   public static Shift create(String name, String code, LocalTime startTime, LocalTime endTime,
+                              String description, boolean active, Long createdBy) {
+      Shift shift = new Shift(requireText(name, "nombre"), normalizeCode(code), null, null,
+            blankToNull(description));
+      shift.applySchedule(startTime, endTime);
+      shift.status = active;
+      shift.createdBy = createdBy;
+      shift.updatedBy = createdBy;
+      return shift;
+   }
+
    // ========================= MÉTODOS DE NEGOCIO - INFORMACIÓN =========================
 
    /**
-    * Obtiene el identificador completo del turno.
-    *
     * @return identificador formateado (ej: "[MORNING] Mañana")
     */
    public String getFullName() {
@@ -102,8 +110,6 @@ public class Shift {
    }
 
    /**
-    * Obtiene el rango horario formateado.
-    *
     * @return rango horario (ej: "06:00 - 13:59")
     */
    public String getTimeRange() {
@@ -111,68 +117,57 @@ public class Shift {
    }
 
    /**
-    * Calcula la duración del turno en horas.
-    * Maneja correctamente turnos que cruzan medianoche.
-    *
-    * @return duración en horas
+    * Duración del turno en horas, contando el minuto final (06:00 - 13:59 son 8 h).
+    * Maneja turnos que cruzan la medianoche (20:00 - 05:59 son 10 h).
     */
    public double getDurationHours() {
-      if (startTime == null || endTime == null) {
+      if (!hasSchedule()) {
          return 0.0;
       }
-
-      int startMinutes = startTime.getHour() * 60 + startTime.getMinute();
-      int endMinutes = endTime.getHour() * 60 + endTime.getMinute();
-
-      // Si el turno cruza medianoche (ej: 20:00 - 05:59)
-      if (endMinutes <= startMinutes) {
-         endMinutes += 24 * 60; // Sumar 24 horas
-      }
-
-      int durationMinutes = endMinutes - startMinutes;
-      return durationMinutes / 60.0;
+      int start = minuteOfDay(startTime);
+      int end = minuteOfDay(endTime);
+      int minutes = Math.floorMod(end - start, MINUTES_PER_DAY) + 1;
+      return minutes / 60.0;
    }
 
    // ========================= MÉTODOS DE NEGOCIO - VALIDACIÓN HORARIA =========================
 
    /**
-    * Verifica si una hora específica está dentro de este turno.
-    * Maneja correctamente turnos que cruzan medianoche.
+    * Verifica si una hora está dentro de este turno.
+    *
+    * Se compara al minuto: 13:59:30 cuenta como 13:59. Así no queda ningún hueco entre un
+    * turno que termina a las 13:59 y otro que empieza a las 14:00.
     *
     * @param time hora a verificar
     * @return true si la hora está dentro del turno
     */
    public boolean isWithinShift(LocalTime time) {
-      if (time == null || startTime == null || endTime == null) {
+      if (time == null || !hasSchedule()) {
          return false;
       }
+      LocalTime t = time.truncatedTo(ChronoUnit.MINUTES);
+      LocalTime start = startTime.truncatedTo(ChronoUnit.MINUTES);
+      LocalTime end = endTime.truncatedTo(ChronoUnit.MINUTES);
 
-      // Si el turno NO cruza medianoche (ej: 06:00 - 13:59)
-      if (startTime.isBefore(endTime) || startTime.equals(endTime)) {
-         return !time.isBefore(startTime) && !time.isAfter(endTime);
+      if (!crossesMidnight()) {
+         // Ej: 06:00 - 13:59
+         return !t.isBefore(start) && !t.isAfter(end);
       }
-
-      // Si el turno cruza medianoche (ej: 20:00 - 05:59)
-      return !time.isBefore(startTime) || !time.isAfter(endTime);
+      // Ej: 20:00 - 05:59: desde el inicio hasta medianoche, o desde medianoche hasta el fin
+      return !t.isBefore(start) || !t.isAfter(end);
    }
 
    /**
-    * Verifica si el turno cruza la medianoche.
-    *
-    * @return true si endTime es antes que startTime
+    * @return true si el fin es anterior al inicio (ej: 20:00 - 05:59)
     */
    public boolean crossesMidnight() {
-      if (startTime == null || endTime == null) {
-         return false;
-      }
-      return endTime.isBefore(startTime);
+      return hasSchedule() && endTime.isBefore(startTime);
    }
 
    // ========================= MÉTODOS DE NEGOCIO - GESTIÓN DE ESTADO =========================
 
    /**
-    * Activa el turno.
-    * Permite que sea usado en la configuración de tarifas.
+    * Activa el turno: puede usarse en la configuración de tarifas de los parqueos.
     */
    public void activate() {
       this.status = true;
@@ -180,29 +175,18 @@ public class Shift {
    }
 
    /**
-    * Desactiva el turno.
-    * No se podrán crear nuevas tarifas con este turno.
-    * Las tarifas existentes NO se ven afectadas.
+    * Desactiva el turno. Los parqueos que lo usan dejan de operar en ese horario
+    * hasta que se active de nuevo. Sus tarifas no se eliminan.
     */
    public void deactivate() {
       this.status = false;
       this.updatedAt = LocalDateTime.now();
    }
 
-   /**
-    * Verifica si el turno está activo.
-    *
-    * @return true si status = true
-    */
    public boolean isActive() {
       return status;
    }
 
-   /**
-    * Verifica si el turno está inactivo.
-    *
-    * @return true si status = false
-    */
    public boolean isInactive() {
       return !status;
    }
@@ -210,22 +194,22 @@ public class Shift {
    // ========================= MÉTODOS DE NEGOCIO - SOFT DELETE =========================
 
    /**
-    * Marca el turno como eliminado (soft delete).
-    * También lo desactiva automáticamente.
-    * Las tarifas existentes con este turno NO se eliminan.
+    * Marca el turno como eliminado (soft delete) y lo desactiva.
+    * El servicio verifica antes que ningún parqueo lo use.
     *
-    * @param deletedByUserId ID del usuario administrador que elimina
+    * @param deletedByUserId usuario que elimina (auditoría)
     */
    public void markAsDeleted(Long deletedByUserId) {
-      this.deletedAt = LocalDateTime.now();
+      LocalDateTime now = LocalDateTime.now();
+      this.deletedAt = now;
       this.deletedBy = deletedByUserId;
+      this.updatedBy = deletedByUserId;
       this.status = false;
-      this.updatedAt = LocalDateTime.now();
+      this.updatedAt = now;
    }
 
    /**
-    * Restaura un turno previamente eliminado.
-    * Queda inactivo, debe ser activado manualmente.
+    * Restaura un turno eliminado. Queda inactivo: debe activarse manualmente.
     */
    public void restore() {
       this.deletedAt = null;
@@ -234,11 +218,6 @@ public class Shift {
       this.updatedAt = LocalDateTime.now();
    }
 
-   /**
-    * Verifica si el turno está eliminado.
-    *
-    * @return true si deletedAt no es null
-    */
    public boolean isDeleted() {
       return deletedAt != null;
    }
@@ -246,33 +225,26 @@ public class Shift {
    // ========================= MÉTODOS DE NEGOCIO - ACTUALIZACIÓN DE DATOS =========================
 
    /**
-    * Actualiza la información básica del turno.
-    *
-    * @param name nuevo nombre
-    * @param description nueva descripción
+    * Actualiza el nombre y la descripción. El código no cambia: lo usan las tarifas.
     */
    public void updateBasicInfo(String name, String description) {
-      this.name = name;
-      this.description = description;
+      this.name = requireText(name, "nombre");
+      this.description = blankToNull(description);
       this.updatedAt = LocalDateTime.now();
    }
 
    /**
-    * Actualiza el horario del turno.
+    * Actualiza el horario validándolo.
     *
-    * @param startTime nueva hora de inicio
-    * @param endTime nueva hora de fin
+    * @throws ParkingDomainException si falta una hora o el inicio es igual al fin
     */
    public void updateSchedule(LocalTime startTime, LocalTime endTime) {
-      this.startTime = startTime;
-      this.endTime = endTime;
+      applySchedule(startTime, endTime);
       this.updatedAt = LocalDateTime.now();
    }
 
    /**
-    * Actualiza el usuario que modificó este registro.
-    *
-    * @param userId ID del usuario que modifica
+    * Registra quién modificó el turno (auditoría).
     */
    public void updateModifiedBy(Long userId) {
       this.updatedBy = userId;
@@ -281,23 +253,50 @@ public class Shift {
 
    // ========================= MÉTODOS DE VALIDACIÓN =========================
 
-   /**
-    * Verifica si el turno tiene horario configurado.
-    *
-    * @return true si tiene startTime y endTime
-    */
    public boolean hasSchedule() {
       return startTime != null && endTime != null;
    }
 
    /**
-    * Verifica si el turno puede ser usado.
-    * Debe estar activo, no eliminado y con horario configurado.
-    *
-    * @return true si puede ser usado
+    * Puede usarse si está activo, no eliminado y con horario.
     */
    public boolean isUsable() {
       return isActive() && !isDeleted() && hasSchedule();
+   }
+
+   private void applySchedule(LocalTime start, LocalTime end) {
+      if (start == null || end == null) {
+         throw new ParkingDomainException("La hora de inicio y la de fin son obligatorias");
+      }
+      LocalTime startMinute = start.truncatedTo(ChronoUnit.MINUTES);
+      LocalTime endMinute = end.truncatedTo(ChronoUnit.MINUTES);
+      if (startMinute.equals(endMinute)) {
+         // Con inicio y fin iguales no se sabe si dura un minuto o el día entero
+         throw new ParkingDomainException(
+               "La hora de inicio y la de fin no pueden ser iguales. Para todo el día usa 00:00 - 23:59");
+      }
+      this.startTime = startMinute;
+      this.endTime = endMinute;
+   }
+
+   private static int minuteOfDay(LocalTime time) {
+      return time.getHour() * 60 + time.getMinute();
+   }
+
+   private static String requireText(String value, String field) {
+      if (value == null || value.isBlank()) {
+         throw new ParkingDomainException("El " + field + " del turno es obligatorio");
+      }
+      return value.trim();
+   }
+
+   /** Código en mayúsculas y sin espacios alrededor (ej: " morning " → "MORNING") */
+   private static String normalizeCode(String code) {
+      return requireText(code, "código").toUpperCase();
+   }
+
+   private static String blankToNull(String value) {
+      return value == null || value.isBlank() ? null : value.trim();
    }
 
    // ========================= GETTERS Y SETTERS =========================
@@ -354,7 +353,7 @@ public class Shift {
       return status;
    }
 
-   // NO HAY setStatus() público - usar activate() o deactivate()
+   // No hay setStatus() público: usar activate() o deactivate()
 
    public LocalDateTime getCreatedAt() {
       return createdAt;
@@ -407,27 +406,22 @@ public class Shift {
    // ========================= EQUALS, HASHCODE Y TOSTRING =========================
 
    /**
-    * Dos turnos son iguales si tienen el mismo ID o el mismo código.
+    * Dos turnos son iguales si tienen el mismo ID. Sin ID (aún no guardado), solo es igual a sí mismo.
+    * Así equals y hashCode son coherentes (antes comparaba por ID o por código).
     */
    @Override
    public boolean equals(Object o) {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
-      Shift shift = (Shift) o;
-      return Objects.equals(id, shift.id) || Objects.equals(code, shift.code);
+      Shift other = (Shift) o;
+      return id != null && id.equals(other.id);
    }
 
-   /**
-    * HashCode basado en ID y código únicamente.
-    */
    @Override
    public int hashCode() {
-      return Objects.hash(id, code);
+      return id != null ? id.hashCode() : System.identityHashCode(this);
    }
 
-   /**
-    * ToString para logging y debugging.
-    */
    @Override
    public String toString() {
       return "Shift{" +

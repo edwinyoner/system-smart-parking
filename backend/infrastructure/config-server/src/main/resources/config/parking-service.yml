@@ -55,6 +55,18 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+  # ========== FEIGN (llamadas internas a auth-service por Eureka) ==========
+  # loggerLevel basic: método, URL y estado. "full" escribiría las cabeceras,
+  # incluido el token Authorization que se reenvía en cada llamada.
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 5000
+            logger-level: basic
+
 # ========== EUREKA CLIENT ==========
 eureka:
   client:
@@ -77,26 +89,6 @@ eureka:
 jwt:
   secret: ${JWT_SECRET}   # Definido en backend/.env (no versionado)
   access-token-expiration: 1800000  # 30 minutos (debe coincidir con auth-service)
-
-# ========== FEIGN CLIENT CONFIGURATION (NUEVO) ==========
-feign:
-  client:
-    config:
-      default:
-        connectTimeout: 5000
-        readTimeout: 5000
-        loggerLevel: basic
-      auth-service:
-        connectTimeout: 5000
-        readTimeout: 5000
-        loggerLevel: full  # Para debugging detallado
-
-# ========== RIBBON LOAD BALANCER (NUEVO) ==========
-ribbon:
-  eureka:
-    enabled: true
-  ReadTimeout: 5000
-  ConnectTimeout: 5000
 
 # ========== PARKING SERVICE CONFIGURATION ==========
 parking:
@@ -146,7 +138,7 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.jdbc.core: DEBUG
     org.springframework.security: DEBUG
-    feign: DEBUG  # Para debugging de Feign
+    com.winnersystems.smartparking.parking.infrastructure.adapter.output.client: DEBUG  # Log de Feign (nivel basic)
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

@@ -35,7 +35,7 @@ public class ShiftPersistenceMapper {
       // Configurar ID
       shift.setId(entity.getId());
 
-      // Establecer estado usando métodos de dominio
+      // Estado guardado (la fecha de modificación se restaura abajo)
       if (Boolean.TRUE.equals(entity.getStatus())) {
          shift.activate();
       } else {
