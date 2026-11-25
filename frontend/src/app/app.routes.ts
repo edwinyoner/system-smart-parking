@@ -25,11 +25,6 @@ export const routes: Routes = [
         data: { title: 'Iniciar Sesión' }
       },
       {
-        path: 'register',
-        loadChildren: () => import('./views/auth/routes').then(m => m.registerRoutes),
-        data: { title: 'Crear Cuenta' }
-      },
-      {
         path: 'forgot-password',
         loadChildren: () => import('./views/auth/routes').then(m => m.forgotPasswordRoutes),
         data: { title: 'Recuperar Contraseña' }

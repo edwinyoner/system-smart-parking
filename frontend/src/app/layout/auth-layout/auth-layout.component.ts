@@ -7,7 +7,6 @@ import { CommonModule } from "@angular/common";
  *
  * Sin sidebar, diseño centrado y limpio para:
  * - Login
- * - Register
  * - Forgot Password
  * - Reset Password
  * - Verify Email

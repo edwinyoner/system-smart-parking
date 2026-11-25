@@ -58,15 +58,6 @@ export class UserService {
   }
 
   /**
-   * Obtiene todos los usuarios sin paginación (para selects)
-   */
-  getAllUsers(): Observable<User[]> {
-    return this.http
-      .get<User[]>(`${this.API_URL}/all`)
-      .pipe(catchError(this.handleError));
-  }
-
-  /**
    * Obtiene los datos actuales del usuario autenticado, sin mostrar el spinner
    */
   getMe(): Observable<User> {
@@ -140,19 +131,6 @@ export class UserService {
       `${this.API_URL}/${userId}/resend-credentials`,
       { password }, // En el cuerpo: en la URL quedaría en logs
     );
-  }
-
-  // ========== OBTENER USUARIOS POR ROL ==========
-
-  /**
-   * Obtiene usuarios filtrados por rol específico
-   * @param role Nombre del rol (ADMIN, OPERADOR, AUTORIDAD)
-   */
-  getByRole(role: string): Observable<User[]> {
-    const params = new HttpParams().set("role", role);
-    return this.http
-      .get<User[]>(`${this.API_URL}/by-role`, { params })
-      .pipe(catchError(this.handleError));
   }
 
   // ========== MÉTODO - OBTENER OPERADORES ==========

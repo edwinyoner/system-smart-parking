@@ -42,7 +42,6 @@ export class LoginComponent implements OnInit {
 
   // Feature flags del environment
   showRememberMe = environment.features.enableRememberMe;
-  showRegistration = environment.features.enableRegistration;
   enableCaptcha = environment.features.enableRecaptcha; // CORREGIDO
 
   // Roles disponibles. Los del sistema se muestran mientras llega la lista completa

@@ -30,7 +30,6 @@ export const environment = {
 
   // Features flags (para activar/desactivar funcionalidades)
   features: {
-    enableRegistration: true, // Permitir registro de usuarios
     enableEmailVerification: true, // Requerir verificación de email
     enableRecaptcha: false, // reCAPTCHA (desactivado en dev)
     enableRememberMe: true, // Opción "Recordarme"

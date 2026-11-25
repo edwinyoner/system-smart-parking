@@ -114,26 +114,6 @@ export class RoleService {
     );
   }
 
-  // ========== GESTIÓN DE PERMISOS ==========
-
-  /**
-   * Asigna permisos a un rol
-   */
-  assignPermissions(roleId: number, permissionIds: number[]): Observable<Role> {
-    return this.http.post<Role>(`${this.API_URL}/${roleId}/permissions`, { permissionIds }).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  /**
-   * Remueve un permiso de un rol
-   */
-  removePermission(roleId: number, permissionId: number): Observable<Role> {
-    return this.http.delete<Role>(`${this.API_URL}/${roleId}/permissions/${permissionId}`).pipe(
-      catchError(this.handleError)
-    );
-  }
-
   // ========== MANEJO DE ERRORES ==========
 
   private handleError(error: any): Observable<never> {

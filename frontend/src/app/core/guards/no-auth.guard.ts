@@ -4,7 +4,7 @@ import { TokenService } from '../services/token.service';
 import { environment } from '../../../environments/environment';
 
 /**
- * Guard para proteger rutas públicas (login, register, etc.)
+ * Guard para proteger rutas públicas (login, recuperar contraseña, etc.)
  * 
  * Si el usuario YA está autenticado → Redirige a /dashboard
  * Si el usuario NO está autenticado → Permite el acceso

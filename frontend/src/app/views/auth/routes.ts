@@ -15,11 +15,6 @@ export const authRoutes: Routes = [
     title: 'Iniciar Sesión - Smart Parking'
   },
   {
-    path: 'register',
-    loadComponent: () => import('./register/register.component').then(m => m.RegisterComponent),
-    title: 'Crear Cuenta - Smart Parking'
-  },
-  {
     path: 'forgot-password',
     loadComponent: () => import('./forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
     title: 'Recuperar Contraseña - Smart Parking'
@@ -42,14 +37,6 @@ export const loginRoutes: Routes = [
     path: '',
     loadComponent: () => import('./login/login.component').then(m => m.LoginComponent),
     title: 'Iniciar Sesión - Smart Parking'
-  }
-];
-
-export const registerRoutes: Routes = [
-  {
-    path: '',
-    loadComponent: () => import('./register/register.component').then(m => m.RegisterComponent),
-    title: 'Crear Cuenta - Smart Parking'
   }
 ];
 

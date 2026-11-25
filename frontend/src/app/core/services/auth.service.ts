@@ -20,7 +20,6 @@ import {
   ResetPasswordRequest,
   ResendVerificationRequest
 } from '../models/login-request.model';
-import { RegisterRequest, RegisterResponse } from '../models/register-request.model';
 
 /**
  * Servicio de autenticación
@@ -120,17 +119,6 @@ export class AuthService {
     if (environment.features.showDebugInfo) {
       console.log('Logout exitoso');
     }
-  }
-
-  // ========== REGISTRO ==========
-
-  /**
-   * Registra un nuevo usuario (ciudadano)
-   */
-  register(request: RegisterRequest): Observable<RegisterResponse> {
-    return this.http.post<RegisterResponse>(`${this.API_URL}/register`, request).pipe(
-      catchError(this.handleError)
-    );
   }
 
   // ========== REFRESH TOKEN ==========

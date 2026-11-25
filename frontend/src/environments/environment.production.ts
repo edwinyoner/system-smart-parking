@@ -27,7 +27,6 @@ export const environment = {
   
   // Features flags
   features: {
-    enableRegistration: true,      // Permitir registro de usuarios
     enableEmailVerification: true, // Requerir verificación de email
     enableRecaptcha: true,         // reCAPTCHA activado en producción
     enableRememberMe: true,        // Opción "Recordarme"
