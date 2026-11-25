@@ -42,11 +42,16 @@ public class RoleService {
    /**
     * Lista roles con paginación y filtros
     */
-   public PagedResponse<RoleDto> listRoles(String search, Boolean status, int page, int size) {
-      // Incluye los inactivos: si no, un rol desactivado no podría reactivarse
-      List<Role> roles = rolePersistencePort.findAll().stream()
-            .sorted(Comparator.comparing(Role::getId))
-            .toList();
+   public PagedResponse<RoleDto> listRoles(String search, Boolean status, boolean deleted, int page, int size) {
+      // Incluye los inactivos: si no, un rol desactivado no podría reactivarse.
+      // La papelera (deleted = true) muestra solo los eliminados, el más reciente primero
+      List<Role> roles = deleted
+            ? rolePersistencePort.findAllDeleted().stream()
+                  .sorted(Comparator.comparing(Role::getDeletedAt).reversed())
+                  .toList()
+            : rolePersistencePort.findAll().stream()
+                  .sorted(Comparator.comparing(Role::getId))
+                  .toList();
 
       // Filtrar por búsqueda: todas las palabras, sin distinguir tildes
       if (search != null && !search.isBlank()) {
@@ -149,15 +154,31 @@ public class RoleService {
       rolePersistencePort.save(role);
    }
 
+   /**
+    * Restaura un rol eliminado (soft delete), con sus mismos permisos
+    */
+   public RoleDto restoreRole(Long id, Long actorId) {
+      Role role = rolePersistencePort.findDeletedById(id)
+            .orElseThrow(() -> rolePersistencePort.findById(id).isPresent()
+                  ? new IllegalStateException("El rol no está eliminado")
+                  : new RoleNotFoundException(id));
+
+      role.restore();
+      role.updateModifiedBy(actorId);
+      return mapToDto(rolePersistencePort.save(role));
+   }
+
    private Role findRole(Long id) {
       return rolePersistencePort.findById(id)
             .orElseThrow(() -> new RoleNotFoundException(id));
    }
 
    private void ensureNameIsAvailable(String name) {
-      if (rolePersistencePort.existsByName(name)) {
-         throw new IllegalStateException("El nombre " + name + " ya está en uso o perteneció a un rol eliminado");
-      }
+      rolePersistencePort.findByNameIncludingDeleted(name).ifPresent(owner -> {
+         throw new IllegalStateException(owner.getDeletedAt() != null
+               ? "El nombre " + name + " pertenece a un rol eliminado. Restáuralo desde Eliminados o usa otro nombre"
+               : "El nombre " + name + " ya está en uso");
+      });
    }
 
    /** Un permiso inactivo solo se admite si el rol ya lo tenía. */

@@ -43,8 +43,22 @@ public class RoleRestAdapter {
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "10") int size
    ) {
-      PagedResponse<RoleDto> response = roleService.listRoles(search, status, page, size);
+      PagedResponse<RoleDto> response = roleService.listRoles(search, status, false, page, size);
       return ResponseEntity.ok(response);
+   }
+
+   /**
+    * GET /roles?deleted=true - Papelera: roles eliminados.
+    * Solo quien puede restaurarlos (ADMIN activo) los ve.
+    */
+   @GetMapping(params = "deleted=true")
+   @PreAuthorize(ACTIVE_ADMIN)
+   public ResponseEntity<PagedResponse<RoleDto>> listDeletedRoles(
+         @RequestParam(required = false) String search,
+         @RequestParam(defaultValue = "0") int page,
+         @RequestParam(defaultValue = "10") int size
+   ) {
+      return ResponseEntity.ok(roleService.listRoles(search, null, true, page, size));
    }
 
    /**
@@ -117,5 +131,16 @@ public class RoleRestAdapter {
          @AuthenticationPrincipal CustomUserDetails actor) {
       roleService.deleteRole(id, actor.getUserId());
       return ResponseEntity.noContent().build();
+   }
+
+   /**
+    * POST /roles/{id}/restore - Restaurar un rol eliminado
+    */
+   @PostMapping("/{id}/restore")
+   @PreAuthorize(ACTIVE_ADMIN)
+   public ResponseEntity<RoleDto> restoreRole(
+         @PathVariable Long id,
+         @AuthenticationPrincipal CustomUserDetails actor) {
+      return ResponseEntity.ok(roleService.restoreRole(id, actor.getUserId()));
    }
 }

@@ -35,6 +35,10 @@ public interface RoleRepository extends JpaRepository<RoleEntity, Long> {
 
    boolean existsByNameIgnoreCase(String name);
 
+   Optional<RoleEntity> findFirstByNameIgnoreCase(String name);
+
+   List<RoleEntity> findByDeletedAtIsNotNull();
+
    /**
     * Busca roles activos y no eliminados
     */

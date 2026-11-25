@@ -55,6 +55,26 @@ public class RolePersistenceAdapter implements RolePersistencePort {
    }
 
    @Override
+   public List<Role> findAllDeleted() {
+      return roleRepository.findByDeletedAtIsNotNull().stream()
+            .map(mapper::toDomain)
+            .collect(Collectors.toList());
+   }
+
+   @Override
+   public Optional<Role> findDeletedById(Long id) {
+      return roleRepository.findById(id)
+            .filter(entity -> entity.getDeletedAt() != null)
+            .map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Role> findByNameIncludingDeleted(String name) {
+      return roleRepository.findFirstByNameIgnoreCase(name)
+            .map(mapper::toDomain);
+   }
+
+   @Override
    public Optional<Role> findByName(String name) {
       return roleRepository.findByName(name)
             .filter(entity -> entity.getDeletedAt() == null)  // Excluir eliminados

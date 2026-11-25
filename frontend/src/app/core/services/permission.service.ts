@@ -5,8 +5,6 @@ import { Observable, catchError, throwError, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { 
   Permission, 
-  CreatePermissionRequest, 
-  UpdatePermissionRequest, 
   PermissionFilters,
   PermissionGroup 
 } from '../models/permission.model';
@@ -78,39 +76,6 @@ export class PermissionService {
    */
   getPermissionById(id: number): Observable<Permission> {
     return this.http.get<Permission>(`${this.API_URL}/${id}`).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // ========== CREAR PERMISO ==========
-
-  /**
-   * Crea un nuevo permiso
-   */
-  createPermission(request: CreatePermissionRequest): Observable<Permission> {
-    return this.http.post<Permission>(this.API_URL, request).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // ========== ACTUALIZAR PERMISO ==========
-
-  /**
-   * Actualiza un permiso existente
-   */
-  updatePermission(id: number, request: UpdatePermissionRequest): Observable<Permission> {
-    return this.http.put<Permission>(`${this.API_URL}/${id}`, request).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // ========== ELIMINAR PERMISO ==========
-
-  /**
-   * Elimina un permiso (solo si no está asignado a ningún rol)
-   */
-  deletePermission(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.API_URL}/${id}`).pipe(
       catchError(this.handleError)
     );
   }

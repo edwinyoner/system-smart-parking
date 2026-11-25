@@ -48,6 +48,13 @@ export class RoleListComponent implements OnInit {
   showDeleteConfirm = false;
   roleToDelete: Role | null = null;
 
+  // Papelera: muestra solo los roles eliminados
+  showDeleted = false;
+
+  // Confirmación de restauración
+  showRestoreConfirm = false;
+  roleToRestore: Role | null = null;
+
   // Filtros vigentes. Son distintos de los del formulario mientras se escribe
   appliedFilters: RoleFilters = {};
 
@@ -168,7 +175,26 @@ export class RoleListComponent implements OnInit {
   }
 
   private buildQuery(): RoleFilters {
-    return { ...this.appliedFilters, page: this.currentPage - 1, size: this.pageSize };
+    return {
+      ...this.appliedFilters,
+      // En la papelera el estado no aplica: todo rol eliminado está inactivo
+      status: this.showDeleted ? undefined : this.appliedFilters.status,
+      deleted: this.showDeleted || undefined,
+      page: this.currentPage - 1,
+      size: this.pageSize
+    };
+  }
+
+  /** Cambia entre la lista normal y la papelera, conservando la búsqueda */
+  setShowDeleted(deleted: boolean): void {
+    if (this.showDeleted === deleted) return;
+    this.showDeleted = deleted;
+    const status = this.filterForm.get('status');
+    deleted ? status?.disable({ emitEvent: false }) : status?.enable({ emitEvent: false });
+    this.currentPage = 1;
+    this.roles = [];
+    this.loaded = false;
+    this.loadRoles();
   }
 
   private showPage(res: PaginatedResponse<Role>): void {
@@ -283,6 +309,37 @@ export class RoleListComponent implements OnInit {
         this.isLoading = false;
         this.errorMessage = err.error?.message || 'No se pudo eliminar el rol';
         this.cancelDelete();
+      }
+    });
+  }
+
+  confirmRestore(role: Role): void {
+    this.roleToRestore = role;
+    this.showRestoreConfirm = true;
+  }
+
+  cancelRestore(): void {
+    this.showRestoreConfirm = false;
+    this.roleToRestore = null;
+  }
+
+  restoreRole(): void {
+    const role = this.roleToRestore;
+    if (!role) return;
+    this.isLoading = true;
+
+    this.roleService.restoreRole(role.id).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.successMessage = `Rol "${role.name}" restaurado: ya se puede asignar a usuarios`;
+        this.cancelRestore();
+        this.loadRoles();
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.error?.message || 'No se pudo restaurar el rol';
+        this.cancelRestore();
+        this.loadRoles();
       }
     });
   }

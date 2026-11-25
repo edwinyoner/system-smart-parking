@@ -192,10 +192,13 @@ public class Role {
    }
 
    /**
-    * Restaura un rol previamente eliminado.
-    * Reactiva el rol automáticamente.
+    * Restaura un rol previamente eliminado, con sus mismos permisos.
+    * Vuelve activo, igual que un usuario restaurado.
     */
    public void restore() {
+      if (this.deletedAt == null) {
+         throw new IllegalStateException("El rol no está eliminado");
+      }
       this.deletedAt = null;
       this.deletedBy = null;
       this.status = true;

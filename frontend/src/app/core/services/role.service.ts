@@ -35,6 +35,7 @@ export class RoleService {
     if (filters) {
       if (filters.search) params = params.set('search', filters.search);
       if (filters.status !== undefined) params = params.set('status', filters.status.toString());
+      if (filters.deleted) params = params.set('deleted', 'true');
       if (filters.page !== undefined) params = params.set('page', filters.page.toString());
       if (filters.size !== undefined) params = params.set('size', filters.size.toString());
       if (filters.sortBy) params = params.set('sortBy', filters.sortBy);
@@ -98,6 +99,15 @@ export class RoleService {
    */
   deleteRole(id: number): Observable<void> {
     return this.http.delete<void>(`${this.API_URL}/${id}`).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Restaura un rol eliminado (con sus mismos permisos)
+   */
+  restoreRole(id: number): Observable<Role> {
+    return this.http.post<Role>(`${this.API_URL}/${id}/restore`, {}).pipe(
       catchError(this.handleError)
     );
   }
