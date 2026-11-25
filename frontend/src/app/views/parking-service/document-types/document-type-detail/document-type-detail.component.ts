@@ -1,4 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
+import { EMPTY, catchError, exhaustMap, filter } from 'rxjs';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -20,6 +24,8 @@ export class DocumentTypeDetailComponent implements OnInit {
   isLoading = true;
   errorMessage: string | null = null;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private documentTypeService: DocumentTypeService,
     private router: Router,
@@ -29,6 +35,24 @@ export class DocumentTypeDetailComponent implements OnInit {
   ngOnInit(): void {
     this.documentTypeId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadDocumentType();
+    this.startLiveRefresh();
+  }
+
+  /** Mantiene el detalle al día (cambios de otro usuario) sin spinner ni recargar */
+  private startLiveRefresh(): void {
+    liveRefresh(5000).pipe(
+      filter(() => !this.isLoading && !!this.documentType),
+      exhaustMap(() => this.documentTypeService.getById(this.documentTypeId, true).pipe(
+        catchError((error: HttpErrorResponse) => {
+          if (error.status === 404) {
+            this.documentType = null;
+            this.errorMessage = 'Este tipo de documento fue eliminado. Puedes restaurarlo desde Eliminados.';
+          }
+          return EMPTY;
+        })
+      )),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(dt => this.documentType = dt);
   }
 
   private loadDocumentType(): void {

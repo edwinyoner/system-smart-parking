@@ -35,6 +35,20 @@ public class DocumentTypeEntity {
    @Column(name = "DESCRIPTION", columnDefinition = "CLOB")
    private String description;
 
+   /** Código del Catálogo N.° 06 de SUNAT para el comprobante (opcional) */
+   @Column(name = "SUNAT_CODE", length = 2)
+   private String sunatCode;
+
+   // Reglas del número de documento
+   @Column(name = "MIN_LENGTH", nullable = false)
+   private Integer minLength;
+
+   @Column(name = "MAX_LENGTH", nullable = false)
+   private Integer maxLength;
+
+   @Column(name = "NUMERIC_ONLY", nullable = false)
+   private Boolean numericOnly;
+
    @Column(name = "STATUS", nullable = false)
    private Boolean status;
 
@@ -71,12 +85,14 @@ public class DocumentTypeEntity {
       if (this.status == null) {
          this.status = false;
       }
+      // Reglas por defecto: de 1 a 20 caracteres, letras y dígitos
+      if (this.minLength == null) this.minLength = 1;
+      if (this.maxLength == null) this.maxLength = 20;
+      if (this.numericOnly == null) this.numericOnly = false;
    }
 
    @PreUpdate
    protected void onUpdate() {
-      if (this.updatedAt == null) {
-         this.updatedAt = LocalDateTime.now();
-      }
+      this.updatedAt = LocalDateTime.now();
    }
 }

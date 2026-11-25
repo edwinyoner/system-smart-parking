@@ -83,35 +83,34 @@ public class DataSeeder implements CommandLineRunner {
 
       log.info("→ Cargando tipos de documento...");
 
-      documentTypeRepository.save(DocumentTypeEntity.builder()
-            .code("DNI")
-            .name("Documento Nacional de Identidad")
-            .description("Documento de identidad peruano para ciudadanos (8 dígitos)")
-            .status(true)
-            .build());
+      // Reglas del número y código SUNAT (Catálogo N.° 06) para el comprobante
+      documentTypeRepository.save(documentType("DNI", "Documento Nacional de Identidad",
+            "Documento de identidad de ciudadanos peruanos", "1", 8, 8, true));
 
-      documentTypeRepository.save(DocumentTypeEntity.builder()
-            .code("CE")
-            .name("Carné de Extranjería")
-            .description("Documento para extranjeros residentes en Perú (9 dígitos)")
-            .status(true)
-            .build());
+      documentTypeRepository.save(documentType("CE", "Carné de Extranjería",
+            "Documento de extranjeros residentes en el Perú", "4", 9, 12, false));
 
-      documentTypeRepository.save(DocumentTypeEntity.builder()
-            .code("PASSPORT")
-            .name("Pasaporte")
-            .description("Documento de viaje internacional (formato variable)")
-            .status(true)
-            .build());
+      documentTypeRepository.save(documentType("PASSPORT", "Pasaporte",
+            "Documento de viaje internacional", "7", 6, 12, false));
 
-      documentTypeRepository.save(DocumentTypeEntity.builder()
-            .code("RUC")
-            .name("Registro Único de Contribuyentes")
-            .description("Número de identificación tributaria (11 dígitos)")
-            .status(true)
-            .build());
+      documentTypeRepository.save(documentType("RUC", "Registro Único de Contribuyentes",
+            "Identificación tributaria: necesaria para emitir factura", "6", 11, 11, true));
 
       log.info("4 tipos de documento cargados");
+   }
+
+   private static DocumentTypeEntity documentType(String code, String name, String description, String sunatCode,
+                                                  int minLength, int maxLength, boolean numericOnly) {
+      return DocumentTypeEntity.builder()
+            .code(code)
+            .name(name)
+            .description(description)
+            .sunatCode(sunatCode)
+            .minLength(minLength)
+            .maxLength(maxLength)
+            .numericOnly(numericOnly)
+            .status(true)
+            .build();
    }
 
    // ========================= TIPOS DE PAGO =========================

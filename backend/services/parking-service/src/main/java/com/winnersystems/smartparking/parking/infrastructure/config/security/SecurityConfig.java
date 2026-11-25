@@ -47,7 +47,6 @@ public class SecurityConfig {
                         "/parkings/**",
                         "/zones/**",
                         "/spaces/**",
-                        "/document-types/**",
                         "/payment-types/**",
                         "/transactions/**"
                   ).permitAll()

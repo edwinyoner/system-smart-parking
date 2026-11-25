@@ -1,16 +1,17 @@
 package com.winnersystems.smartparking.parking.application.dto.command;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateDocumentTypeCommand {
-   private String code;
-   private String name;
-   private String description;
+/**
+ * Datos para crear un tipo de documento. Las reglas del número que lleguen en null toman
+ * el valor por defecto (1 a 20 caracteres, letras y dígitos).
+ */
+public record CreateDocumentTypeCommand(
+      String code,
+      String name,
+      String description,
+      String sunatCode,
+      Integer minLength,
+      Integer maxLength,
+      Boolean numericOnly,
+      Boolean status
+) {
 }

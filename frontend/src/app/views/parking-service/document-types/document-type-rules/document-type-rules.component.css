@@ -1,0 +1,15 @@
+.rules-section {
+  border-top: 1px solid var(--cui-border-color);
+  padding-top: 1.25rem;
+}
+
+.section-title {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.sample {
+  background-color: var(--cui-tertiary-bg);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}

@@ -1,16 +1,13 @@
 package com.winnersystems.smartparking.parking.application.dto.command;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UpdateDocumentTypeCommand {
-   private String name;
-   private String description;
-   private Boolean status;
+/** Datos editables de un tipo de documento (el código no cambia) */
+public record UpdateDocumentTypeCommand(
+      String name,
+      String description,
+      String sunatCode,
+      Integer minLength,
+      Integer maxLength,
+      Boolean numericOnly,
+      Boolean status
+) {
 }

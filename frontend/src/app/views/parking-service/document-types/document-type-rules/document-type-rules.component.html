@@ -1,0 +1,67 @@
+<div class="rules-section" [formGroup]="form">
+  <h6 class="section-title">
+    <i class="fas fa-list-check me-2"></i>Formato del número de documento
+  </h6>
+
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    @for (preset of presets; track preset.label) {
+    <button type="button" class="btn btn-sm"
+      [class.btn-success]="isPreset(preset)" [class.btn-outline-secondary]="!isPreset(preset)"
+      (click)="applyPreset(preset)">
+      {{ preset.label }}
+    </button>
+    }
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-3">
+      <label class="form-label required" for="minLength">Longitud mínima</label>
+      <input id="minLength" type="number" class="form-control" formControlName="minLength" min="1" [max]="maxLength"
+        step="1" [class.is-invalid]="isInvalid('minLength') || !!form.errors?.['lengthRange']">
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label required" for="maxLength">Longitud máxima</label>
+      <input id="maxLength" type="number" class="form-control" formControlName="maxLength" min="1" [max]="maxLength"
+        step="1" [class.is-invalid]="isInvalid('maxLength') || !!form.errors?.['lengthRange']">
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label" for="sunatCode">Código SUNAT</label>
+      <input id="sunatCode" type="text" class="form-control text-uppercase" formControlName="sunatCode"
+        maxlength="2" placeholder="Ej: 1" [class.is-invalid]="isInvalid('sunatCode')">
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" formControlName="numericOnly" id="numericOnly" role="switch">
+        <label class="form-check-label" for="numericOnly">Solo dígitos</label>
+      </div>
+    </div>
+
+    <div class="col-12">
+      @if (form.errors?.['lengthRange']) {
+      <div class="text-danger small">La longitud mínima no puede ser mayor que la máxima.</div>
+      } @else if (isInvalid('minLength') || isInvalid('maxLength')) {
+      <div class="text-danger small">Cada longitud va de 1 a {{ maxLength }}.</div>
+      } @else {
+      <small class="form-text text-muted">
+        El número debe tener <strong>{{ lengthLabel }}</strong>. Los espacios y guiones se quitan al guardar.
+        Código SUNAT: Catálogo N.° 06 (1 = DNI, 4 = CE, 6 = RUC, 7 = pasaporte), para el comprobante.
+      </small>
+      }
+    </div>
+  </div>
+
+  <!-- Prueba de un número con las reglas escritas -->
+  <div class="sample mt-3">
+    <label class="form-label" for="sample">Probar un número</label>
+    <input id="sample" type="text" class="form-control" [(ngModel)]="sample" [ngModelOptions]="{ standalone: true }"
+      placeholder="Escribe un número para comprobar el formato" maxlength="30">
+    @if (sampleResult; as result) {
+    <div class="small mt-1" [class.text-success]="result.ok" [class.text-danger]="!result.ok">
+      <i class="fas me-1" [class.fa-circle-check]="result.ok" [class.fa-circle-xmark]="!result.ok"></i>{{ result.text }}
+    </div>
+    }
+  </div>
+</div>

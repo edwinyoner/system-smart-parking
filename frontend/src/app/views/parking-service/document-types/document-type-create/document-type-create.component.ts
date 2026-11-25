@@ -1,15 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { DocumentTypeService } from '../../../../core/services/parking-service/document-type.service';
+import { DocumentTypeRulesComponent } from '../document-type-rules/document-type-rules.component';
+import { documentRuleControls, lengthRangeValidator } from '../../../../core/utils/document-type.util';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 
 @Component({
   selector: 'app-document-type-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, AlertMessageComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, AlertMessageComponent, DocumentTypeRulesComponent],
   templateUrl: './document-type-create.component.html',
   styleUrls: ['./document-type-create.component.css']
 })
@@ -27,11 +29,12 @@ export class DocumentTypeCreateComponent implements OnInit {
 
   ngOnInit(): void {
     this.form = this.fb.group({
-      code:        ['', [Validators.required, Validators.maxLength(20)]],
+      code:        ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9_]{2,20}$/)]],
       name:        ['', [Validators.required, Validators.maxLength(100)]],
       description: ['', Validators.maxLength(255)],
+      ...documentRuleControls(this.fb),
       status:      [true]
-    });
+    }, { validators: lengthRangeValidator });
   }
 
   onSubmit(): void {
@@ -65,6 +68,7 @@ export class DocumentTypeCreateComponent implements OnInit {
     const c = this.form.get(f);
     if (c?.errors?.['required'])   return 'Este campo es obligatorio';
     if (c?.errors?.['maxlength'])  return `Máximo ${c.errors['maxlength'].requiredLength} caracteres`;
+    if (c?.errors?.['pattern'])    return 'De 2 a 20 caracteres: letras, dígitos o guion bajo';
     return '';
   }
 

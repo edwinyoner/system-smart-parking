@@ -7,6 +7,8 @@ import com.winnersystems.smartparking.parking.application.port.input.customer.*;
 import com.winnersystems.smartparking.parking.application.port.output.CustomerPersistencePort;
 import com.winnersystems.smartparking.parking.application.port.output.DocumentTypePersistencePort;
 import com.winnersystems.smartparking.parking.domain.model.Customer;
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceConflictException;
 import com.winnersystems.smartparking.parking.domain.model.DocumentType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,21 +49,21 @@ public class CustomerService implements
 
    @Override
    public CustomerDto createCustomer(CreateCustomerCommand command) {
-      // 1. Validar que no exista cliente con ese documento
-      if (customerPersistencePort.existsByDocument(command.documentTypeId(), command.documentNumber())) {
-         throw new IllegalArgumentException(
-               "Ya existe un cliente con el documento: " + command.documentNumber()
-         );
-      }
-
-      // 2. Validar que el tipo de documento exista
+      // 1. El tipo de documento debe existir y estar activo; el número debe cumplir su formato
       DocumentType docType = documentTypePersistencePort.findById(command.documentTypeId())
-            .orElseThrow(() -> new IllegalArgumentException("Tipo de documento no encontrado"));
+            .filter(DocumentType::isUsable)
+            .orElseThrow(() -> new ParkingDomainException("Tipo de documento no disponible"));
+      String documentNumber = docType.normalizeNumber(command.documentNumber());
+
+      // 2. Validar que no exista cliente con ese documento (ya normalizado)
+      if (customerPersistencePort.existsByDocument(command.documentTypeId(), documentNumber)) {
+         throw new ResourceConflictException("Ya existe un cliente con el documento: " + documentNumber);
+      }
 
       // 3. Crear cliente
       Customer customer = new Customer(
             command.documentTypeId(),
-            command.documentNumber(),
+            documentNumber,
             command.firstName(),
             command.lastName()
       );
@@ -85,7 +87,7 @@ public class CustomerService implements
       Customer customer = customerPersistencePort.findById(customerId)
             .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
 
-      DocumentType docType = documentTypePersistencePort.findById(customer.getDocumentTypeId())
+      DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(customer.getDocumentTypeId())
             .orElse(null);
 
       return buildCustomerDto(customer, docType != null ? docType.getName() : null);
@@ -96,7 +98,7 @@ public class CustomerService implements
    public CustomerDto getCustomerByDocument(Long documentTypeId, String documentNumber) {
       return customerPersistencePort.findByDocument(documentTypeId, documentNumber)
             .map(customer -> {
-               DocumentType docType = documentTypePersistencePort.findById(documentTypeId).orElse(null);
+               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(documentTypeId).orElse(null);
                return buildCustomerDto(customer, docType != null ? docType.getName() : null);
             })
             .orElse(null);
@@ -107,7 +109,7 @@ public class CustomerService implements
    public CustomerDto getCustomerByEmail(String email) {
       return customerPersistencePort.findByEmail(email)
             .map(customer -> {
-               DocumentType docType = documentTypePersistencePort.findById(customer.getDocumentTypeId())
+               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(customer.getDocumentTypeId())
                      .orElse(null);
                return buildCustomerDto(customer, docType != null ? docType.getName() : null);
             })
@@ -119,7 +121,7 @@ public class CustomerService implements
    public CustomerDto getCustomerByPhone(String phone) {
       return customerPersistencePort.findByPhone(phone)
             .map(customer -> {
-               DocumentType docType = documentTypePersistencePort.findById(customer.getDocumentTypeId())
+               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(customer.getDocumentTypeId())
                      .orElse(null);
                return buildCustomerDto(customer, docType != null ? docType.getName() : null);
             })
@@ -143,7 +145,7 @@ public class CustomerService implements
       List<Customer> customers = customerPersistencePort.findAllActive();
       return customers.stream()
             .map(c -> {
-               DocumentType docType = documentTypePersistencePort.findById(c.getDocumentTypeId())
+               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(c.getDocumentTypeId())
                      .orElse(null);
                return buildCustomerDto(c, docType != null ? docType.getName() : null);
             })
@@ -174,7 +176,7 @@ public class CustomerService implements
 
       Customer updated = customerPersistencePort.save(customer);
 
-      DocumentType docType = documentTypePersistencePort.findById(updated.getDocumentTypeId())
+      DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(updated.getDocumentTypeId())
             .orElse(null);
 
       return buildCustomerDto(updated, docType != null ? docType.getName() : null);
@@ -205,7 +207,7 @@ public class CustomerService implements
       customer.restore();
       Customer restored = customerPersistencePort.save(customer);
 
-      DocumentType docType = documentTypePersistencePort.findById(restored.getDocumentTypeId())
+      DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(restored.getDocumentTypeId())
             .orElse(null);
 
       return buildCustomerDto(restored, docType != null ? docType.getName() : null);
@@ -245,7 +247,7 @@ public class CustomerService implements
    private PagedResponse<CustomerDto> toCustomerPagedResponse(PageResult<Customer> result) {
       List<CustomerDto> content = result.content().stream()
             .map(c -> {
-               DocumentType docType = documentTypePersistencePort.findById(c.getDocumentTypeId())
+               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(c.getDocumentTypeId())
                      .orElse(null);
                return buildCustomerDto(c, docType != null ? docType.getName() : null);
             })

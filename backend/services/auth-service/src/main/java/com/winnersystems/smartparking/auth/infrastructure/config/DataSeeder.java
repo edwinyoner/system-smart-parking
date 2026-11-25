@@ -144,6 +144,7 @@ public class DataSeeder implements CommandLineRunner {
             {"document-types.read", "Ver tipos de documento"},
             {"document-types.update", "Actualizar tipos de documento"},
             {"document-types.delete", "Eliminar tipos de documento"},
+            {"document-types.restore", "Ver tipos de documento eliminados y restaurarlos"},
 
             // Clientes
             {"customers.create", "Crear nuevos clientes"},
@@ -252,6 +253,7 @@ public class DataSeeder implements CommandLineRunner {
                   "spaces.create", "spaces.read", "spaces.update", "spaces.delete", "spaces.bulk-create",
                   // Gestión de Tipos de Documento
                   "document-types.create", "document-types.read", "document-types.update", "document-types.delete",
+                  "document-types.restore",
                   // Gestión de Clientes
                   "customers.create", "customers.read", "customers.update", "customers.delete",
                   // Gestión de Vehículos

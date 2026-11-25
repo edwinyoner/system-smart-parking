@@ -84,6 +84,7 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Tipos de Documento",
     url: "/document-types",
     icon: "fa-solid fa-id-card",
+    requiredPermissions: ["document-types.read"],
   },
   {
     name: "Tipos de Pago",

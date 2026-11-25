@@ -63,7 +63,7 @@
                 <div>
                   <h6 class="mb-1"><i class="fas fa-power-off me-2"></i>Estado del Tipo</h6>
                   <small class="text-muted">
-                    {{ form.get('status')?.value ? 'Activo — disponible para nuevos clientes' : 'Inactivo — no disponible' }}
+                    {{ form.get('status')?.value ? 'Activo: se ofrece en la entrada y la salida' : 'Inactivo: no se ofrece en registros nuevos' }}
                   </small>
                 </div>
                 <div class="form-check form-switch mb-0">
@@ -76,11 +76,29 @@
 
         </div>
 
+        <!-- Formato del número y código SUNAT -->
+        <app-document-type-rules class="d-block mt-4" [form]="form"></app-document-type-rules>
+
+        @if (rulesChangeWarning) {
+        <div class="alert alert-warning mt-4 mb-0">
+          <i class="fas fa-triangle-exclamation me-2"></i>
+          Ya lo usan {{ currentDocumentType.customersCount }} cliente(s). El nuevo formato se aplica a los registros
+          nuevos; los números ya guardados no cambian.
+        </div>
+        }
+        @if (deactivationWarning) {
+        <div class="alert alert-warning mt-3 mb-0">
+          <i class="fas fa-triangle-exclamation me-2"></i>
+          Desactivado, no se ofrecerá en la entrada ni la salida de vehículos. Sus
+          {{ currentDocumentType.customersCount }} cliente(s) conservan su documento.
+        </div>
+        }
+
         <div class="d-flex gap-2 justify-content-end mt-4">
           <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="isSubmitting">
             <i class="fas fa-times me-2"></i>Cancelar
           </button>
-          <button type="submit" class="btn btn-success" [disabled]="isSubmitting" style="color: aliceblue;">
+          <button type="submit" class="btn btn-success" [disabled]="isSubmitting">
             @if (isSubmitting) { <span class="spinner-border spinner-border-sm me-2"></span> }
             <i class="fas fa-save me-2"></i>{{ isSubmitting ? 'Guardando...' : 'Actualizar Tipo' }}
           </button>

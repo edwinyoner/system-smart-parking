@@ -55,6 +55,7 @@ public class TransactionService implements
    private final RatePersistencePort ratePersistencePort;
    private final PaymentPersistencePort paymentPersistencePort;
    private final ParkingShiftRatePersistencePort parkingShiftRatePersistencePort;
+   private final DocumentTypePersistencePort documentTypePersistencePort;
 
    // ========================= CONSTANTES =========================
 
@@ -72,7 +73,8 @@ public class TransactionService implements
          ZonePersistencePort zonePersistencePort,
          RatePersistencePort ratePersistencePort,
          PaymentPersistencePort paymentPersistencePort,
-         ParkingShiftRatePersistencePort parkingShiftRatePersistencePort) {
+         ParkingShiftRatePersistencePort parkingShiftRatePersistencePort,
+         DocumentTypePersistencePort documentTypePersistencePort) {
       this.transactionPersistencePort = transactionPersistencePort;
       this.vehiclePersistencePort = vehiclePersistencePort;
       this.customerPersistencePort = customerPersistencePort;
@@ -83,6 +85,7 @@ public class TransactionService implements
       this.ratePersistencePort = ratePersistencePort;
       this.paymentPersistencePort = paymentPersistencePort;
       this.parkingShiftRatePersistencePort = parkingShiftRatePersistencePort;
+      this.documentTypePersistencePort = documentTypePersistencePort;
    }
 
    // ========================= RecordEntryUseCase =========================
@@ -429,7 +432,7 @@ public class TransactionService implements
    }
 
    private Customer findOrCreateCustomer(RecordEntryCommand command) {
-      String normalizedDocument = command.documentNumber().trim().toUpperCase();
+      String normalizedDocument = validDocumentNumber(command.documentTypeId(), command.documentNumber());
 
       return customerPersistencePort.findByDocument(command.documentTypeId(), normalizedDocument)
             .orElseGet(() -> {
@@ -479,7 +482,7 @@ public class TransactionService implements
             space.getId(),
             rate.getId(),
             command.documentTypeId(),
-            command.documentNumber()
+            customer.getDocumentNumber()
       );
 
       transaction.recordEntry(command.operatorId());
@@ -500,10 +503,21 @@ public class TransactionService implements
       return transaction;
    }
 
+   /**
+    * El tipo de documento debe estar activo y el número cumplir su formato (longitud, solo dígitos).
+    * @return el número normalizado (sin espacios ni guiones, en mayúsculas)
+    */
+   private String validDocumentNumber(Long documentTypeId, String documentNumber) {
+      DocumentType type = documentTypePersistencePort.findById(documentTypeId)
+            .filter(DocumentType::isUsable)
+            .orElseThrow(() -> new ParkingDomainException("Tipo de documento no disponible"));
+      return type.normalizeNumber(documentNumber);
+   }
+
    private void processExit(Transaction transaction, RecordExitCommand command) {
       transaction.recordExit(
             command.exitDocumentTypeId(),
-            command.exitDocumentNumber(),
+            validDocumentNumber(command.exitDocumentTypeId(), command.exitDocumentNumber()),
             command.operatorId()
       );
 

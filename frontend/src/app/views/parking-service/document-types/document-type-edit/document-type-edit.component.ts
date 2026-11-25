@@ -1,16 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { DocumentTypeService } from '../../../../core/services/parking-service/document-type.service';
 import { DocumentType } from '../../../../core/models/parking-service/document-type.model';
+import { DocumentTypeRulesComponent } from '../document-type-rules/document-type-rules.component';
+import { documentRuleControls, lengthRangeValidator } from '../../../../core/utils/document-type.util';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
 
 @Component({
   selector: 'app-document-type-edit',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, AlertMessageComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, AlertMessageComponent, DocumentTypeRulesComponent],
   templateUrl: './document-type-edit.component.html',
   styleUrls: ['./document-type-edit.component.css']
 })
@@ -38,10 +40,12 @@ export class DocumentTypeEditComponent implements OnInit {
 
   private initForm(): void {
     this.form = this.fb.group({
+      code:        [{ value: '', disabled: true }],   // no se edita; lo usa la prueba del número
       name:        ['', [Validators.required, Validators.maxLength(100)]],
       description: ['', Validators.maxLength(255)],
+      ...documentRuleControls(this.fb),
       status:      [true]
-    });
+    }, { validators: lengthRangeValidator });
   }
 
   private loadDocumentType(): void {
@@ -49,7 +53,16 @@ export class DocumentTypeEditComponent implements OnInit {
     this.documentTypeService.getById(this.documentTypeId).subscribe({
       next: (dt: DocumentType) => {
         this.currentDocumentType = dt;
-        this.form.patchValue({ name: dt.name, description: dt.description, status: dt.status });
+        this.form.patchValue({
+          code: dt.code,
+          name: dt.name,
+          description: dt.description,
+          sunatCode: dt.sunatCode ?? '',
+          minLength: dt.minLength,
+          maxLength: dt.maxLength,
+          numericOnly: dt.numericOnly,
+          status: dt.status
+        });
         this.isLoading = false;
       },
       error: (err) => {
@@ -78,6 +91,21 @@ export class DocumentTypeEditComponent implements OnInit {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
+  }
+
+  /** Desactivar uno con clientes: deja de ofrecerse, pero sus clientes conservan el documento */
+  get deactivationWarning(): boolean {
+    return !!this.currentDocumentType?.status && !this.form.get('status')?.value
+      && (this.currentDocumentType?.customersCount ?? 0) > 0;
+  }
+
+  /** Cambiar el formato no toca a los clientes ya registrados: se aplica a registros nuevos */
+  get rulesChangeWarning(): boolean {
+    const dt = this.currentDocumentType;
+    if (!dt || !dt.inUse) return false;
+    const v = this.form.getRawValue();
+    return Number(v.minLength) !== dt.minLength || Number(v.maxLength) !== dt.maxLength
+      || !!v.numericOnly !== dt.numericOnly;
   }
 
   cancel(): void { this.router.navigate(['/document-types']); }

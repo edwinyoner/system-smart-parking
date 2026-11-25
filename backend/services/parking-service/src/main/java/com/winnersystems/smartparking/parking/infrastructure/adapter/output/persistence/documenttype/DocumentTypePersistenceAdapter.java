@@ -45,47 +45,39 @@ public class DocumentTypePersistenceAdapter implements DocumentTypePersistencePo
 
    @Override
    public Optional<DocumentType> findById(Long id) {
-      return repository.findByIdAndDeletedAtIsNull(id)
-            .map(mapper::toDomain);
+      return repository.findByIdAndDeletedAtIsNull(id).map(mapper::toDomain);
    }
 
    @Override
-   public Optional<DocumentType> findByCode(String code) {
-      return repository.findByCodeAndDeletedAtIsNull(code)
-            .map(mapper::toDomain);
+   public Optional<DocumentType> findByIdIncludingDeleted(Long id) {
+      return repository.findById(id).map(mapper::toDomain);
    }
 
-   // ========================= LIST =========================
+   @Override
+   public Optional<DocumentType> findDeletedById(Long id) {
+      return repository.findByIdAndDeletedAtIsNotNull(id).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<DocumentType> findByCodeIncludingDeleted(String code) {
+      return repository.findFirstByCodeIgnoreCase(code.trim()).map(mapper::toDomain);
+   }
 
    @Override
    public List<DocumentType> findAllActive() {
-      return repository.findByStatusTrueAndDeletedAtIsNullOrderByIdAsc()
-            .stream()
+      return repository.findByStatusTrueAndDeletedAtIsNullOrderByIdAsc().stream()
             .map(mapper::toDomain)
             .toList();
    }
 
    @Override
-   public PageResult<DocumentType> findAll(PageRequest pageRequest, String search, Boolean status) {
-      Pageable pageable = buildPageable(pageRequest);
-
-      boolean hasSearch = search != null && !search.trim().isEmpty();
-      boolean hasStatus = status != null;
-
-      Page<DocumentTypeEntity> page;
-
-      if (hasSearch && hasStatus) {
-         page = repository.findByDeletedAtIsNullAndNameContainingIgnoreCaseAndStatus(
-               search.trim(), status, pageable);
-      } else if (hasSearch) {
-         page = repository.findByDeletedAtIsNullAndNameContainingIgnoreCase(
-               search.trim(), pageable);
-      } else if (hasStatus) {
-         page = repository.findByDeletedAtIsNullAndStatus(status, pageable);
-      } else {
-         page = repository.findByDeletedAtIsNull(pageable);
+   public PageResult<DocumentType> findAll(PageRequest pageRequest, String search, Boolean status, boolean deleted) {
+      String text = search == null || search.isBlank() ? null : search.trim().toLowerCase();
+      // %, _ y \ escritos por el usuario se buscan como texto, no como comodines
+      if (text != null) {
+         text = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
       }
-
+      Page<DocumentTypeEntity> page = repository.search(text, status, deleted, buildPageable(pageRequest));
       return PageResult.of(
             page.getContent().stream().map(mapper::toDomain).toList(),
             page.getNumber(),
@@ -94,38 +86,20 @@ public class DocumentTypePersistenceAdapter implements DocumentTypePersistencePo
       );
    }
 
-   // ========================= VALIDATION =========================
-
    @Override
-   public boolean existsByCode(String code) {
-      return repository.existsByCodeAndDeletedAtIsNull(code);
+   public long countCustomersUsing(Long documentTypeId) {
+      return repository.countCustomersUsing(documentTypeId);
    }
 
    @Override
-   public boolean existsByCodeAndIdNot(String code, Long id) {
-      Optional<DocumentTypeEntity> existing = repository.findByCodeAndDeletedAtIsNull(code);
-      return existing.isPresent() && !existing.get().getId().equals(id);
+   public long countTransactionsUsing(Long documentTypeId) {
+      return repository.countTransactionsUsing(documentTypeId);
    }
-
-   // ========================= DELETE =========================
-
-   @Override
-   public void delete(Long id) {
-      repository.deleteById(id);
-   }
-
-   // ========================= HELPERS =========================
 
    private Pageable buildPageable(PageRequest req) {
-      if (req.hasSorting()) {
-         return org.springframework.data.domain.PageRequest.of(
-               req.page(), req.size(),
-               Sort.by(Sort.Direction.fromString(req.sortDirection()), req.sortBy())
-         );
-      }
-      return org.springframework.data.domain.PageRequest.of(
-            req.page(), req.size(),
-            Sort.by(Sort.Direction.ASC, "id")
-      );
+      Sort sort = req.hasSorting()
+            ? Sort.by(Sort.Direction.fromString(req.sortDirection()), req.sortBy())
+            : Sort.by(Sort.Direction.ASC, "id");
+      return org.springframework.data.domain.PageRequest.of(req.page(), req.size(), sort);
    }
 }

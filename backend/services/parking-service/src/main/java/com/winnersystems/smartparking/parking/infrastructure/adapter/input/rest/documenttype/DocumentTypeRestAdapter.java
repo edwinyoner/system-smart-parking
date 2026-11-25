@@ -10,13 +10,20 @@ import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Tipos de documento. Cada operación exige el permiso del rol activo (document-types.*).
+ * /active solo exige sesión: lo usan los formularios de entrada y salida de vehículos.
+ */
 @RestController
 @RequestMapping("/document-types")
 public class DocumentTypeRestAdapter {
+
+   private static final int MAX_PAGE_SIZE = 100;
 
    private final CreateDocumentTypeUseCase createUseCase;
    private final UpdateDocumentTypeUseCase updateUseCase;
@@ -24,6 +31,7 @@ public class DocumentTypeRestAdapter {
    private final GetDocumentTypeUseCase getUseCase;
    private final ListDocumentTypesUseCase listUseCase;
    private final ToggleDocumentTypeStatusUseCase toggleUseCase;
+   private final RestoreDocumentTypeUseCase restoreUseCase;
    private final DocumentTypeRestMapper mapper;
 
    public DocumentTypeRestAdapter(
@@ -33,6 +41,7 @@ public class DocumentTypeRestAdapter {
          GetDocumentTypeUseCase getUseCase,
          ListDocumentTypesUseCase listUseCase,
          ToggleDocumentTypeStatusUseCase toggleUseCase,
+         RestoreDocumentTypeUseCase restoreUseCase,
          DocumentTypeRestMapper mapper) {
       this.createUseCase = createUseCase;
       this.updateUseCase = updateUseCase;
@@ -40,78 +49,86 @@ public class DocumentTypeRestAdapter {
       this.getUseCase = getUseCase;
       this.listUseCase = listUseCase;
       this.toggleUseCase = toggleUseCase;
+      this.restoreUseCase = restoreUseCase;
       this.mapper = mapper;
    }
 
-   // POST /api/v1/document-types
+   /**
+    * Lista paginada. search busca en el nombre y el código; status: true, false o vacío (todos).
+    * deleted = true lista la papelera: exige además document-types.restore.
+    */
+   @GetMapping
+   @PreAuthorize("hasAuthority('document-types.read') and (!#deleted or hasAuthority('document-types.restore'))")
+   public ResponseEntity<PagedResponse<DocumentTypeResponse>> list(
+         @RequestParam(defaultValue = "0") int page,
+         @RequestParam(defaultValue = "10") int size,
+         @RequestParam(required = false) String search,
+         @RequestParam(required = false) Boolean status,
+         @RequestParam(defaultValue = "false") boolean deleted) {
+      int safePage = Math.max(page, 0);
+      int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+      PagedResponse<DocumentTypeDto> result = listUseCase.listAllDocumentTypes(safePage, safeSize, search, status, deleted);
+      return ResponseEntity.ok(result.map(mapper::toResponse));
+   }
+
+   @GetMapping("/active")
+   @PreAuthorize("isAuthenticated()")
+   public ResponseEntity<List<DocumentTypeResponse>> listActive() {
+      return ResponseEntity.ok(listUseCase.listAllActiveDocumentTypes().stream()
+            .map(mapper::toResponse)
+            .toList());
+   }
+
+   @GetMapping("/{id}")
+   @PreAuthorize("hasAuthority('document-types.read')")
+   public ResponseEntity<DocumentTypeResponse> getById(@PathVariable Long id) {
+      return ResponseEntity.ok(mapper.toResponse(getUseCase.getDocumentTypeById(id)));
+   }
+
    @PostMapping
-   public ResponseEntity<DocumentTypeResponse> create(
-         @Valid @RequestBody CreateDocumentTypeRequest request) {
+   @PreAuthorize("hasAuthority('document-types.create')")
+   public ResponseEntity<DocumentTypeResponse> create(@Valid @RequestBody CreateDocumentTypeRequest request) {
       DocumentTypeDto dto = createUseCase.createDocumentType(mapper.toCommand(request));
       return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(dto));
    }
 
-   // PUT /api/v1/document-types/{id}
    @PutMapping("/{id}")
+   @PreAuthorize("hasAuthority('document-types.update')")
    public ResponseEntity<DocumentTypeResponse> update(
          @PathVariable Long id,
          @Valid @RequestBody UpdateDocumentTypeRequest request) {
-      DocumentTypeDto dto = updateUseCase.updateDocumentType(id, mapper.toCommand(request));
-      return ResponseEntity.ok(mapper.toResponse(dto));
+      return ResponseEntity.ok(mapper.toResponse(updateUseCase.updateDocumentType(id, mapper.toCommand(request))));
    }
 
-   // DELETE /api/v1/document-types/{id}
+   /** Eliminación lógica; 409 si lo usan clientes o transacciones */
    @DeleteMapping("/{id}")
+   @PreAuthorize("hasAuthority('document-types.delete')")
    public ResponseEntity<Void> delete(@PathVariable Long id) {
       deleteUseCase.deleteDocumentType(id);
       return ResponseEntity.noContent().build();
    }
 
-   // GET /api/v1/document-types/{id}
-   @GetMapping("/{id}")
-   public ResponseEntity<DocumentTypeResponse> getById(@PathVariable Long id) {
-      DocumentTypeDto dto = getUseCase.getDocumentTypeById(id);
-      return ResponseEntity.ok(mapper.toResponse(dto));
+   @PostMapping("/{id}/restore")
+   @PreAuthorize("hasAuthority('document-types.restore')")
+   public ResponseEntity<DocumentTypeResponse> restore(@PathVariable Long id) {
+      return ResponseEntity.ok(mapper.toResponse(restoreUseCase.restoreDocumentType(id)));
    }
 
-   // GET /api/v1/document-types?page=0&size=10&search=dni&status=true
-   @GetMapping
-   public ResponseEntity<PagedResponse<DocumentTypeResponse>> list(
-         @RequestParam(defaultValue = "0") int page,
-         @RequestParam(defaultValue = "10") int size,
-         @RequestParam(required = false) String search,
-         @RequestParam(required = false) Boolean status) {
-      PagedResponse<DocumentTypeDto> result = listUseCase.listAllDocumentTypes(page, size, search, status);
-      return ResponseEntity.ok(result.map(mapper::toResponse));
-   }
-
-   // GET /api/v1/document-types/active
-   @GetMapping("/active")
-   public ResponseEntity<List<DocumentTypeResponse>> listActive() {
-      List<DocumentTypeResponse> response = listUseCase.listAllActiveDocumentTypes().stream()
-            .map(mapper::toResponse)
-            .toList();
-      return ResponseEntity.ok(response);
-   }
-
-   // PATCH /api/v1/document-types/{id}/toggle-status
    @PatchMapping("/{id}/toggle-status")
+   @PreAuthorize("hasAuthority('document-types.update')")
    public ResponseEntity<DocumentTypeResponse> toggleStatus(@PathVariable Long id) {
-      DocumentTypeDto dto = toggleUseCase.toggleDocumentTypeStatus(id);
-      return ResponseEntity.ok(mapper.toResponse(dto));
+      return ResponseEntity.ok(mapper.toResponse(toggleUseCase.toggleDocumentTypeStatus(id)));
    }
 
-   // PATCH /api/v1/document-types/{id}/activate
    @PatchMapping("/{id}/activate")
+   @PreAuthorize("hasAuthority('document-types.update')")
    public ResponseEntity<DocumentTypeResponse> activate(@PathVariable Long id) {
-      DocumentTypeDto dto = toggleUseCase.activateDocumentTypeDto(id);
-      return ResponseEntity.ok(mapper.toResponse(dto));
+      return ResponseEntity.ok(mapper.toResponse(toggleUseCase.activateDocumentTypeDto(id)));
    }
 
-   // PATCH /api/v1/document-types/{id}/deactivate
    @PatchMapping("/{id}/deactivate")
+   @PreAuthorize("hasAuthority('document-types.update')")
    public ResponseEntity<DocumentTypeResponse> deactivate(@PathVariable Long id) {
-      DocumentTypeDto dto = toggleUseCase.deactivateDocumentTypeDto(id);
-      return ResponseEntity.ok(mapper.toResponse(dto));
+      return ResponseEntity.ok(mapper.toResponse(toggleUseCase.deactivateDocumentTypeDto(id)));
    }
 }

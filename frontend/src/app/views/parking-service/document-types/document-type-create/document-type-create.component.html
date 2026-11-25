@@ -28,11 +28,11 @@
           <div class="col-md-6">
             <label class="form-label required"><i class="fas fa-barcode me-2"></i>Código</label>
             <input type="text" class="form-control" formControlName="code"
-              placeholder="Ej: DNI" [class.is-invalid]="isFieldInvalid('code')">
+              placeholder="Ej: DNI" maxlength="20" [class.is-invalid]="isFieldInvalid('code')">
             @if (isFieldInvalid('code')) {
             <div class="invalid-feedback">{{ getFieldError('code') }}</div>
             }
-            <small class="form-text text-muted">Código único (se guardará en mayúsculas)</small>
+            <small class="form-text text-muted">Código único, de 2 a 20 caracteres (se guardará en mayúsculas)</small>
           </div>
 
           <div class="col-md-6">
@@ -57,16 +57,19 @@
                 <i class="fas fa-power-off me-2"></i><strong>Tipo Activo</strong>
               </label>
             </div>
-            <small class="form-text text-muted ms-4">Los tipos activos pueden ser asignados a clientes</small>
+            <small class="form-text text-muted ms-4">Los tipos activos se ofrecen al registrar la entrada y la salida de vehículos</small>
           </div>
 
         </div>
+
+        <!-- Formato del número y código SUNAT -->
+        <app-document-type-rules class="d-block mt-4" [form]="form"></app-document-type-rules>
 
         <div class="d-flex gap-2 justify-content-end mt-4">
           <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="isSubmitting">
             <i class="fas fa-times me-2"></i>Cancelar
           </button>
-          <button type="submit" class="btn btn-success" [disabled]="isSubmitting" style="color: aliceblue;">
+          <button type="submit" class="btn btn-success" [disabled]="isSubmitting">
             @if (isSubmitting) { <span class="spinner-border spinner-border-sm me-2"></span> }
             <i class="fas fa-save me-2"></i>{{ isSubmitting ? 'Guardando...' : 'Guardar Tipo' }}
           </button>
