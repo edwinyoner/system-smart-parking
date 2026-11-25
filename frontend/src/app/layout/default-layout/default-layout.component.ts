@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { CommonModule } from '@angular/common';
@@ -17,6 +18,8 @@ import {
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { navItems, INavDataWithPermissions } from './_nav';
+import { CurrentUserService } from '../../core/services/current-user.service';
+import { SessionSyncService } from '../../core/services/session-sync.service';
 import { AuthContextService } from '../../core/services/auth-context.service';
 import { PermissionService } from '../../core/services/permission.service';
 
@@ -45,28 +48,40 @@ import { PermissionService } from '../../core/services/permission.service';
 export class DefaultLayoutComponent implements OnInit {
   
   public navItems: INavDataWithPermissions[] = [];
-  public fullName: string = '';
-  public userInitials: string = '';
-  public profilePicture: string | null = null;
-  public activeRole: string = '';
-  public roleBadgeClass: string = '';
+
+  // Datos del usuario: se recalculan solos cuando cambia CurrentUserService
+  private currentUserService = inject(CurrentUserService);
+  private currentUser = toSignal(this.currentUserService.currentUser$, { initialValue: null });
+
+  public fullName = computed(() => {
+    const user = this.currentUser();
+    return `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim();
+  });
+  public userInitials = computed(() => {
+    const user = this.currentUser();
+    return `${user?.firstName?.charAt(0) ?? ''}${user?.lastName?.charAt(0) ?? ''}`.toUpperCase();
+  });
+  public profilePicture = computed(() => this.currentUser()?.profilePicture || null);
+  public activeRole = computed(() => {
+    this.currentUser(); // El rol activo viene del token: releerlo al cambiar la sesión
+    return this.authContext.getActiveRole() || '';
+  });
+  public roleBadgeClass = computed(() => {
+    this.currentUser();
+    return this.authContext.getRoleBadgeClass();
+  });
 
   constructor(
     private authContext: AuthContextService,
-    private permissionService: PermissionService  
-  ) {}
-
-  ngOnInit(): void {
-    this.loadUserInfo();
-    this.filterNavItems();
+    private permissionService: PermissionService,
+    sessionSync: SessionSyncService
+  ) {
+    // Activa solo mientras el dashboard está abierto
+    sessionSync.sync().pipe(takeUntilDestroyed()).subscribe();
   }
 
-  private loadUserInfo(): void {
-    this.fullName = this.authContext.getFullName();
-    this.userInitials = this.authContext.getUserInitials();
-    this.profilePicture = this.authContext.getProfilePicture();
-    this.activeRole = this.authContext.getActiveRole() || '';
-    this.roleBadgeClass = this.authContext.getRoleBadgeClass();
+  ngOnInit(): void {
+    this.filterNavItems();
   }
 
   /**

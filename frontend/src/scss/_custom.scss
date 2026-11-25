@@ -69,6 +69,37 @@
   --cui-btn-active-border-color: #154996;
 }
 
+// Botones de crear/guardar: verde con texto blanco
+.btn-success {
+  --cui-btn-color: #fff;
+  --cui-btn-bg: #198754;
+  --cui-btn-border-color: #198754;
+  --cui-btn-hover-color: #fff;
+  --cui-btn-hover-bg: #157347;
+  --cui-btn-hover-border-color: #146c43;
+  --cui-btn-active-color: #fff;
+  --cui-btn-active-bg: #146c43;
+  --cui-btn-active-border-color: #13653f;
+  --cui-btn-disabled-color: #fff;
+  --cui-btn-disabled-bg: #198754;
+  --cui-btn-disabled-border-color: #198754;
+}
+
+// Paginación: número visible también en la página actual
+.pagination {
+  --cui-pagination-color: var(--cui-body-color);
+  --cui-pagination-hover-color: #198754;
+  --cui-pagination-focus-color: #198754;
+  --cui-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+  --cui-pagination-active-color: #fff;
+  --cui-pagination-active-bg: #198754;
+  --cui-pagination-active-border-color: #198754;
+
+  .page-item:not(.disabled) .page-link {
+    cursor: pointer;
+  }
+}
+
 // custom calendar today cell color
 .calendar-cell.today {
   --cui-calendar-cell-today-color: var(--cui-info) !important;

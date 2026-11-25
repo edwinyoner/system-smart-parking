@@ -42,8 +42,8 @@
 
 
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/edwinyoner/winner-systems-smart-parking-platform?style=for-the-badge)](https://github.com/edwinyoner/winner-systems-smart-parking-platform/stargazers)
-[![GitHub Issues](https://img.shields.io/github/issues/edwinyoner/winner-systems-smart-parking-platform?style=for-the-badge)](https://github.com/edwinyoner/winner-systems-smart-parking-platform/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/edwinyoner/system-smart-parking?style=for-the-badge)](https://github.com/edwinyoner/system-smart-parking/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/edwinyoner/system-smart-parking?style=for-the-badge)](https://github.com/edwinyoner/system-smart-parking/issues)
 
 <br>
 
@@ -189,7 +189,7 @@ Una plataforma tecnológica integral que:
 ## 📁 Estructura del Proyecto
 
 ```
-winner-systems-smart-parking-platform/
+system-smart-parking/
 │
 ├── 📱 frontend/                  # Aplicación web Angular
 │   ├── src/
@@ -272,8 +272,8 @@ Asegúrate de tener instalado:
 #### 1. Clonar el Repositorio
 
 ```bash
-git clone https://github.com/edwinyoner/winner-systems-smart-parking-platform.git
-cd winner-systems-smart-parking-platform
+git clone https://github.com/edwinyoner/system-smart-parking.git
+cd system-smart-parking
 ```
 
 #### 2. Configurar Backend
@@ -510,9 +510,9 @@ Huaraz, Ancash, Perú
 
 <div align="center">
 
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/edwinyoner/winner-systems-smart-parking-platform?style=for-the-badge)
-![GitHub last commit](https://img.shields.io/github/last-commit/edwinyoner/winner-systems-smart-parking-platform?style=for-the-badge)
-![GitHub code size](https://img.shields.io/github/languages/code-size/edwinyoner/winner-systems-smart-parking-platform?style=for-the-badge)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/edwinyoner/system-smart-parking?style=for-the-badge)
+![GitHub last commit](https://img.shields.io/github/last-commit/edwinyoner/system-smart-parking?style=for-the-badge)
+![GitHub code size](https://img.shields.io/github/languages/code-size/edwinyoner/system-smart-parking?style=for-the-badge)
 
 </div>
 

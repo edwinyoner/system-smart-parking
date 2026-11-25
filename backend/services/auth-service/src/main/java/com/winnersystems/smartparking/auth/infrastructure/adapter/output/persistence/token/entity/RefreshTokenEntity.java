@@ -26,6 +26,9 @@ public class RefreshTokenEntity {
    @Column(name = "user_id", nullable = false)
    private Long userId;
 
+   @Column(name = "active_role", length = 100)
+   private String activeRole;  // Se conserva al renovar el access token
+
    @Column(name = "issued_at", nullable = false)
    private LocalDateTime issuedAt;
 

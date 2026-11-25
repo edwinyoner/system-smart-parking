@@ -17,7 +17,7 @@ export const environment = {
   recaptchaSiteKey: "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI",
 
   // Información de la aplicación
-  appName: "Smart Parking Platform",
+  appName: "Smart Parking System",
   appVersion: "1.0.0-dev",
   company: "Winner Systems Corporation S.A.C.",
 

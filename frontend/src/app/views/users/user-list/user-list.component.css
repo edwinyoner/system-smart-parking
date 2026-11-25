@@ -1,0 +1,64 @@
+.user-list-container {
+  padding: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+}
+
+/* Avatar */
+.user-avatar,
+.user-avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.user-avatar {
+  object-fit: cover;
+  border: 2px solid var(--cui-border-color);
+}
+
+.user-avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #198754;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Tabla */
+th {
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--cui-border-color);
+}
+
+/* Mientras llegan los nuevos resultados */
+.table-responsive {
+  transition: opacity 0.15s ease;
+}
+
+.refreshing {
+  opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .user-list-container {
+    padding: 0.5rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+
+  .user-avatar,
+  .user-avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    font-size: 0.875rem;
+  }
+}

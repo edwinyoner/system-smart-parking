@@ -20,6 +20,7 @@ public class TokenPersistenceMapper {
       entity.setId(token.getId());
       entity.setToken(token.getToken());  // ✅ UUID plano
       entity.setUserId(token.getUserId());
+      entity.setActiveRole(token.getActiveRole());
       entity.setIssuedAt(token.getIssuedAt());
       entity.setExpiresAt(token.getExpiresAt());
       entity.setRevoked(token.getRevoked());
@@ -41,6 +42,7 @@ public class TokenPersistenceMapper {
       token.setId(entity.getId());
       token.setToken(entity.getToken());  // ✅ UUID plano
       token.setUserId(entity.getUserId());
+      token.setActiveRole(entity.getActiveRole());
       token.setIssuedAt(entity.getIssuedAt());
       token.setExpiresAt(entity.getExpiresAt());
 

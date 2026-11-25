@@ -8,6 +8,7 @@ import { PaymentTypeService } from '../../../../core/services/parking/payment-ty
 import { PaymentType } from '../../../../core/models/parking/payment-type.model';
 import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
 
 @Component({
   selector: 'app-payment-type-list',
@@ -40,9 +41,8 @@ export class PaymentTypeListComponent implements OnInit {
     private paymentTypeService: PaymentTypeService,
     private router: Router
   ) {
-    const state = window.history.state;
-    if (state?.['successMessage']) {
-      this.successMessage = state['successMessage'];
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
       setTimeout(() => (this.successMessage = null), 5000);
     }
   }

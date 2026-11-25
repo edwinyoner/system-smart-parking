@@ -2,7 +2,7 @@ package com.winnersystems.smartparking.gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
@@ -14,19 +14,18 @@ import java.util.List;
  * Se necesita configuración manual porque Gateway usa WebFlux (reactivo).
  */
 @Configuration
-public class CorsConfiguration {
+public class CorsConfig {
 
    @Bean
    public CorsWebFilter corsWebFilter() {
-      org.springframework.web.cors.CorsConfiguration corsConfig =
-            new org.springframework.web.cors.CorsConfiguration();
+      CorsConfiguration corsConfig = new CorsConfiguration();
 
       // Orígenes permitidos
       corsConfig.setAllowedOriginPatterns(List.of("http://localhost:4200"));
       //corsConfig.setAllowedOriginPatterns(List.of("http://192.168.1.6:4200"));
 
       // Métodos HTTP permitidos
-      corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+      corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
       // Headers permitidos
       corsConfig.setAllowedHeaders(List.of("*"));

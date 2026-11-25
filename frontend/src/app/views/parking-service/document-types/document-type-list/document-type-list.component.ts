@@ -8,6 +8,7 @@ import { DocumentTypeService } from '../../../../core/services/parking/document-
 import { DocumentType } from '../../../../core/models/parking/document-type.model';
 import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
 
 @Component({
   selector: 'app-document-type-list',
@@ -40,9 +41,8 @@ export class DocumentTypeListComponent implements OnInit {
     private documentTypeService: DocumentTypeService,
     private router: Router
   ) {
-    const state = window.history.state;
-    if (state?.['successMessage']) {
-      this.successMessage = state['successMessage'];
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
       setTimeout(() => (this.successMessage = null), 5000);
     }
   }

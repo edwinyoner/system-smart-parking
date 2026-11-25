@@ -248,8 +248,8 @@ docker-compose --version # Docker Compose version 2.x
 
 ```bash
 
-git clone https://github.com/edwinyoner/winner-systems-smart-parking-platform.git
-cd winner-systems-smart-parking-platform/backend
+git clone https://github.com/edwinyoner/system-smart-parking.git
+cd system-smart-parking/backend
 ```
 
 ### 2. Estructura del Proyecto

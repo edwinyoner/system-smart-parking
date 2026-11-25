@@ -1,7 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, catchError, exhaustMap, filter } from 'rxjs';
+import { liveRefresh } from '../../../core/utils/live-refresh.util';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../../../core/services/user.service';
+import { UserProtectionService } from '../../../core/services/user-protection.service';
 import { User } from '../../../core/models/user.model';
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
 
@@ -21,15 +25,33 @@ export class UserDetailComponent implements OnInit {
   isLoading = false;
   errorMessage: string | null = null;
   showDeleteConfirm = false;
+  deleteBlockedReason: string | null = null;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private userService: UserService
+    private userService: UserService,
+    private userProtection: UserProtectionService
   ) {}
+
+  private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
     this.loadUser();
+    this.startLiveRefresh();
+  }
+
+  /**
+   * Mantiene los datos al día sin spinner ni recargar la página
+   */
+  private startLiveRefresh(): void {
+    liveRefresh(5000).pipe(
+      filter(() => !this.isLoading && !!this.user),
+      exhaustMap(() => this.userService.getUserById(this.user!.id, true).pipe(
+        catchError(() => EMPTY)
+      )),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(user => this.user = user);
   }
 
   private loadUser(): void {
@@ -66,6 +88,9 @@ export class UserDetailComponent implements OnInit {
   }
 
   confirmDelete(): void {
+    if (!this.user) return;
+
+    this.deleteBlockedReason = this.userProtection.getBlockedReason(this.user);
     this.showDeleteConfirm = true;
   }
 

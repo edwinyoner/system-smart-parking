@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
+import { SKIP_LOADING } from '../interceptors/loading.interceptor';
 import { environment } from '../../../environments/environment';
 import { 
   Role, 
@@ -28,7 +29,7 @@ export class RoleService {
   /**
    * Obtiene lista paginada de roles con filtros
    */
-  getRoles(filters?: RoleFilters): Observable<PaginatedResponse<Role>> {
+  getRoles(filters?: RoleFilters, silent = false): Observable<PaginatedResponse<Role>> {
     let params = new HttpParams();
 
     if (filters) {
@@ -40,7 +41,10 @@ export class RoleService {
       if (filters.sortDirection) params = params.set('sortDirection', filters.sortDirection);
     }
 
-    return this.http.get<PaginatedResponse<Role>>(this.API_URL, { params }).pipe(
+    return this.http.get<PaginatedResponse<Role>>(this.API_URL, {
+      params,
+      context: new HttpContext().set(SKIP_LOADING, silent)
+    }).pipe(
       catchError(this.handleError)
     );
   }

@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
-import { HttpClient, HttpParams } from "@angular/common/http";
+import { HttpClient, HttpContext, HttpParams } from "@angular/common/http";
 import { Observable, catchError, throwError } from "rxjs";
+import { SKIP_LOADING } from "../interceptors/loading.interceptor";
 import { environment } from "../../../environments/environment";
 import {
   User,
@@ -27,14 +28,15 @@ export class UserService {
 
   /**
    * Obtiene lista paginada de usuarios con filtros
+   * @param silent true = sin spinner (actualización en segundo plano)
    */
-  getUsers(filters?: UserFilters): Observable<PaginatedResponse<User>> {
+  getUsers(filters?: UserFilters, silent = false): Observable<PaginatedResponse<User>> {
     let params = new HttpParams();
 
     if (filters) {
       if (filters.search) params = params.set("search", filters.search);
       if (filters.roleId)
-        params = params.set("role", filters.roleId.toString());
+        params = params.set("roleId", filters.roleId.toString());
       if (filters.status !== undefined)
         params = params.set("status", filters.status.toString());
       if (filters.emailVerified !== undefined)
@@ -46,7 +48,10 @@ export class UserService {
     }
 
     return this.http
-      .get<PaginatedResponse<User>>(this.API_URL, { params })
+      .get<PaginatedResponse<User>>(this.API_URL, {
+        params,
+        context: new HttpContext().set(SKIP_LOADING, silent),
+      })
       .pipe(catchError(this.handleError));
   }
 
@@ -59,14 +64,25 @@ export class UserService {
       .pipe(catchError(this.handleError));
   }
 
+  /**
+   * Obtiene los datos actuales del usuario autenticado, sin mostrar el spinner
+   */
+  getMe(): Observable<User> {
+    return this.http.get<User>(`${this.API_URL}/me`, {
+      context: new HttpContext().set(SKIP_LOADING, true),
+    });
+  }
+
   // ========== OBTENER USUARIO POR ID ==========
 
   /**
    * Obtiene un usuario por su ID
    */
-  getUserById(id: number): Observable<User> {
+  getUserById(id: number, silent = false): Observable<User> {
     return this.http
-      .get<User>(`${this.API_URL}/${id}`)
+      .get<User>(`${this.API_URL}/${id}`, {
+        context: new HttpContext().set(SKIP_LOADING, silent),
+      })
       .pipe(catchError(this.handleError));
   }
 
@@ -120,8 +136,7 @@ export class UserService {
   resendCredentials(userId: number, password: string): Observable<any> {
     return this.http.post(
       `${this.API_URL}/${userId}/resend-credentials`,
-      null,
-      { params: { password } },
+      { password }, // En el cuerpo: en la URL quedaría en logs
     );
   }
 

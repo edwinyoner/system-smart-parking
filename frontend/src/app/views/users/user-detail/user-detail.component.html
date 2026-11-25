@@ -292,26 +292,32 @@
           <div class="modal-header bg-danger text-white">
             <h5 class="modal-title">
               <i class="fas fa-exclamation-triangle me-2"></i>
-              Confirmar Eliminación
+              {{ deleteBlockedReason ? 'Acción no permitida' : 'Confirmar Eliminación' }}
             </h5>
             <button type="button" class="btn-close btn-close-white" (click)="cancelDelete()"></button>
           </div>
           <div class="modal-body">
+            @if (deleteBlockedReason) {
+              <p class="mb-0"><i class="fas fa-lock me-2"></i>Este usuario no se puede eliminar. {{ deleteBlockedReason }}</p>
+            } @else {
             <p>¿Estás seguro de eliminar al usuario <strong>"{{ user.firstName }} {{ user.lastName }}"</strong>?</p>
             <p class="text-danger mb-0">
               <i class="fas fa-exclamation-circle me-2"></i>
               Esta acción no se puede deshacer.
             </p>
+            }
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="cancelDelete()">
               <i class="fas fa-times me-2"></i>
               Cancelar
             </button>
-            <button type="button" class="btn btn-danger" (click)="deleteUser()">
+            @if (!deleteBlockedReason) {
+              <button type="button" class="btn btn-danger" (click)="deleteUser()">
               <i class="fas fa-trash me-2"></i>
               Eliminar
             </button>
+            }
           </div>
         </div>
       </div>

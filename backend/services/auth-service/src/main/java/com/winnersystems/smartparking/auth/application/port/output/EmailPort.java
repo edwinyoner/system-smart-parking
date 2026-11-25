@@ -174,4 +174,9 @@ public interface EmailPort {
          String verificationLink,
          int validityHours
    );
+
+   /**
+    * Envía una contraseña temporal nueva a un usuario con el correo ya verificado.
+    */
+   void sendNewCredentialsEmail(String toEmail, String userName, String password);
 }

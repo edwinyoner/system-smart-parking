@@ -39,20 +39,6 @@
 .btn:hover {
   transform: translateY(-1px);
 }
-.pagination .page-link {
-  cursor: pointer;
-  color: var(--bs-primary);
-  border-color: var(--bs-border-color);
-  transition: all 0.2s ease;
-}
-.pagination .page-item.active .page-link {
-  background-color: var(--bs-primary);
-  border-color: var(--bs-primary);
-}
-.pagination .page-item.disabled .page-link {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
 .modal-backdrop {
   background-color: rgba(0, 0, 0, 0.5);
 }

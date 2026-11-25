@@ -14,6 +14,7 @@ import { PaginatedResponse } from '../../../../core/models/pagination.model';
 
 // Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
 
 @Component({
   selector: 'app-zone-list',
@@ -54,9 +55,8 @@ export class ZoneListComponent implements OnInit {
     private router: Router
   ) {
     // Capturar mensajes de éxito desde la navegación
-    const state = window.history.state;
-    if (state?.['successMessage']) {
-      this.successMessage = state['successMessage'];
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
       setTimeout(() => (this.successMessage = null), 5000);
     }
   }

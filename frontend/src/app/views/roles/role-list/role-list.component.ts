@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { EMPTY, catchError, debounceTime, exhaustMap, filter, merge } from 'rxjs';
+import { liveRefresh } from '../../../core/utils/live-refresh.util';
 
 // Services
 import { RoleService } from '../../../core/services/role.service';
@@ -14,6 +16,7 @@ import { PaginatedResponse } from '../../../core/models/pagination.model';
 
 // Components
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../core/utils/flash-message.util';
 
 @Component({
   selector: 'app-role-list',
@@ -24,7 +27,7 @@ import { AlertMessageComponent } from '../../../shared/components/alert-message/
     AlertMessageComponent
   ],
   templateUrl: './role-list.component.html',
-  styleUrls: ['./role-list.component.scss']
+  styleUrls: ['./role-list.component.css']
 })
 export class RoleListComponent implements OnInit {
   
@@ -45,6 +48,16 @@ export class RoleListComponent implements OnInit {
   showDeleteConfirm = false;
   roleToDelete: Role | null = null;
 
+  // Filtros vigentes. Son distintos de los del formulario mientras se escribe
+  appliedFilters: RoleFilters = {};
+
+  // false hasta la primera respuesta
+  loaded = false;
+
+  // Identifica la última carga pedida, para descartar respuestas atrasadas
+  private lastRequestId = 0;
+  private destroyRef = inject(DestroyRef);
+
   // Math para el template
   Math = Math;
 
@@ -55,9 +68,8 @@ export class RoleListComponent implements OnInit {
     private router: Router
   ) {
     // Capturar mensajes de éxito desde la navegación
-    const state = window.history.state;
-    if (state?.['successMessage']) {
-      this.successMessage = state['successMessage'];
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
       setTimeout(() => (this.successMessage = null), 5000);
     }
   }
@@ -66,6 +78,7 @@ export class RoleListComponent implements OnInit {
     this.initFilterForm();
     this.loadRoles();
     this.setupFilterListeners();
+    this.startLiveRefresh();
   }
 
   /**
@@ -73,6 +86,11 @@ export class RoleListComponent implements OnInit {
    */
   hasPermission(permission: string): boolean {
     return this.authContext.hasPermission(permission);
+  }
+
+  /** Solo quien entró como ADMIN modifica roles */
+  get isAdmin(): boolean {
+    return this.authContext.isActiveRole('ADMIN');
   }
 
   private initFilterForm(): void {
@@ -83,43 +101,37 @@ export class RoleListComponent implements OnInit {
   }
 
   private setupFilterListeners(): void {
-    // Búsqueda con debounce
-    this.filterForm.get('search')?.valueChanges
-      .pipe(debounceTime(400), distinctUntilChanged())
-      .subscribe(() => {
-        this.currentPage = 1;
-        this.loadRoles();
-      });
+    const { search, status } = this.filterForm.controls;
 
-    // Estado
-    this.filterForm.get('status')?.valueChanges.subscribe(() => {
-      this.currentPage = 1;
-      this.loadRoles();
-    });
+    merge(
+      search.valueChanges.pipe(debounceTime(400)),
+      status.valueChanges
+    ).pipe(
+      filter(() => JSON.stringify(this.readFilters()) !== JSON.stringify(this.appliedFilters)),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => this.applyFilters());
+  }
+
+  /** Vuelve a la primera página con los filtros del formulario */
+  applyFilters(): void {
+    this.appliedFilters = this.readFilters();
+    this.currentPage = 1;
+    this.loadRoles();
   }
 
   loadRoles(): void {
     this.isLoading = true;
-    const val = this.filterForm.value;
+    this.errorMessage = null;
+    const requestId = ++this.lastRequestId;
 
-    const filters: RoleFilters = {
-      search: val.search || undefined,
-      status: val.status !== '' ? val.status === 'true' : undefined,
-      page: this.currentPage - 1,
-      size: this.pageSize,
-      sortBy: 'id',
-      sortDirection: 'desc'
-    };
-
-    this.roleService.getRoles(filters).subscribe({
-      next: (res: PaginatedResponse<Role>) => {
-        this.roles = res.content;
-        this.totalItems = res.totalElements;
-        this.totalPages = res.totalPages;
-        this.currentPage = res.number + 1;
+    this.roleService.getRoles(this.buildQuery(), true).subscribe({
+      next: (res) => {
+        if (requestId !== this.lastRequestId) return;
         this.isLoading = false;
+        this.showPage(res);
       },
       error: (err) => {
+        if (requestId !== this.lastRequestId) return;
         this.isLoading = false;
         this.errorMessage = 'Error al cargar los roles del sistema';
         console.error(err);
@@ -127,13 +139,79 @@ export class RoleListComponent implements OnInit {
     });
   }
 
+  /**
+   * Mantiene la tabla al día sin spinner ni recargar la página
+   */
+  private startLiveRefresh(): void {
+    liveRefresh(5000).pipe(
+      filter(() => !this.isLoading),
+      exhaustMap(() => {
+        // Si mientras tanto cambia la página o un filtro, esta respuesta se descarta
+        const requestId = this.lastRequestId;
+        return this.roleService.getRoles(this.buildQuery(), true).pipe(
+          filter(() => requestId === this.lastRequestId),
+          catchError(() => EMPTY)
+        );
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(res => this.showPage(res));
+  }
+
+  private readFilters(): RoleFilters {
+    // No usar filterForm.value: aquí aún tendría el valor anterior al cambio
+    const val = this.filterForm.getRawValue();
+
+    return {
+      search: val.search.trim() || undefined,
+      status: val.status !== '' ? val.status === 'true' : undefined
+    };
+  }
+
+  private buildQuery(): RoleFilters {
+    return { ...this.appliedFilters, page: this.currentPage - 1, size: this.pageSize };
+  }
+
+  private showPage(res: PaginatedResponse<Role>): void {
+    this.loaded = true;
+    this.totalItems = res.totalElements;
+    this.totalPages = res.totalPages;
+
+    // La página quedó vacía: ir a la última
+    if (res.totalPages > 0 && this.currentPage > res.totalPages) {
+      this.currentPage = res.totalPages;
+      this.loadRoles();
+      return;
+    }
+
+    this.roles = res.content;
+  }
+
+  /** Cantidad de filtros aplicados */
+  get activeFilterCount(): number {
+    return Object.values(this.appliedFilters).filter(value => value !== undefined).length;
+  }
+
+  clearSearch(): void {
+    this.filterForm.patchValue({ search: '' }, { emitEvent: false });
+    this.applyFilters();
+  }
+
   clearFilters(): void {
-    this.filterForm.reset({
-      search: '',
-      status: ''
-    }, { emitEvent: false });
-    this.currentPage = 1;
-    this.loadRoles();
+    // Sin emitir eventos: se consulta una sola vez
+    this.filterForm.reset({ search: '', status: '' }, { emitEvent: false });
+    this.applyFilters();
+  }
+
+  /** Motivo por el que no se puede eliminar, o null. Quien lo hace cumplir es auth-service */
+  getDeleteBlockedReason(role: Role): string | null {
+    if (role.systemRole) {
+      return 'Es un rol del sistema: no se puede eliminar.';
+    }
+    if (role.userCount) {
+      const users = role.userCount === 1 ? '1 usuario' : `${role.userCount} usuarios`;
+      return `Está asignado a ${users}: quítalo antes de eliminarlo.`;
+    }
+    return null;
   }
 
   // ========== NAVEGACIÓN Y EVENTOS ==========
@@ -145,7 +223,7 @@ export class RoleListComponent implements OnInit {
   }
 
   goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
+    if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
       this.currentPage = page;
       this.loadRoles();
     }
@@ -203,8 +281,8 @@ export class RoleListComponent implements OnInit {
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.error?.message || 'No se pudo eliminar el rol. Verifica que no tenga usuarios asignados.';
-        this.showDeleteConfirm = false;
+        this.errorMessage = err.error?.message || 'No se pudo eliminar el rol';
+        this.cancelDelete();
       }
     });
   }

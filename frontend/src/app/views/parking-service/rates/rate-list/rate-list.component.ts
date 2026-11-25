@@ -9,6 +9,7 @@ import { Rate } from "../../../../core/models/parking/rate.model";
 // ParkingPagedResponse para parking-service
 import { ParkingPagedResponse } from "../../../../core/models/pagination.model";
 import { AlertMessageComponent } from "../../../../shared/components/alert-message/alert-message.component";
+import { takeSuccessMessage } from "../../../../core/utils/flash-message.util";
 
 @Component({
   selector: "app-rate-list",
@@ -40,9 +41,8 @@ export class RateListComponent implements OnInit {
     private rateService: RateService,
     private router: Router,
   ) {
-    const state = window.history.state;
-    if (state?.["successMessage"]) {
-      this.successMessage = state["successMessage"];
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
       setTimeout(() => (this.successMessage = null), 5000);
     }
   }

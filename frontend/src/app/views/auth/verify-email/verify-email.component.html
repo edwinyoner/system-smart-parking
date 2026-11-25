@@ -71,12 +71,6 @@
         <i class="fas fa-info-circle"></i>
         <span>Ya puedes iniciar sesión con tu email y contraseña.</span>
       </div>
-
-      <!-- Manual Redirect Button -->
-      <a routerLink="/login" class="btn-redirect">
-        <i class="fas fa-sign-in-alt"></i>
-        <span>Ir al Login Ahora</span>
-      </a>
     </div>
   }
 
@@ -137,8 +131,8 @@
     </div>
   }
 
-  <!-- Divider -->
-  @if (!isVerifying) {
+  <!-- Al verificar con éxito la redirección es automática: no se muestran botones -->
+  @if (!isVerifying && !verificationSuccess) {
     <div class="divider">
       <span>¿Ya verificaste tu email?</span>
     </div>

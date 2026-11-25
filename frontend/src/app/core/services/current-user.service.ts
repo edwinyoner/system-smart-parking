@@ -3,6 +3,14 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { TokenService } from './token.service';
 import { UserInfo } from '../models/auth-response.model';
 
+/** Datos personales que pueden cambiar sin renovar la sesión */
+export interface CurrentUserProfile {
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string | null;
+  profilePicture?: string | null;
+}
+
 /**
  * Servicio para gestionar información del usuario actual
  * Mantiene el estado del usuario logueado en la aplicación
@@ -12,10 +20,12 @@ import { UserInfo } from '../models/auth-response.model';
 })
 export class CurrentUserService {
 
-  private currentUserSubject = new BehaviorSubject<UserInfo | null>(this.getUserFromToken());
+  private currentUserSubject = new BehaviorSubject<UserInfo | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private tokenService: TokenService) {}
+  constructor(private tokenService: TokenService) {
+    this.refreshCurrentUser();
+  }
 
   // ========== USUARIO ACTUAL ==========
 
@@ -31,7 +41,7 @@ export class CurrentUserService {
 
     // Convertir datos del token a UserInfo
     return {
-      id: tokenData.sub || tokenData.userId,
+      id: Number(tokenData.userId), // 'sub' contiene el email, no el id
       email: tokenData.email,
       firstName: tokenData.firstName,
       lastName: tokenData.lastName,
@@ -49,6 +59,37 @@ export class CurrentUserService {
    */
   setCurrentUser(user: UserInfo | null): void {
     this.currentUserSubject.next(user);
+  }
+
+  /**
+   * Aplica los datos personales devueltos por el backend tras una edición.
+   * Los roles y permisos se conservan: pertenecen a la sesión (token).
+   */
+  applyProfile(profile: CurrentUserProfile): void {
+    const user = this.getCurrentUser();
+    if (!user) {
+      return;
+    }
+
+    // El backend envía null cuando el campo se borró
+    const phoneNumber = profile.phoneNumber || undefined;
+    const profilePicture = profile.profilePicture || undefined;
+
+    // Sin cambios no se emite: evita refrescar la pantalla en cada sincronización
+    if (user.firstName === profile.firstName
+      && user.lastName === profile.lastName
+      && (user.phoneNumber || undefined) === phoneNumber
+      && (user.profilePicture || undefined) === profilePicture) {
+      return;
+    }
+
+    this.setCurrentUser({
+      ...user,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      phoneNumber,
+      profilePicture
+    });
   }
 
   /**
@@ -92,10 +133,10 @@ export class CurrentUserService {
   }
 
   /**
-   * Verifica si el usuario es ADMIN
+   * Verifica si inició sesión como ADMIN (no basta con tener el rol)
    */
   isAdmin(): boolean {
-    return this.hasRole('ADMIN');
+    return this.tokenService.getUserFromToken()?.activeRole === 'ADMIN';
   }
 
   /**

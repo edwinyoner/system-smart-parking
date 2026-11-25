@@ -89,18 +89,8 @@ export class ProfileEditComponent implements OnInit {
       next: (response) => {
         this.isLoading = false;
         
-        // ACTUALIZAR MANUALMENTE EL CurrentUserService
-        const currentUser = this.currentUserService.getCurrentUser();
-        if (currentUser) {
-          const updatedUser = {
-            ...currentUser,
-            firstName: updateData.firstName,
-            lastName: updateData.lastName,
-            phoneNumber: updateData.phoneNumber || currentUser.phoneNumber,
-            profilePicture: updateData.profilePicture || currentUser.profilePicture
-          };
-          this.currentUserService.setCurrentUser(updatedUser);
-        }
+        // Reflejar en toda la aplicación lo que guardó el backend
+        this.currentUserService.applyProfile(response);
 
         this.successMessage = 'Perfil actualizado exitosamente';
         

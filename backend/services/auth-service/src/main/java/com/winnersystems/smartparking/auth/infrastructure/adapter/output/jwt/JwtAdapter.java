@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.*;
 
 @Component
@@ -85,6 +86,16 @@ public class JwtAdapter implements JwtPort {
    @Override
    public Long extractUserId(String token) {
       return extractClaims(token).get("userId", Long.class);
+   }
+
+   @Override
+   public String extractActiveRole(String token) {
+      return extractClaims(token).get("activeRole", String.class);
+   }
+
+   @Override
+   public Instant extractIssuedAt(String token) {
+      return extractClaims(token).getIssuedAt().toInstant();
    }
 
    @Override

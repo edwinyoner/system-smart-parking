@@ -1,6 +1,7 @@
 package com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.role.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,7 +18,8 @@ import java.util.Set;
 public class CreateRoleRequest {
 
    @NotBlank(message = "El nombre del rol es obligatorio")
-   @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
+   @Size(min = 3, max = 50, message = "El nombre debe tener entre 3 y 50 caracteres")
+   @Pattern(regexp = "^\\s*[A-Za-zÑñ][A-Za-zÑñ0-9_ ]*$", message = "El nombre solo admite letras sin tilde, números, espacios y guion bajo")
    private String name;
 
    @Size(max = 255, message = "La descripción no puede exceder 255 caracteres")

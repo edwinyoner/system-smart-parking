@@ -22,7 +22,7 @@
 ## 🚀 Inicio Rápido
 ```bash
 # 1. Ir a la carpeta backend
-cd ~/Documents/winner-systems-system-smart-parking/backend
+cd ~/Documents/system-smart-parking/backend
 
 # 2. Crear carpetas para scripts de inicialización (opcional)
 mkdir -p docker-init/postgres docker-init/mysql docker-init/mongodb

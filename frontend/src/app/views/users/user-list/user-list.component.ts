@@ -1,12 +1,15 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { FormBuilder, FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
-import { debounceTime, distinctUntilChanged } from "rxjs/operators";
+import { EMPTY, catchError, debounceTime, exhaustMap, filter, merge } from "rxjs";
+import { liveRefresh } from "../../../core/utils/live-refresh.util";
 
 // Services
 import { UserService } from "../../../core/services/user.service";
 import { RoleService } from "../../../core/services/role.service";
+import { UserProtectionService } from "../../../core/services/user-protection.service";
 import { AuthContextService } from "../../../core/services/auth-context.service";
 
 // Models
@@ -16,6 +19,7 @@ import { PaginatedResponse } from "../../../core/models/pagination.model";
 
 // Components
 import { AlertMessageComponent } from "../../../shared/components/alert-message/alert-message.component";
+import { takeSuccessMessage } from "../../../core/utils/flash-message.util";
 
 @Component({
   selector: "app-user-list",
@@ -26,7 +30,7 @@ import { AlertMessageComponent } from "../../../shared/components/alert-message/
     AlertMessageComponent
   ],
   templateUrl: "./user-list.component.html",
-  styleUrls: ["./user-list.component.scss"],
+  styleUrls: ["./user-list.component.css"],
 })
 export class UserListComponent implements OnInit {
   filterForm!: FormGroup;
@@ -46,6 +50,17 @@ export class UserListComponent implements OnInit {
   // Confirmación de eliminación
   showDeleteConfirm = false;
   userToDelete: User | null = null;
+  deleteBlockedReason: string | null = null;
+
+  // Filtros vigentes. Son distintos de los del formulario mientras se escribe
+  appliedFilters: UserFilters = {};
+
+  // false hasta la primera respuesta
+  loaded = false;
+
+  // Identifica la última carga pedida, para descartar respuestas atrasadas
+  private lastRequestId = 0;
+  private destroyRef = inject(DestroyRef);
 
   // Math para el template
   Math = Math;
@@ -55,12 +70,12 @@ export class UserListComponent implements OnInit {
     private userService: UserService,
     private roleService: RoleService,
     private router: Router,
-    private authContext: AuthContextService 
+    private authContext: AuthContextService,
+    private userProtection: UserProtectionService
   ) {
     // Capturar mensajes de éxito desde la navegación
-    const state = window.history.state;
-    if (state?.["successMessage"]) {
-      this.successMessage = state["successMessage"];
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
       setTimeout(() => (this.successMessage = null), 5000);
     }
   }
@@ -70,6 +85,7 @@ export class UserListComponent implements OnInit {
     this.loadRoles();
     this.loadUsers();
     this.setupFilterListeners();
+    this.startLiveRefresh();
   }
 
   /**
@@ -89,52 +105,51 @@ export class UserListComponent implements OnInit {
   }
 
   private setupFilterListeners(): void {
-    // Búsqueda con debounce
-    this.filterForm.get("search")?.valueChanges
-      .pipe(debounceTime(400), distinctUntilChanged())
-      .subscribe(() => {
-        this.currentPage = 1;
-        this.loadUsers();
-      });
+    const { search, roleId, status, emailVerified } = this.filterForm.controls;
 
-    // Otros filtros (Rol, Estado, Verificación)
-    ["roleId", "status", "emailVerified"].forEach(key => {
-      this.filterForm.get(key)?.valueChanges.subscribe(() => {
-        this.currentPage = 1;
-        this.loadUsers();
-      });
-    });
+    merge(
+      search.valueChanges.pipe(debounceTime(400)),
+      roleId.valueChanges,
+      status.valueChanges,
+      emailVerified.valueChanges
+    ).pipe(
+      // Limpiar los filtros o volver al mismo texto no repite la consulta
+      filter(() => JSON.stringify(this.readFilters()) !== JSON.stringify(this.appliedFilters)),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => this.applyFilters());
+  }
+
+  /** Vuelve a la primera página con los filtros del formulario */
+  applyFilters(): void {
+    this.appliedFilters = this.readFilters();
+    this.currentPage = 1;
+    this.loadUsers();
   }
 
   private loadRoles(): void {
     this.roleService.getAllRoles().subscribe({
       next: (roles) => (this.roles = roles),
-      error: (err) => console.error("Error al cargar roles:", err)
+      error: (err) => {
+        this.errorMessage = "No se pudieron cargar los roles del filtro";
+        console.error(err);
+      }
     });
   }
 
   loadUsers(): void {
     this.isLoading = true;
-    const val = this.filterForm.value;
+    this.errorMessage = null;
+    const requestId = ++this.lastRequestId;
 
-    const filters: UserFilters = {
-      search: val.search || undefined,
-      roleId: val.roleId ? Number(val.roleId) : undefined,
-      status: val.status !== "" ? val.status === "true" : undefined,
-      emailVerified: val.emailVerified !== "" ? val.emailVerified === "true" : undefined,
-      page: this.currentPage - 1,
-      size: this.pageSize
-    };
-
-    this.userService.getUsers(filters).subscribe({
-      next: (res: PaginatedResponse<User>) => {
-        this.users = res.content;
-        this.totalItems = res.totalElements;
-        this.totalPages = res.totalPages;
-        this.currentPage = res.number + 1;
+    // Sin spinner global: la tabla se atenúa y se puede seguir escribiendo
+    this.userService.getUsers(this.buildQuery(), true).subscribe({
+      next: (res) => {
+        if (requestId !== this.lastRequestId) return;
         this.isLoading = false;
+        this.showPage(res);
       },
       error: (err) => {
+        if (requestId !== this.lastRequestId) return;
         this.isLoading = false;
         this.errorMessage = "Error al cargar los usuarios del sistema";
         console.error(err);
@@ -142,15 +157,69 @@ export class UserListComponent implements OnInit {
     });
   }
 
+  /**
+   * Mantiene la tabla al día sin spinner ni recargar la página
+   */
+  private startLiveRefresh(): void {
+    liveRefresh(5000).pipe(
+      filter(() => !this.isLoading),
+      exhaustMap(() => {
+        // Si mientras tanto cambia la página o un filtro, esta respuesta se descarta
+        const requestId = this.lastRequestId;
+        return this.userService.getUsers(this.buildQuery(), true).pipe(
+          filter(() => requestId === this.lastRequestId),
+          catchError(() => EMPTY)
+        );
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(res => this.showPage(res));
+  }
+
+  private readFilters(): UserFilters {
+    // No usar filterForm.value: aquí aún tendría el valor anterior al cambio
+    const val = this.filterForm.getRawValue();
+
+    return {
+      search: val.search.trim() || undefined,
+      roleId: val.roleId ? Number(val.roleId) : undefined,
+      status: val.status !== "" ? val.status === "true" : undefined,
+      emailVerified: val.emailVerified !== "" ? val.emailVerified === "true" : undefined
+    };
+  }
+
+  private buildQuery(): UserFilters {
+    return { ...this.appliedFilters, page: this.currentPage - 1, size: this.pageSize };
+  }
+
+  private showPage(res: PaginatedResponse<User>): void {
+    this.loaded = true;
+    this.totalItems = res.totalElements;
+    this.totalPages = res.totalPages;
+
+    // La página quedó vacía (p. ej. se eliminó su último usuario): ir a la última
+    if (res.totalPages > 0 && this.currentPage > res.totalPages) {
+      this.currentPage = res.totalPages;
+      this.loadUsers();
+      return;
+    }
+
+    this.users = res.content;
+  }
+
+  /** Cantidad de filtros aplicados */
+  get activeFilterCount(): number {
+    return Object.values(this.appliedFilters).filter(value => value !== undefined).length;
+  }
+
+  clearSearch(): void {
+    this.filterForm.patchValue({ search: "" }, { emitEvent: false });
+    this.applyFilters();
+  }
+
   clearFilters(): void {
-    this.filterForm.reset({
-      search: "",
-      roleId: "",
-      status: "",
-      emailVerified: ""
-    }, { emitEvent: false }); // Evita disparar múltiples llamadas
-    this.currentPage = 1;
-    this.loadUsers();
+    // Sin emitir eventos: se consulta una sola vez
+    this.filterForm.reset({ search: "", roleId: "", status: "", emailVerified: "" }, { emitEvent: false });
+    this.applyFilters();
   }
 
   // --- Navegación y Eventos ---
@@ -162,7 +231,7 @@ export class UserListComponent implements OnInit {
   }
 
   goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
+    if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
       this.currentPage = page;
       this.loadUsers();
     }
@@ -190,6 +259,7 @@ export class UserListComponent implements OnInit {
 
   confirmDelete(user: User): void {
     this.userToDelete = user;
+    this.deleteBlockedReason = this.userProtection.getBlockedReason(user);
     this.showDeleteConfirm = true;
   }
 

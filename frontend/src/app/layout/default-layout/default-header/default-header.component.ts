@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 
 import {
@@ -22,6 +23,7 @@ import {
 
 import { IconDirective } from '@coreui/icons-angular';
 import { AuthService } from '../../../core/services/auth.service';
+import { CurrentUserService } from '../../../core/services/current-user.service';
 import { AuthContextService } from '../../../core/services/auth-context.service';
 
 @Component({
@@ -46,7 +48,7 @@ import { AuthContextService } from '../../../core/services/auth-context.service'
     BadgeComponent
   ]
 })
-export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
+export class DefaultHeaderComponent extends HeaderComponent {
 
   readonly #colorModeService = inject(ColorModeService);
   readonly colorMode = this.#colorModeService.colorMode;
@@ -55,13 +57,32 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
   private authContext = inject(AuthContextService);
   private router = inject(Router);
 
-  // Signals para la información del usuario
-  fullName = signal<string>('Usuario');
-  userEmail = signal<string>('');
-  userInitials = signal<string>('??');
-  profilePicture = signal<string>(''); // Cambiar a string vacío
-  activeRole = signal<string>('Sin rol');
-  roleBadgeColor = signal<string>('secondary');
+  // Datos del usuario: se recalculan solos cuando cambia CurrentUserService
+  private currentUser = toSignal(inject(CurrentUserService).currentUser$, { initialValue: null });
+
+  fullName = computed(() => {
+    const user = this.currentUser();
+    return `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Usuario';
+  });
+  userEmail = computed(() => this.currentUser()?.email || '');
+  userInitials = computed(() => {
+    const user = this.currentUser();
+    const initials = `${user?.firstName?.charAt(0) ?? ''}${user?.lastName?.charAt(0) ?? ''}`;
+    return initials.toUpperCase() || '??';
+  });
+  profilePicture = computed(() => this.currentUser()?.profilePicture || '');
+  activeRole = computed(() => {
+    this.currentUser(); // El rol activo viene del token: releerlo al cambiar la sesión
+    return this.authContext.getActiveRole() || 'Sin rol';
+  });
+  roleBadgeColor = computed(() => {
+    const colorMap: { [key: string]: string } = {
+      'ADMIN': 'danger',
+      'AUTORIDAD': 'warning',
+      'OPERADOR': 'info'
+    };
+    return colorMap[this.activeRole()] || 'secondary';
+  });
 
   readonly colorModes = [
     { name: 'light', text: 'Light', icon: 'cilSun' },
@@ -76,31 +97,6 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit {
 
   constructor() {
     super();
-  }
-
-  ngOnInit(): void {
-    this.loadUserInfo();
-  }
-
-  /**
-   * Carga la información del usuario usando AuthContextService
-   * Proporciona valores por defecto para manejar nulls
-   */
-  private loadUserInfo(): void {
-    this.fullName.set(this.authContext.getFullName() || 'Usuario');
-    this.userEmail.set(this.authContext.getUserEmail() || ''); // Manejar null
-    this.userInitials.set(this.authContext.getUserInitials() || '??');
-    this.profilePicture.set(this.authContext.getProfilePicture() || ''); // Manejar null
-    this.activeRole.set(this.authContext.getActiveRole() || 'Sin rol');
-    
-    // Obtener color del badge según el rol
-    const role = this.activeRole();
-    const colorMap: { [key: string]: string } = {
-      'ADMIN': 'danger',
-      'AUTORIDAD': 'warning',
-      'OPERADOR': 'info'
-    };
-    this.roleBadgeColor.set(colorMap[role] || 'secondary');
   }
 
   sidebarId = input('sidebar1');

@@ -30,7 +30,7 @@ package com.winnersystems.smartparking.auth.application.port.input.user;
  * <h3>Restricciones</h3>
  * <ul>
  *   <li>Usuario no puede eliminarse a sí mismo</li>
- *   <li>Usuarios con rol ADMIN están protegidos</li>
+ *   <li>A un ADMIN solo puede eliminarlo otro usuario con ADMIN como rol activo</li>
  *   <li>No puede eliminar usuarios ya eliminados</li>
  * </ul>
  *
@@ -38,7 +38,7 @@ package com.winnersystems.smartparking.auth.application.port.input.user;
  * <ul>
  *   <li><b>UserNotFoundException</b> – usuario no existe</li>
  *   <li><b>IllegalStateException</b> – ya está eliminado</li>
- *   <li><b>IllegalArgumentException</b> – intenta eliminarse a sí mismo o es ADMIN</li>
+ *   <li><b>ProtectedUserException</b> – se elimina a sí mismo o no puede administrar a un ADMIN</li>
  * </ul>
  *
  * @see RestoreUserUseCase
@@ -55,10 +55,11 @@ public interface DeleteUserUseCase {
     *
     * @param userId ID del usuario a eliminar
     * @param deletedBy ID del administrador que realiza la acción
+    * @param actorActiveRole rol con el que inició sesión el administrador
     *
     * @throws UserNotFoundException si el usuario no existe
     * @throws IllegalStateException si ya está eliminado
-    * @throws IllegalArgumentException si intenta eliminarse a sí mismo o es ADMIN
+    * @throws ProtectedUserException si se elimina a sí mismo o no puede administrar a un ADMIN
     */
-   void executeDelete(Long userId, Long deletedBy);
+   void executeDelete(Long userId, Long deletedBy, String actorActiveRole);
 }

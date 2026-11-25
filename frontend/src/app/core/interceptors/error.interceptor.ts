@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { TokenService } from '../services/token.service';
+import { CurrentUserService } from '../services/current-user.service';
 import { environment } from '../../../environments/environment';
 
 /**
@@ -18,6 +19,7 @@ import { environment } from '../../../environments/environment';
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const tokenService = inject(TokenService);
+  const currentUserService = inject(CurrentUserService);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -33,7 +35,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           case 401:
             // No autorizado - Token inválido o expirado
             errorMessage = error.error?.message || 'Sesión expirada. Por favor, inicia sesión nuevamente.';
-            handleUnauthorized(tokenService, router);
+            handleUnauthorized(tokenService, currentUserService, router, error.error?.code);
             break;
 
           case 403:
@@ -96,17 +98,29 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 /**
  * Maneja errores 401 (Unauthorized)
  */
-function handleUnauthorized(tokenService: TokenService, router: Router): void {
+function handleUnauthorized(
+  tokenService: TokenService,
+  currentUserService: CurrentUserService,
+  router: Router,
+  reason?: string
+): void {
+  // Sin token no hay sesión que cerrar: es un login fallido, o ya se cerró por
+  // otra petición y volver a navegar taparía el motivo
+  if (!tokenService.hasToken()) {
+    return;
+  }
+
   console.warn('🔒 Token inválido o expirado, cerrando sesión...');
   
-  // Limpiar tokens
+  // Limpiar tokens y datos del usuario
   tokenService.clearTokens();
+  currentUserService.clearCurrentUser();
   
   // Redirigir al login
   router.navigate(['/login'], {
     queryParams: { 
       sessionExpired: 'true',
-      message: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
+      reason: reason ?? null
     }
   });
 }

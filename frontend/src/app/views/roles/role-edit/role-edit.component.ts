@@ -104,6 +104,11 @@ export class RoleEditComponent implements OnInit {
       status: role.status
     });
 
+    // Un control deshabilitado no se valida ni se puede editar
+    if (role.systemRole) {
+      this.roleForm.disable();
+    }
+
     // Pre-seleccionar permisos del rol
     if (role.permissions && role.permissions.length > 0) {
       role.permissions.forEach(permission => {
@@ -197,6 +202,10 @@ export class RoleEditComponent implements OnInit {
 
   onSubmit(): void {
     // Validar formulario
+    if (!this.role?.permissionsEditable) {
+      return;
+    }
+
     if (this.roleForm.invalid) {
       this.markFormGroupTouched(this.roleForm);
       return;
@@ -211,12 +220,15 @@ export class RoleEditComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    const request: UpdateRoleRequest = {
-      name: this.roleForm.value.name.trim(),
-      description: this.roleForm.value.description?.trim() || '',
-      status: this.roleForm.value.status,
-      permissionIds: Array.from(this.selectedPermissions)
-    };
+    const { name, description, status } = this.roleForm.getRawValue();
+    const request: UpdateRoleRequest = { permissionIds: Array.from(this.selectedPermissions) };
+
+    // De un rol del sistema solo se envían los permisos
+    if (!this.isSystemRole()) {
+      request.name = name.trim();
+      request.description = description?.trim() || '';
+      request.status = status;
+    }
 
     this.roleService.updateRole(this.roleId, request).subscribe({
       next: (role) => {
@@ -231,7 +243,8 @@ export class RoleEditComponent implements OnInit {
       },
       error: (error) => {
         this.isLoading = false;
-        this.errorMessage = error.error?.message || 'Error al actualizar el rol. Verifica que el nombre no esté duplicado.';
+        this.errorMessage = error.error?.message || 'Error al actualizar el rol';
+        window.scrollTo({ top: 0 });
         console.error('Error updating role:', error);
       }
     });
@@ -284,9 +297,9 @@ export class RoleEditComponent implements OnInit {
   }
 
   /**
-   * Verifica si el rol es de sistema (no editable)
+   * Verifica si el rol es del sistema
    */
   isSystemRole(): boolean {
-    return this.role?.name === 'ADMIN';
+    return !!this.role?.systemRole;
   }
 }

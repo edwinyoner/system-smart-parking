@@ -1,30 +1,11 @@
 # ================================================================================
-# ARCHIVO 1: resources/config/application.yml (Configuración global para todos los servicios)
+# CONFIGURACIÓN GLOBAL
+# config-server/src/main/resources/config/application.yml
+# La heredan todos los servicios: aquí solo va lo realmente común.
+# El nombre, el datasource y JPA se definen en el archivo de cada servicio.
 # ================================================================================
 
-spring:
-  application:
-    name: default-config
-
-# Configuración común de base de datos (se sobrescribe en cada servicio)
-spring.datasource:
-  driver-class-name: org.postgresql.Driver
-  hikari:
-    maximum-pool-size: 10
-    minimum-idle: 5
-    connection-timeout: 30000
-
-# Configuración común de JPA
-spring.jpa:
-  show-sql: true
-  hibernate:
-    ddl-auto: validate
-  properties:
-    hibernate:
-      dialect: org.hibernate.dialect.PostgreSQLDialect
-      format_sql: true
-
-# Actuator común
+# ========== ACTUATOR ==========
 management:
   endpoints:
     web:

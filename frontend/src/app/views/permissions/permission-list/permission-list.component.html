@@ -8,14 +8,6 @@
         Gestión de Permisos
       </h2>
       
-      @if (hasPermission('permissions.create')) {
-        <button
-          class="btn btn-success"
-          (click)="createPermission()">
-          <i class="fas fa-plus-circle me-2"></i>
-          Crear Nuevo Permiso
-        </button>
-      }
     </div>
   </div>
 
@@ -204,30 +196,20 @@
                       
                       @if (hasPermission('permissions.read')) {
                         <button
-                          class="btn btn-outline-info"
+                          class="btn btn-outline-secondary"
                           (click)="viewPermission(permission.id)"
                           title="Ver detalles">
                           <i class="fas fa-eye"></i>
                         </button>
                       }
 
-                      @if (hasPermission('permissions.update')) {
-                        <button
-                          class="btn btn-outline-warning"
-                          (click)="editPermission(permission.id)"
-                          title="Editar">
-                          <i class="fas fa-edit"></i>
-                        </button>
-                      }
-
-                      @if (hasPermission('permissions.delete')) {
-                        <button
-                          class="btn btn-outline-danger"
-                          (click)="confirmDelete(permission)"
-                          title="Eliminar">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      }
+                      <!-- Los permisos corresponden al código: no se editan ni eliminan -->
+                      <button type="button" class="btn btn-outline-warning" disabled aria-label="Editar">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-danger" disabled aria-label="Eliminar">
+                        <i class="fas fa-trash"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -269,46 +251,10 @@
         <div class="text-center py-5">
           <i class="fas fa-key fa-3x text-muted mb-3"></i>
           <h5 class="text-muted">No se encontraron permisos</h5>
-          <p class="text-muted">Intenta ajustar los filtros o crea un nuevo permiso</p>
-          
-          @if (hasPermission('permissions.create')) {
-            <button class="btn btn-primary" (click)="createPermission()">
-              <i class="fas fa-plus-circle me-2"></i>
-              Crear Permiso
-            </button>
-          }
+          <p class="text-muted">Intenta ajustar los filtros</p>
         </div>
       }
     </div>
   </div>
-
-  <!-- Delete Confirmation Modal -->
-  @if (showDeleteConfirm && permissionToDelete) {
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title">
-              <i class="fas fa-exclamation-triangle me-2"></i>
-              Confirmar Eliminación
-            </h5>
-            <button type="button" class="btn-close btn-close-white" (click)="cancelDelete()"></button>
-          </div>
-          <div class="modal-body p-4">
-            <p>¿Estás seguro de eliminar el permiso <code>{{ permissionToDelete.name }}</code>?</p>
-            <p class="text-danger mb-0">
-              <i class="fas fa-exclamation-circle me-2"></i>
-              Esta acción no se puede deshacer. Los roles que tengan este permiso lo perderán.
-            </p>
-          </div>
-          <div class="modal-footer bg-light">
-            <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancelar</button>
-            <button type="button" class="btn btn-danger" (click)="deletePermission()">Eliminar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  }
 
 </div>

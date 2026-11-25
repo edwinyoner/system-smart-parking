@@ -3,11 +3,7 @@ package com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.pe
 import com.winnersystems.smartparking.auth.application.dto.query.PagedResponse;
 import com.winnersystems.smartparking.auth.application.dto.query.PermissionDto;
 import com.winnersystems.smartparking.auth.application.service.permission.PermissionService;
-import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.permission.dto.request.CreatePermissionRequest;
-import com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.permission.dto.request.UpdatePermissionRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * REST Controller para gestión de permisos.
+ * REST Controller para consultar permisos. Son de solo lectura: cada uno
+ * corresponde a una función del código y los crea DataSeeder.
  *
  * @author Edwin Yoner Winner Systems - Smart Parking Platform
  * @version 1.0
@@ -31,7 +28,7 @@ public class PermissionRestAdapter {
     * GET /permissions - Lista permisos con paginación
     */
    @GetMapping
-   @PreAuthorize("hasRole('ADMIN')")
+   @PreAuthorize("hasAuthority('permissions.read')")
    public ResponseEntity<PagedResponse<PermissionDto>> listPermissions(
          @RequestParam(required = false) String search,
          @RequestParam(required = false) String module,
@@ -48,7 +45,7 @@ public class PermissionRestAdapter {
     * Usado para poblar selects en formularios de roles
     */
    @GetMapping("/all")
-   @PreAuthorize("hasRole('ADMIN')")
+   @PreAuthorize("hasAuthority('permissions.read')")
    public ResponseEntity<List<PermissionDto>> getAllPermissions() {
       List<PermissionDto> permissions = permissionService.getAllActivePermissions();
       return ResponseEntity.ok(permissions);
@@ -58,51 +55,9 @@ public class PermissionRestAdapter {
     * GET /permissions/{id} - Obtener permiso por ID
     */
    @GetMapping("/{id}")
-   @PreAuthorize("hasRole('ADMIN')")
+   @PreAuthorize("hasAuthority('permissions.read')")
    public ResponseEntity<PermissionDto> getPermissionById(@PathVariable Long id) {
       PermissionDto permission = permissionService.getPermissionById(id);
       return ResponseEntity.ok(permission);
-   }
-
-   /**
-    * POST /permissions - Crear nuevo permiso
-    */
-   @PostMapping
-   @PreAuthorize("hasRole('ADMIN')")
-   public ResponseEntity<PermissionDto> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
-      PermissionDto permission = permissionService.createPermission(
-            request.getName(),
-            request.getDescription(),
-            request.getStatus() != null ? request.getStatus() : true
-      );
-      return ResponseEntity.status(HttpStatus.CREATED).body(permission);
-   }
-
-   /**
-    * PUT /permissions/{id} - Actualizar permiso
-    */
-   @PutMapping("/{id}")
-   @PreAuthorize("hasRole('ADMIN')")
-   public ResponseEntity<PermissionDto> updatePermission(
-         @PathVariable Long id,
-         @Valid @RequestBody UpdatePermissionRequest request
-   ) {
-      PermissionDto permission = permissionService.updatePermission(
-            id,
-            request.getName(),
-            request.getDescription(),
-            request.getStatus()
-      );
-      return ResponseEntity.ok(permission);
-   }
-
-   /**
-    * DELETE /permissions/{id} - Eliminar permiso
-    */
-   @DeleteMapping("/{id}")
-   @PreAuthorize("hasRole('ADMIN')")
-   public ResponseEntity<Void> deletePermission(@PathVariable Long id) {
-      permissionService.deletePermission(id);
-      return ResponseEntity.noContent().build();
    }
 }

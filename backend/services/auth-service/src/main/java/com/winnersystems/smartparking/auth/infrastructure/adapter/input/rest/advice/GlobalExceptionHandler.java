@@ -1,5 +1,8 @@
 package com.winnersystems.smartparking.auth.infrastructure.adapter.input.rest.advice;
 
+import com.winnersystems.smartparking.auth.domain.exception.ProtectedRoleException;
+import com.winnersystems.smartparking.auth.domain.exception.RoleNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import com.winnersystems.smartparking.auth.domain.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -120,6 +123,27 @@ public class GlobalExceptionHandler {
    }
 
    /**
+    * Token de verificación inválido o vencido → 400 BAD REQUEST
+    */
+   @ExceptionHandler(TokenInvalidException.class)
+   public ResponseEntity<ErrorResponse> handleTokenInvalid(
+         TokenInvalidException ex,
+         HttpServletRequest request) {
+
+      log.warn("Token inválido: {}", ex.getMessage());
+
+      ErrorResponse error = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.BAD_REQUEST.value(),
+            "Token inválido",
+            ex.getMessage(),
+            request.getRequestURI()
+      );
+
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+   }
+
+   /**
     * CAPTCHA inválido → 400 BAD REQUEST
     */
    @ExceptionHandler(InvalidCaptchaException.class)
@@ -138,6 +162,90 @@ public class GlobalExceptionHandler {
       );
 
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+   }
+
+   /**
+    * Usuario protegido → 403 FORBIDDEN
+    */
+   @ExceptionHandler(ProtectedUserException.class)
+   public ResponseEntity<ErrorResponse> handleProtectedUser(
+         ProtectedUserException ex,
+         HttpServletRequest request) {
+
+      log.warn("Operación no permitida: {}", ex.getMessage());
+
+      ErrorResponse error = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.FORBIDDEN.value(),
+            "Operación no permitida",
+            ex.getMessage(),
+            request.getRequestURI()
+      );
+
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+   }
+
+   /**
+    * Rol protegido → 403 FORBIDDEN
+    */
+   @ExceptionHandler(ProtectedRoleException.class)
+   public ResponseEntity<ErrorResponse> handleProtectedRole(
+         ProtectedRoleException ex,
+         HttpServletRequest request) {
+
+      log.warn("Operación no permitida: {}", ex.getMessage());
+
+      ErrorResponse error = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.FORBIDDEN.value(),
+            "Operación no permitida",
+            ex.getMessage(),
+            request.getRequestURI()
+      );
+
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+   }
+
+   /**
+    * Rol no encontrado → 404 NOT FOUND
+    */
+   @ExceptionHandler(RoleNotFoundException.class)
+   public ResponseEntity<ErrorResponse> handleRoleNotFound(
+         RoleNotFoundException ex,
+         HttpServletRequest request) {
+
+      log.warn("Rol no encontrado: {}", ex.getMessage());
+
+      ErrorResponse error = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.NOT_FOUND.value(),
+            "Rol no encontrado",
+            ex.getMessage(),
+            request.getRequestURI()
+      );
+
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+   }
+
+   /**
+    * Falta un permiso (@PreAuthorize) → 403 FORBIDDEN
+    */
+   @ExceptionHandler(AccessDeniedException.class)
+   public ResponseEntity<ErrorResponse> handleAccessDenied(
+         AccessDeniedException ex,
+         HttpServletRequest request) {
+
+      log.warn("Acceso denegado: {}", ex.getMessage());
+
+      ErrorResponse error = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.FORBIDDEN.value(),
+            "Acceso denegado",
+            "No tienes permiso para realizar esta acción",
+            request.getRequestURI()
+      );
+
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
    }
 
    /**

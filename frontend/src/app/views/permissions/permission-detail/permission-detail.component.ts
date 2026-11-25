@@ -159,13 +159,6 @@ export class PermissionDetailComponent implements OnInit {
   }
 
   /**
-   * Navega a la edición del permiso
-   */
-  editPermission(): void {
-    this.router.navigate(['/permissions', this.permissionId, 'edit']);
-  }
-
-  /**
    * Vuelve a la lista de permisos
    */
   goBack(): void {

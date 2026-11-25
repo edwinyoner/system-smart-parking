@@ -9,6 +9,7 @@ import { Shift } from '../../../../core/models/parking/shift.model';
 // Importar ParkingPagedResponse (no PaginatedResponse)
 import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
 
 @Component({
   selector: 'app-shift-list',
@@ -43,9 +44,8 @@ export class ShiftListComponent implements OnInit {
     private shiftService: ShiftService,
     private router: Router
   ) {
-    const state = window.history.state;
-    if (state?.['successMessage']) {
-      this.successMessage = state['successMessage'];
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
       setTimeout(() => (this.successMessage = null), 5000);
     }
   }

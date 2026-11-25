@@ -18,6 +18,7 @@ import java.util.Set;
  * @param captchaToken Token de reCAPTCHA v3 para validación anti-bot
  * @param ipAddress IP desde donde se realiza la solicitud (auditoría)
  * @param createdBy ID del usuario administrador que crea este usuario
+ * @param actorActiveRole rol con el que inició sesión
  *
  * @author Edwin Yoner Winner Systems - Smart Parking Platform
  * @version 1.0
@@ -31,6 +32,7 @@ public record CreateUserCommand(
       Set<Long> roleIds,
       String captchaToken,
       String ipAddress,
-      Long createdBy
+      Long createdBy,
+      String actorActiveRole
 ) {
 }

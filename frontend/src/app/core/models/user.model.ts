@@ -52,7 +52,7 @@ export interface UpdateUserRequest {
  */
 export interface UserFilters {
   search?: string;
-  roleId?: number; // Se enviará como 'role' al backend
+  roleId?: number;
   status?: boolean;
   emailVerified?: boolean;
   page?: number;

@@ -14,6 +14,7 @@ import { PaginatedResponse } from '../../../core/models/pagination.model';
 
 // Components
 import { AlertMessageComponent } from '../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../core/utils/flash-message.util';
 
 @Component({
   selector: 'app-permission-list',
@@ -42,10 +43,6 @@ export class PermissionListComponent implements OnInit {
   totalPages = 0;
   pageSizeOptions = [5, 10, 15, 20, 25, 50];
 
-  // Confirmación de eliminación
-  showDeleteConfirm = false;
-  permissionToDelete: Permission | null = null;
-
   // Math para el template
   Math = Math;
 
@@ -71,9 +68,8 @@ export class PermissionListComponent implements OnInit {
     private router: Router
   ) {
     // Capturar mensajes de éxito desde la navegación
-    const state = window.history.state;
-    if (state?.['successMessage']) {
-      this.successMessage = state['successMessage'];
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
       setTimeout(() => (this.successMessage = null), 5000);
     }
   }
@@ -123,7 +119,8 @@ export class PermissionListComponent implements OnInit {
 
   loadPermissions(): void {
     this.isLoading = true;
-    const val = this.filterForm.value;
+    // No usar filterForm.value: aquí aún tendría el valor anterior al cambio
+    const val = this.filterForm.getRawValue();
 
     const filters: PermissionFilters = {
       search: val.search || undefined,
@@ -192,48 +189,8 @@ export class PermissionListComponent implements OnInit {
     return pages;
   }
 
-  createPermission(): void {
-    this.router.navigate(['/permissions/create']);
-  }
-
   viewPermission(id: number): void {
     this.router.navigate(['/permissions', id]);
-  }
-
-  editPermission(id: number): void {
-    this.router.navigate(['/permissions', id, 'edit']);
-  }
-
-  // ========== ELIMINACIÓN ==========
-
-  confirmDelete(permission: Permission): void {
-    this.permissionToDelete = permission;
-    this.showDeleteConfirm = true;
-  }
-
-  cancelDelete(): void {
-    this.showDeleteConfirm = false;
-    this.permissionToDelete = null;
-  }
-
-  deletePermission(): void {
-    if (!this.permissionToDelete) return;
-    this.isLoading = true;
-
-    this.permissionService.deletePermission(this.permissionToDelete.id).subscribe({
-      next: () => {
-        this.isLoading = false;
-        this.successMessage = `Permiso "${this.permissionToDelete?.name}" eliminado exitosamente`;
-        this.showDeleteConfirm = false;
-        this.permissionToDelete = null;
-        this.loadPermissions();
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = err.error?.message || 'No se pudo eliminar el permiso. Puede estar asignado a roles.';
-        this.showDeleteConfirm = false;
-      }
-    });
   }
 
   // ========== UTILIDADES ==========

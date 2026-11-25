@@ -33,6 +33,7 @@ public class UserPersistenceMapper {
       entity.setLastName(user.getLastName());
       entity.setEmail(user.getEmail());
       entity.setPassword(user.getPassword());
+      entity.setPasswordChangedAt(user.getPasswordChangedAt());
       entity.setPhoneNumber(user.getPhoneNumber());
       entity.setProfilePicture(user.getProfilePicture());
       entity.setStatus(user.getStatus());
@@ -72,19 +73,21 @@ public class UserPersistenceMapper {
       user.setLastName(entity.getLastName());
       user.setEmail(entity.getEmail());
       user.setPassword(entity.getPassword());
+      user.setPasswordChangedAt(entity.getPasswordChangedAt());
       user.setPhoneNumber(entity.getPhoneNumber());
       user.setProfilePicture(entity.getProfilePicture());
 
+      // Email verificado - usar método de dominio
+      if (entity.isEmailVerified()) {
+         user.verifyEmail();
+      }
+
+      // Va después de verifyEmail(), que activa la cuenta y pisaría el estado guardado
       // Estado - usar métodos de dominio
       if (entity.isStatus()) {
          user.activate();
       } else {
          user.deactivate();
-      }
-
-      // Email verificado - usar método de dominio
-      if (entity.isEmailVerified()) {
-         user.verifyEmail();
       }
 
       // Auditoría

@@ -9,7 +9,13 @@ spring:
 
   # ========== CONFIG SERVER CONNECTION ==========
   config:
-    import: "configserver:http://localhost:8888"
+    # El .env se carga en cada servicio porque Config Server entrega ${VARIABLE}
+    # sin resolver. Las tres rutas cubren los directorios de trabajo habituales.
+    import:
+      - "optional:file:../../.env[.properties]"      # Maven desde la carpeta del servicio
+      - "optional:file:./backend/.env[.properties]"  # IDE abierto en la raíz del monorepo
+      - "optional:file:./.env[.properties]"          # IDE abierto en backend/
+      - "configserver:http://localhost:8888"
 
   cloud:
     config:
