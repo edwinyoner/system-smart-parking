@@ -1,44 +1,46 @@
-# Configuración de Polígonos de Estacionamiento
+# Configuración de polígonos de estacionamiento
 
-## Propósito
+Herramienta local para dibujar **un polígono por espacio** sobre una foto aérea de un parqueo
+abierto (escenario B). ia-service usa esos polígonos para decidir si cada espacio está libre u
+ocupado: si el centro de un vehículo detectado cae dentro del polígono, el espacio está ocupado.
 
-Esta carpeta contiene herramientas para configurar polígonos de espacios
-de estacionamiento usando imágenes aéreas capturadas con dron.
+Se usa **una vez por parqueo** (o cuando cambie la cámara o las líneas pintadas). No se despliega.
 
-## Proceso
+## 1. Foto
 
-1. **Captura de imagen** (dron DJI/Phantom)
-   - Altura: 15-20 metros
-   - Resolución: 4K mínimo
-   - Vista perpendicular
-   - Parking preferiblemente vacío
+- La misma vista que tendrá la cámara aérea instalada (misma posición, ángulo y resolución).
+- Mejor con el parqueo vacío y buena luz.
+- Guardarla en `images/` y no subirla a Git (puede mostrar placas o personas).
 
-2. **Generar polígonos** (una vez por parking)
+## 2. Dibujar los polígonos
+
 ```bash
-   cd scripts
-   python configure_polygons.py
+cd ai/parking-configuration/scripts
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python configure_polygons.py
 ```
 
-3. **Validar polígonos**
+Se abre la herramienta `ParkingPtsSelection` de Ultralytics (ventana Tkinter): cargar la
+imagen, marcar las esquinas de cada espacio y pulsar **Save**. Se genera `bounding_boxes.json`.
+Moverlo a `output/` con el nombre `parking-<id>-polygons.json`.
+
+## 3. Validar
+
 ```bash
-   python validate_polygons.py --json ../output/parking-1-polygons.json
+.venv/bin/python validate_polygons.py --json ../output/parking-1-polygons.json
 ```
 
-4. **Cargar a parking-service**
-   - Via Postman/curl o interfaz Angular (futuro)
-   - Endpoint: PUT /parkings/{id}/polygons
+También se puede validar contra el servicio: `POST /api/v1/parking-vision/validate-polygons` de
+ia-service.
 
-## Estructura
-```
-parking-configuration/
-├── images/              ← Fotos originales del dron (4K)
-├── scripts/             ← Scripts de configuración
-├── output/              ← JSONs generados
-└── README.md            ← Este archivo
-```
+## 4. Uso
+
+Los polígonos viajan junto con cada imagen aérea en `POST /api/v1/parking-vision` de ia-service.
+
+**Pendiente:** guardar los polígonos de cada parqueo en el sistema (hoy no hay un endpoint para
+cargarlos) y el flujo completo cámara aérea → iot-service → parking-service. Cada polígono
+deberá enlazarse con el código del espacio (por ejemplo `A-01`).
 
 ## Tecnologías
 
-- Ultralytics YOLO26 (ParkingPtsSelection)
-- Python 3.12
-- Tkinter (GUI)
+Python 3.12, Ultralytics (`solutions.ParkingPtsSelection`), OpenCV, Pillow, Tkinter.

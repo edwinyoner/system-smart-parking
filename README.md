@@ -1,531 +1,297 @@
 <div align="center">
 
-# Winner Systems - Smart Parking Platform
+# System Smart Parking
 
-### Prototipo de Smart Parking Aplicando Tecnologías de Internet of Things, Artificial Intelligence y Cloud Computing para un Smart City en Huaraz - Ancash, 2025
+### Prototipo de Smart Parking con tecnologías de Internet of Things, Artificial Intelligence y Cloud Computing para una Smart City en Huaraz - Áncash, 2025
 
 <br>
 
 ![Java](https://img.shields.io/badge/Java-25-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Framework](https://img.shields.io/badge/Spring_Framework-6.1.14-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
-![Go](https://img.shields.io/badge/Go-1.23-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.7-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
+![Spring Cloud](https://img.shields.io/badge/Spring_Cloud-2025.0-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![C](https://img.shields.io/badge/C-A8B9CC?style=for-the-badge&logo=c&logoColor=white)
-![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 ![Angular](https://img.shields.io/badge/Angular-20-DD0031?style=for-the-badge&logo=angular&logoColor=white)
-![HTML](https://img.shields.io/badge/HTML-5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-![CSS](https://img.shields.io/badge/CSS-3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![CoreUI](https://img.shields.io/badge/CoreUI-5.5.17-6C42FF?style=for-the-badge&logo=coreui&logoColor=white)
-![Flutter](https://img.shields.io/badge/Flutter-3.24-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-3.5-0175C2?style=for-the-badge&logo=dart&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![CoreUI](https://img.shields.io/badge/CoreUI-5.5-1F3B5C?style=for-the-badge&logo=coreui&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-3.38-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Oracle](https://img.shields.io/badge/Oracle-21c_XE-F80000?style=for-the-badge&logo=oracle&logoColor=white)
+![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Oracle](https://img.shields.io/badge/Oracle-23c7-F80000?style=for-the-badge&logo=oracle&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-7.2-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.15-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
-![OpenCV](https://img.shields.io/badge/OpenCV-4.9-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)
-![Arduino](https://img.shields.io/badge/Arduino-00979D?style=for-the-badge&logo=arduino&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![MQTT](https://img.shields.io/badge/MQTT-Mosquitto_2-660066?style=for-the-badge&logo=eclipsemosquitto&logoColor=white)
 ![ESP32](https://img.shields.io/badge/ESP32-000000?style=for-the-badge&logo=espressif&logoColor=white)
-![Raspberry Pi](https://img.shields.io/badge/Raspberry_Pi-A22846?style=for-the-badge&logo=raspberry-pi&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-24.0-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
-![GCP](https://img.shields.io/badge/Google_Cloud-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)
-![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
-![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
-
+![Docker](https://img.shields.io/badge/Docker_Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Google Cloud](https://img.shields.io/badge/Google_Cloud-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)
 
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/edwinyoner/system-smart-parking?style=for-the-badge)](https://github.com/edwinyoner/system-smart-parking/stargazers)
 [![GitHub Issues](https://img.shields.io/github/issues/edwinyoner/system-smart-parking?style=for-the-badge)](https://github.com/edwinyoner/system-smart-parking/issues)
 
 <br>
 
-[Website](https://www.winner-systems.com) • 
-[Contacto](mailto:contacto@winner-systems.com) • 
-[WhatsApp](https://wa.me/51931741355) • 
-[Documentación](https://docs.winner-systems.com)
+[Website](https://www.winner-systems.com) •
+[Contacto](mailto:contacto@winner-systems.com) •
+[WhatsApp](https://wa.me/51931741355)
 
 </div>
 
 ---
 
-## Tabla de Contenidos
+> **Prototipo académico.** Proyecto de tesis de la Universidad Nacional Santiago Antúnez de
+> Mayolo (UNASAM), alineado con el Plan Director de Ciudades Inteligentes (PCM, 2024) y las
+> normas NTP-ISO 37120, 37122, 37106, 37123 y 37101:2024 de INACAL. **No** es un sistema oficial
+> de la Municipalidad Provincial de Huaraz.
 
-- [Acerca del Proyecto](#acerca-del-proyecto)
-- [Problema y Solución](#problema-y-solución)
-- [Arquitectura del Sistema](#arquitectura-del-sistema)
-- [Stack Tecnológico](#stack-tecnológico)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Inicio Rápido](#inicio-rápido)
-- [Módulos del Sistema](#módulos-del-sistema)
-- [Roadmap](#roadmap)
-- [Contribuir](#contribuir)
+## Tabla de contenidos
+
+- [Acerca del proyecto](#acerca-del-proyecto)
+- [Cómo funciona](#cómo-funciona)
+- [Arquitectura](#arquitectura)
+- [Stack tecnológico](#stack-tecnológico)
+- [Estructura del monorepo](#estructura-del-monorepo)
+- [Inicio rápido](#inicio-rápido)
+- [Estado de los módulos](#estado-de-los-módulos)
+- [Convenciones](#convenciones)
 - [Licencia](#licencia)
 - [Equipo](#equipo)
 - [Contacto](#contacto)
 
 ---
 
-## Acerca del Proyecto
+## Acerca del proyecto
 
-**Smart Parking Platform** es un **proyecto de tesis** desarrollado por Winner Systems Corporation S.A.C. que implementa un sistema integral de gestión de estacionamientos inteligentes para la ciudad de Huaraz, Ancash, Perú, aplicando tecnologías de vanguardia:
+System Smart Parking gestiona y muestra **en tiempo casi real** la disponibilidad de los
+estacionamientos de Huaraz. Automatiza la entrada y salida de vehículos y la detección de
+ocupación con IoT e inteligencia artificial, sobre una arquitectura de microservicios.
 
-- **Internet of Things (IoT)** - Sensores inteligentes y monitoreo en tiempo real
-- **Artificial Intelligence (AI)** - Predicción de disponibilidad y optimización
-- **Cloud Computing** - Escalabilidad y alta disponibilidad
+Sitios piloto: **Parqueo San Martín** y **Parqueo Las Banderas** (Huaraz).
 
-### Objetivo
+### Problema
 
-Transformar la gestión de estacionamientos municipales mediante una solución tecnológica integral que mejore la experiencia del ciudadano, optimice el uso de espacios públicos y genere datos accionables para la toma de decisiones urbanas.
+- Congestión en el centro de la ciudad y tiempo perdido buscando dónde estacionar.
+- Ningún conductor sabe, antes de llegar, si un parqueo tiene espacios libres.
+- Registro manual de entradas, salidas y cobros, sin datos para planificar la movilidad.
 
-### Características Principales
+### Solución
 
-**Monitoreo en Tiempo Real** - Estado de ocupación de espacios de estacionamiento  
-**Gestión de Pagos** - Pagos digitales seguros y automatizados  
-**Aplicación Móvil** - App nativa para iOS y Android con Flutter  
-**Dashboard Web** - Panel administrativo completo para autoridades  
-**Analytics & BI** - Reportes y análisis predictivo con IA  
-**Sensores IoT** - Hardware propio para detección vehicular  
-**API REST** - Arquitectura de microservicios escalable  
-
----
-
-## Problema y Solución
-
-### Problema Identificado
-
-En Huaraz, como en muchas ciudades peruanas de rápido crecimiento:
-
-- **Congestión vehicular** en zonas céntricas
-- **Pérdida de tiempo** buscando estacionamiento (promedio: 15-20 minutos)
-- **Ineficiencia en recaudación** municipal
-- **Falta de datos** para planificación urbana
-- **Uso informal** de espacios públicos
-
-### Nuestra Solución
-
-Una plataforma tecnológica integral que:
-
-1. **Reduce el tiempo de búsqueda** mediante información en tiempo real
-2. **Aumenta la recaudación** con pagos digitales automatizados
-3. **Mejora la experiencia ciudadana** con información en tiempo real de zonas de parqueo y espacios
-4. **Genera datos valiosos** para políticas de movilidad urbana
-5. **Optimiza recursos** mediante predicción con IA
+1. **Cámaras con reconocimiento de placas** en la entrada y salida de los parqueos con barrera.
+2. **Sensores ultrasónicos** y **cámara aérea** para saber qué espacio está ocupado.
+3. **Disponibilidad pública** en paneles LED de la calle y en una app móvil sin login.
+4. **Panel web** para administrar parqueos, zonas, espacios, turnos, tarifas, operadores y cobros.
+5. **Pago antes de salir** con QR (Yape, Plin, banca móvil) o en efectivo.
 
 ---
 
-## Arquitectura del Sistema
+## Cómo funciona
 
+| Escenario | Hardware | IA | Resultado |
+|---|---|---|---|
+| **A. Parqueo con barrera** | ESP32-CAM en entrada y salida | YOLO26 + EasyOCR (lectura de placa) | Abre o cierra la estadía del vehículo |
+| **B. Parqueo abierto (calle)** | Cámara aérea | YOLO26 con un polígono por espacio | Estado de cada espacio |
+| **Sensores** | HC-SR04 + ESP32 (MQTT) | — | Confirma o corrige la ocupación de un espacio |
+| **Paneles** | ESP32 + pantalla LED (MQTT o HTTP) | — | Muestran disponibles y ocupados |
 
+Reglas principales:
 
----
-
-## Stack Tecnológico
-
-### Frontend
-
-| Tecnología | Versión | Propósito |
-|-----------|---------|-----------|
-| **Angular** | 20 | Dashboard web administrativo |
-| **TypeScript** | 5 | Lenguaje principal frontend |
-| **CoreUI** | 5 | UI Components y templates |
-| **TailwindCSS** | 3 | Estilos y diseño responsive |
-| **Flutter** | 3.24 | Aplicación móvil multiplataforma |
-| **Dart** | 3.5 | Lenguaje para Flutter |
-
-### Backend
-
-| Tecnología | Versión | Propósito |
-|-----------|---------|-----------|
-| **Java** | 25 | Microservicios core |
-| **Spring Boot** | 3.5.7 | Framework backend |
-| **Spring Cloud** | 4.3.0 | Microservicios cloud-native |
-| **Go** | 1.23 | Servicios IoT de alto rendimiento |
-| **Python** | 3.12 | IA/ML y análisis de datos |
-| **C/C++** | - | Procesamiento de sensores |
-
-### Bases de Datos
-
-| Base de Datos | Versión | Uso |
-|--------------|---------|-----|
-| **PostgreSQL** | 16 | auth-service (usuarios, roles y permisos) |
-| **Oracle Database** | 23.0 | parking-service |
-| **MongoDB** | 7.0 | Datos IoT y telemetría |
-| **Redis** | 7.2 | Cache y gestión de sesiones |
-
-### IoT & Hardware
-
-- **Arduino** - Microcontroladores para sensores
-- **ESP32** - Conectividad WiFi/BLE
-- **Raspberry Pi** - Edge computing
-- **Sensores Ultrasónicos** - Detección de vehículos
-- **Cámaras IP** - Reconocimiento de placas (OCR)
-
-### AI/ML
-
-- **TensorFlow** 2.15 - Deep Learning
-- **scikit-learn** - Machine Learning clásico
-- **OpenCV** - Procesamiento de imágenes
-- **Pandas** - Análisis de datos
-
-### DevOps & Cloud
-
-- **Docker** - Contenedorización
-- **Kubernetes** - Orquestación
-- **GitHub Actions** - CI/CD
-- **AWS/Azure** - Cloud hosting
-- **Prometheus** - Monitoreo
-- **Grafana** - Visualización de métricas
+- Una placa leída con confianza **≥ 0.85** se registra sola; con menos va a la cola **Por
+  revisar** del panel, donde un operador la confirma o corrige.
+- La disponibilidad se calcula desde el estado real de cada espacio, nunca desde contadores.
+- Un parqueo solo atiende en los turnos que tiene configurados; la tarifa es la del turno vigente
+  (por hora o fracción, con 5 minutos sin costo y 5 de tolerancia por defecto).
+- La salida exige el pago previo. El operador desde el panel es el respaldo si el IoT falla.
 
 ---
 
-## Estructura del Proyecto
+## Arquitectura
 
+```text
+ Angular (panel) ──┐
+ Flutter (app) ────┼──► api-gateway :8080 ──► auth-service      (PostgreSQL)
+ ESP32-CAM ────────┘    única puerta        ├► parking-service   (Oracle)
+                         pública             ├► payment-service   (SQL Server)
+                                             └► iot-service       (MySQL + Redis)
+
+ Sensores HC-SR04 ──MQTT──► Mosquitto ◄──MQTT── iot-service ──MQTT──► Paneles LED
+
+ Tráfico interno (no pasa por el gateway):
+   iot-service ──► ia-service (YOLO26 + EasyOCR, MongoDB)
+   iot-service ──► parking-service /internal/**   (token de servicio)
+   payment-service ◄──► parking-service /internal/charges/**  (token de servicio)
+   parking-service ──► auth-service               (Feign)
+
+ Infraestructura: config-server :8888 · eureka-server :8761 · MinIO (fotos; GCS en la nube)
 ```
+
+- **Base de datos por servicio**, a propósito: cada microservicio tiene la suya.
+- **Arquitectura hexagonal** en auth, parking y payment; **por capas** en iot-service (Go) e
+  ia-service (Python).
+- **Defensa en profundidad**: el gateway bloquea las rutas internas (`/internal/**`,
+  `/service-token`) y cada servicio valida su JWT y sus permisos.
+- Entre servicios se usa un **token de servicio** emitido por auth-service (client credentials).
+
+Más detalle en [`backend/README.md`](backend/README.md).
+
+---
+
+## Stack tecnológico
+
+| Componente | Tecnología | Arquitectura | Base de datos | Puerto |
+|---|---|---|---|---|
+| config-server | Spring Cloud Config | — | — | 8888 |
+| eureka-server | Netflix Eureka | — | — | 8761 |
+| api-gateway | Spring Cloud Gateway (WebFlux) | — | — | 8080 |
+| auth-service | Java 25, Spring Boot 3.5.7 | Hexagonal | PostgreSQL 18 | 8081 |
+| parking-service | Java 25, Spring Boot 3.5.7 | Hexagonal | Oracle 21c XE | 8082 |
+| iot-service | Go 1.26, Gin, GORM, Paho MQTT | Por capas | MySQL 8.0 + Redis 7 | 8083 |
+| ia-service | Python 3.12, FastAPI, PyTorch, YOLO26, EasyOCR | Por capas, sin estado | MongoDB | 8084 |
+| payment-service | Java 25, Spring Boot 3.5.7 | Hexagonal | SQL Server 2022 | 8085 |
+| Panel web | Angular 20, CoreUI 5.5, TypeScript 5.9 | Componentes standalone | — | 4200 |
+| App móvil | Flutter 3.38, Riverpod 3, Dio, go_router, flutter_map | Feature-first | — | — |
+| Mensajería IoT | MQTT (Eclipse Mosquitto 2) | — | — | 1883 |
+| Archivos | MinIO (desarrollo) / Google Cloud Storage (nube) | — | — | 9000 |
+
+---
+
+## Estructura del monorepo
+
+```text
 system-smart-parking/
-│
-├── frontend/                  # Aplicación web Angular
-│   ├── src/
-│   ├── package.json
-│   └── README.md                # → Documentación del frontend
-│
-├── backend/                   # Servicios backend
-│   ├── infrastructure/          # Servicios de infraestructura
-│   │   ├── config-server/      # Puerto 8888
-│   │   ├── eureka-server/      # Puerto 8761
-│   │   └── api-gateway/        # Puerto 8080
-│   ├── services/               # Microservicios de negocio
-│   │   ├── auth-service/       # Autenticación y Gestión de usuarios, roles y permisos
-│   │   ├── parking-service/    # Gestión de estacionamientos
-│   │   ├── iot-service/        # Gestión IoT (Go)
-│   │   └── ia-service/         # Analytics y ML (Python)
-│   └── README.md               # → Documentación del backend
-│
-├── mobile/                    # App móvil Flutter
-│   ├── lib/
-│   ├── pubspec.yaml
-│   └── README.md               # → Documentación de la app móvil
-│
-├── ai/                        # Modelos de IA/ML
-│   ├── models/                 # Modelos entrenados
-│   ├── notebooks/              # Jupyter notebooks
-│   ├── training/               # Scripts de entrenamiento
-│   └── README.md               # → Documentación de IA/ML
-│
-├── iot/                       # Código de dispositivos IoT
-│   ├── arduino/                # Código Arduino
-│   ├── esp32/                  # Código ESP32
-│   ├── raspberry-pi/           # Scripts Raspberry Pi
-│   └── README.md               # → Documentación IoT
-│
-├── cloud/                     # Configuración cloud
-│   ├── aws/                    # Terraform AWS
-│   ├── kubernetes/             # Manifiestos K8s
-│   ├── docker/                 # Dockerfiles
-│   └── README.md               # → Documentación cloud
-│
-├── database/                  # Migraciones y seeds
-│   ├── migrations/
-│   ├── seeds/
-│   └── README.md               # → Documentación de BD
-│
-├── docs/                      # Documentación del proyecto
-│   ├── api/                    # Documentación API
-│   ├── architecture/           # Diagramas de arquitectura
-│   ├── user-guides/            # Guías de usuario
-│   └── thesis/                 # Documento de tesis
-│
-├── tests/                     # Tests E2E
-│   ├── e2e/
-│   ├── integration/
-│   └── performance/
-│
-├── .gitignore
-├── LICENSE
-└── README.md                    # ← Este archivo
+├── ai/                  Herramientas de IA fuera de producción (polígonos, futuro ajuste de modelos)
+├── backend/
+│   ├── docker-compose.yml   Bases de datos, Redis, Mosquitto y MinIO
+│   ├── docker-init/         Scripts de inicialización de cada contenedor
+│   ├── infrastructure/      config-server, eureka-server, api-gateway
+│   └── services/            auth, parking, payment, iot (Go), ia (Python)
+├── cloud/               Despliegue en Google Cloud (por hacer)
+├── database/            Scripts sueltos de prueba
+├── docs/                Documento de tesis (LaTeX)
+├── frontend/            Panel administrativo Angular
+├── iot/                 Firmware de los ESP32 (por hacer)
+└── mobile/smart_parking App Flutter para conductores
 ```
 
 ---
 
-## Inicio Rápido
+## Inicio rápido
 
-### Prerrequisitos
+### Requisitos
 
-Asegúrate de tener instalado:
+Java 25, Maven 3.9 (o el `./mvnw` de cada servicio), Go 1.26, Python 3.12, Node.js 22,
+Angular CLI 20, Flutter 3.38 y Docker Desktop con al menos 8 GB de memoria (por Oracle).
 
-- **Node.js** >= 22.x
-- **Java** 25
-- **Go** >= 1.23
-- **Python** >= 3.12
-- **Docker** >= 24.0
-- **Git** >= 2.40
-
-### Instalación Completa
-
-#### 1. Clonar el Repositorio
+### 1. Bases de datos e infraestructura de datos
 
 ```bash
 git clone https://github.com/edwinyoner/system-smart-parking.git
-cd system-smart-parking
+cd system-smart-parking/backend
+cp .env.example .env          # completa los secretos (nunca subas .env)
+docker compose up -d
+docker compose ps             # espera a que todos estén "healthy" (Oracle tarda 2-3 min)
 ```
 
-#### 2. Configurar Backend
+Detalle en [`backend/README-DOCKER.md`](backend/README-DOCKER.md).
+
+### 2. Microservicios (en este orden)
+
+Los microservicios se ejecutan desde el IDE o la terminal, no en Docker. Cada servicio Java debe
+cargar las variables de `backend/.env`.
+
+1. `config-server` → 2. `eureka-server` → 3. `api-gateway` →
+4. `auth-service`, `parking-service`, `payment-service` → 5. `ia-service` → 6. `iot-service`
+
+Comandos de cada uno en [`backend/README.md`](backend/README.md).
+
+### 3. Clientes
 
 ```bash
-cd backend
+# Panel web: http://localhost:4200
+cd frontend && npm install && npm start
 
-# Iniciar Config Server
-cd infrastructure/config-server
-mvn clean install
-mvn spring-boot:run &
-
-# Iniciar Eureka Server
-cd ../eureka-server
-mvn clean install
-mvn spring-boot:run &
-
-# Iniciar API Gateway
-cd ../api-gateway
-mvn clean install
-mvn spring-boot:run &
-
-# Ver más detalles en: backend/README.md
-```
-
-#### 3. Configurar Frontend
-
-```bash
-cd frontend
-npm install
-ng serve
-
-# La aplicación estará en: http://localhost:4200
-# Ver más detalles en: frontend/README.md
-```
-
-#### 4. Configurar Mobile App
-
-```bash
-cd mobile
-flutter pub get
-flutter run
-
-# Ver más detalles en: mobile/README.md
-```
-
-### Usando Docker Compose (Recomendado)
-
-```bash
-# Iniciar todos los servicios
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Detener servicios
-docker-compose down
+# App móvil (macOS o simulador de iOS)
+cd mobile/smart_parking
+flutter run -d macos --dart-define=API_BASE_URL=http://localhost:8080/api
 ```
 
 ---
 
-## Módulos del Sistema
+## Estado de los módulos
 
-### Frontend Web (Angular)
-> **Estado:** Implementado  
-> Dashboard administrativo completo para operadores y autoridades municipales.  
-> [Ver documentación →](frontend/README.md)
-
-**Características:**
-- Dashboard interactivo con métricas en tiempo real
-- Gestión de usuarios y roles (RBAC)
-- Visualización de mapa de estacionamientos
-- Reportes y analytics
-- Gestión de pagos y transacciones
-
----
-
-### Backend Services (Java/Spring Boot)
-> **Estado:** En desarrollo (Infraestructura completa)  
-> Arquitectura de microservicios con Spring Cloud.  
-> [Ver documentación →](backend/README.md)
-
-**Servicios Implementados:**
-- Config Server (Puerto 8888)
-- Eureka Server (Puerto 8761)
-- API Gateway (Puerto 8080)
-- Auth Service (Puerto 8081)
-- Parking Service (Puerto 8082)
----
-
-### Mobile App (Flutter)
-> **Estado:** Planificado  
-> Aplicación móvil para ciudadanos (iOS y Android).  
-> [Ver documentación →](mobile/README.md)
-
-**Características Planificadas:**
-- Búsqueda de estacionamientos disponibles
-- Reserva anticipada de espacios
-- Navegación GPS al estacionamiento
-- Pago digital integrado
-- Historial de estacionamientos
-- Notificaciones push
+| Módulo | Estado |
+|---|---|
+| Infraestructura (config, Eureka, gateway) | Completo |
+| auth-service: usuarios, roles dinámicos, permisos, JWT, correo | Completo |
+| parking-service: parqueos, zonas, espacios, turnos, tarifas, operadores, transacciones, ocupación, disponibilidad pública | Completo |
+| payment-service: tipos de pago, cobros QR (pasarela simulada) y efectivo, devoluciones | Completo (comprobante interno pendiente) |
+| iot-service: capturas de cámaras, sensores y paneles por MQTT, fotos en MinIO/GCS | Completo (visión aérea pendiente) |
+| ia-service: reconocimiento de placas y ocupación aérea, registro mínimo en MongoDB | Completo (sin modelo propio de placas peruanas) |
+| Panel web Angular | Casi completo |
+| App móvil Flutter (versión 1, pública y sin login) | Completa |
+| Firmware ESP32 | Por hacer |
+| Despliegue en Google Cloud | Por hacer |
 
 ---
 
-### AI/ML Module (Python)
-> **Estado:** Planificado  
-> Inteligencia artificial y machine learning.  
-> [Ver documentación →](ai/README.md)
+## Convenciones
 
-**Modelos Planificados:**
-- Predicción de disponibilidad de espacios
-- Optimización de precios dinámicos
-- Detección de anomalías
-- Análisis de patrones de uso
-- Reconocimiento de placas (OCR)
-
----
-
-### IoT Module (Arduino/ESP32)
-> **Estado:** Planificado  
-> Hardware y firmware para sensores inteligentes.  
-> [Ver documentación →](iot/README.md)
-
-**Componentes:**
-- Sensores de ocupación ultrasónicos
-- Cámaras para reconocimiento de placas
-- Comunicación LoRaWAN/WiFi
-- Edge computing con Raspberry Pi
-
----
-
-### Cloud Infrastructure (AWS/Azure)
-> **Estado:** Planificado  
-> Despliegue y configuración cloud.  
-> [Ver documentación →](cloud/README.md)
-
-**Tecnologías:**
-- Docker & Kubernetes
-- Terraform (IaC)
-- CI/CD con GitHub Actions
-- Monitoreo con Prometheus/Grafana
-
----
-
-### Database (PostgreSQL/MySQL/MongoDB)
-> **Estado:** Planificado  
-> Esquemas de bases de datos y migraciones.  
-> [Ver documentación →](database/README.md)
-
----
-
-### Convención de Commits
-
-Usamos [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat: nueva característica
-fix: corrección de bug
-docs: cambios en documentación
-style: formato, punto y coma faltante, etc
-refactor: refactorización de código
-test: añadir tests
-chore: actualización de dependencias
-```
+- Comentarios de código y documentación en español.
+- Commits con [Conventional Commits](https://www.conventionalcommits.org/):
+  `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.
+- Paginación: `?page=0&size=20`; la respuesta trae `content`, `pageNumber`, `pageSize`,
+  `totalElements` y `totalPages`.
+- Ningún secreto en el repositorio: todo va en archivos `.env` ignorados por Git.
 
 ---
 
 ## Licencia
 
-Distribuido bajo la Licencia MIT. Ver [`LICENSE`](LICENSE) para más información.
+Distribuido bajo la Licencia MIT. Ver [`LICENSE`](LICENSE).
 
 ---
 
 ## Equipo
 
-### Tesista Principal
-
 <div align="center">
 <img src="https://github.com/edwinyoner.png" width="100" height="100" style="border-radius: 50%">
 
-**Edwin Yoner**  
-_CEO & Founder - Winner Systems Corporation S.A.C._
+**Edwin Yoner Flores Rupay**
+_Tesista · CEO & Founder - Winner Systems Corporation S.A.C._
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/edwinyoner)
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/edwinyoner)
 [![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:edwinyoner@winner-systems.com)
 
-_Full Stack Developer_
-
 </div>
 
-### Institución Académica
+**Asesor:** M.Sc. Franz Martín Villanueva Cochachin
 
-**Universidad Nacional Santiago Antúnez de Mayolo (UNASAM)**  
-Facultad De Ciencias  
-Escuela Ingeniería de Sistemas e Informática  
-Huaraz, Ancash, Perú
+**Institución:** Universidad Nacional Santiago Antúnez de Mayolo (UNASAM), Facultad de Ciencias,
+Escuela de Ingeniería de Sistemas e Informática. Huaraz, Áncash, Perú.
 
 ---
 
 ## Contacto
 
-### Winner Systems Corporation S.A.C.
+**Winner Systems Corporation S.A.C.**
 
-<div align="center">
-
-[![Website](https://img.shields.io/badge/Website-0066CC?style=for-the-badge&logo=google-chrome&logoColor=white)](https://www.winner-systems.com)
-[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:contacto@winner-systems.com)
-[![WhatsApp](https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/51931741355)
-[![Location](https://img.shields.io/badge/Location-Huaraz,_Perú-red?style=for-the-badge&logo=google-maps&logoColor=white)](https://maps.google.com)
-
-**Dirección:** Jangas, Huaraz, Áncash, Perú  
-**Teléfono:** +51 931 741 355  
-**Email:** contacto@winner-systems.com  
-**Web:** [www.winner-systems.com](https://www.winner-systems.com)
-
-</div>
+- Dirección: Jangas, Huaraz, Áncash, Perú
+- Teléfono: +51 931 741 355
+- Email: contacto@winner-systems.com
+- Web: [www.winner-systems.com](https://www.winner-systems.com)
 
 ---
 
 ## Agradecimientos
 
-- **UNASAM** - Por el apoyo académico y recursos
-- **Municipalidad de Huaraz** - Cliente piloto del proyecto
-- **Spring Team** - Framework backend robusto
-- **Angular Team** - Framework frontend moderno
-- **Flutter Team** - Desarrollo móvil multiplataforma
-- **Open Source Community** - Por las increíbles herramientas
-
----
-
-## Estado del Proyecto
+- **UNASAM**, por el apoyo académico.
+- **Municipalidad Provincial de Huaraz**, aliado institucional para los sitios piloto.
+- Las comunidades de Spring, Go, FastAPI, Ultralytics, Angular, CoreUI y Flutter.
 
 <div align="center">
 
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/edwinyoner/system-smart-parking?style=for-the-badge)
-![GitHub last commit](https://img.shields.io/github/last-commit/edwinyoner/system-smart-parking?style=for-the-badge)
-![GitHub code size](https://img.shields.io/github/languages/code-size/edwinyoner/system-smart-parking?style=for-the-badge)
-
-</div>
-
----
-
-<div align="center">
-
-**Hecho con en Perú**
-
-[![Winner Systems](https://img.shields.io/badge/Winner_Systems-0066CC?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiAyMkgyMkwxMiAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+&logoColor=white)](https://www.winner-systems.com)
-
-**Construyendo el futuro de las ciudades inteligentes**
-
-_"Innovación al servicio de la comunidad"_
+**Hecho en Perú**
 
 </div>

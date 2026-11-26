@@ -93,8 +93,8 @@ Marco: **PyTorch** (ambos modelos se ejecutan sobre PyTorch, en CPU).
 
 ## 5. Registro mínimo en MongoDB
 
-Colección `plate_recognitions` de la base `smart_parking_ia`
-(`app/database/recognition_repository.py`):
+Colección `plate_recognitions` de la base definida en `MONGODB_DB_NAME` (en desarrollo
+`ia_service_db`) (`app/database/recognition_repository.py`):
 
 ```javascript
 { captureId, detectedPlate, confidence, processingTimeMs, status, createdAt }

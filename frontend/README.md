@@ -1,191 +1,111 @@
 <div align="center">
-<h1>
-Winner Systems - Smart Parking System
-</h1>
 
-![Angular](https://img.shields.io/badge/Angular-20.x-DD0031?style=for-the-badge&logo=angular&logoColor=white)
-![HTML](https://img.shields.io/badge/HTML-5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+# System Smart Parking - Panel web
+
+![Angular](https://img.shields.io/badge/Angular-20-DD0031?style=for-the-badge&logo=angular&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![CoreUI](https://img.shields.io/badge/CoreUI-5.5-1F3B5C?style=for-the-badge&logo=coreui&logoColor=white)
 ![CSS](https://img.shields.io/badge/CSS-3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![CoreUI](https://img.shields.io/badge/CoreUI-5.5.17-6C42FF?style=for-the-badge&logo=coreui&logoColor=white)
+![Font Awesome](https://img.shields.io/badge/Font_Awesome-7-528DD7?style=for-the-badge&logo=fontawesome&logoColor=white)
 
-
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 </div>
 
+Panel administrativo del prototipo de Smart Parking (tesis UNASAM) para administradores,
+autoridades y operadores. Prototipo académico; no es un sistema oficial de la Municipalidad
+Provincial de Huaraz.
 
 ---
 
+## Qué permite hacer
 
-## Acerca del Proyecto
+| Área | Vistas |
+|---|---|
+| **Inicio** | Dashboard en vivo (libres, ocupación, vehículos dentro, cobrado hoy, turno del usuario) y **mapa de ocupación** por espacio |
+| **Operación** | Registrar entrada y salida, vehículos dentro, **Por revisar** (lecturas dudosas de las cámaras), detalle de la estadía, cobro antes de salir |
+| **Parqueos** | Asistente de 5 pasos (parqueo, zonas, espacios, horario, operadores), detalle con zonas, horario y operadores de turno, espacios en lote |
+| **Catálogos** | Turnos, tarifas (con simulador), tipos de documento, infracciones |
+| **Pagos** | Tipos de pago, historial de pagos, devoluciones y anulaciones, pasarela QR de prueba |
+| **Seguridad** | Usuarios, roles dinámicos, matriz de permisos, mi perfil |
 
-**Smart Parking System** es una solución integral desarrollada por [Winner Systems Corporation S.A.C.](https://www.winner-systems.com) para la gestión moderna y eficiente de espacios de estacionamiento en municipalidades peruanas.
+Comportamiento común:
 
-### Objetivo
-
-Transformar la gestión de estacionamientos municipales en Perú mediante tecnología de vanguardia, mejorando la experiencia del usuario y optimizando los recursos públicos
-
----
-
-## Requisitos Previos
-
-Antes de comenzar, asegúrate de tener instalado:
-
-- **Node.js**: >= 22.x (Descargar desde [nodejs.org](https://nodejs.org))
-- **npm**: >= 10.x (Incluido con Node.js)
-- **Angular CLI**: 20.x
-  ```bash
-  npm install -g @angular/cli@20
-  ```
-- **Git**: >= 2.x (Descargar desde [git-scm.com](https://git-scm.com))
-
-### Verificar Instalación
-
-```bash
-node --version    # v22.x.x
-npm --version     # 10.x.x
-ng version        # Angular CLI: 20.x.x
-git --version     # git version 2.x.x
-```
+- **Permisos del rol activo**: menú, rutas y botones aparecen según el permiso
+  (`*appHasPermission`, `RoleGuard`). Si un administrador quita un permiso, el panel lo refleja
+  sin volver a entrar.
+- **Sesión sincronizada**: se consulta `GET /users/me` cada 10 s; una cuenta desactivada, un
+  cambio de contraseña o un rol retirado cierran la sesión con el motivo.
+- **Listas y detalles en vivo** (5-10 s, sin spinner) y **papelera** con restaurar en cada
+  módulo que la tiene (permiso `<modulo>.restore`).
+- **Modo claro, oscuro y automático.**
+- No hay registro público: los usuarios los crea un administrador.
 
 ---
 
-## Instalación
+## Requisitos
 
-### 1. Clonar el Repositorio
+- Node.js 22 y npm 10
+- Angular CLI 20: `npm install -g @angular/cli@20`
+- El backend en marcha detrás del api-gateway (`http://localhost:8080/api`). Ver
+  [`backend/README.md`](../backend/README.md).
 
-```bash
-git clone https://github.com/edwinyoner/system-smart-parking.git
-cd system-smart-parking
-```
-
-### 2. Instalar Dependencias
+## Ejecutar
 
 ```bash
+cd frontend
 npm install
+npm start          # ng serve -o  →  http://localhost:4200
 ```
 
-### 3. Ejecutar en Modo Desarrollo
+El CORS del gateway solo admite `http://localhost:4200`: usa ese puerto en desarrollo.
 
-```bash
-ng serve
-```
+La URL del gateway está en `src/environments/environment.development.ts` (`apiUrl`).
 
-La aplicación estará disponible en: [http://localhost:4200](http://localhost:4200)
+## Scripts
+
+| Comando | Qué hace |
+|---|---|
+| `npm start` | Servidor de desarrollo y abre el navegador |
+| `npm run build` | Compila para producción en `dist/` |
+| `npm run watch` | Compila en modo desarrollo al guardar |
+| `npm test` | Pruebas unitarias (Karma) |
 
 ---
 
-## Uso
+## Estructura
 
-### Desarrollo Local
-
-```bash
-# Iniciar servidor de desarrollo
-ng serve
-
-# Iniciar con puerto específico
-ng serve --port 4300
-
-# Iniciar y abrir navegador automáticamente
-ng serve --open
+```text
+src/
+├── app/
+│   ├── core/
+│   │   ├── guards/          AuthGuard, NoAuthGuard, RoleGuard
+│   │   ├── interceptors/    auth (token y renovación), error, loading
+│   │   ├── models/          auth-service/, parking-service/, payment-service/
+│   │   ├── services/        auth-service/, parking-service/, payment-service/
+│   │   └── utils/           reglas compartidas (placa, documento, turnos, tarifas, permisos...)
+│   ├── layout/              cabecera, menú lateral, pie
+│   ├── shared/              componentes reutilizables
+│   └── views/
+│       ├── auth-service/    auth, users, roles, permissions, profile
+│       ├── parking-service/ parkings, zones, shifts, rates, document-types, transactions,
+│       │                    occupancy, infractions, customers, vehicles, reports
+│       ├── payment-service/ payment-types, payments
+│       ├── dashboard/, docs/, support/, about/
+├── environments/
+├── scss/                    solo la paleta y los mixins de CoreUI (Sass)
+└── styles/                  estilos propios en CSS (global.css, auth.css)
 ```
 
-### Build de Producción
+## Convenciones
 
-```bash
-# Build optimizado para producción
-ng build --configuration production
-
-# Los archivos compilados estarán en: dist/
-```
-
-### Testing
-
-```bash
-# Ejecutar tests unitarios
-ng test
-
-# Ejecutar tests con coverage
-ng test --code-coverage
-
-# Ejecutar tests end-to-end
-ng e2e
-```
-
-### Linting y Formato
-
-```bash
-# Verificar estilo de código
-ng lint
-
-# Fix automático de problemas de estilo
-ng lint --fix
-```
+- Componentes **standalone** y TypeScript **strict**.
+- Estilos en **CSS puro**; Sass solo para configurar CoreUI (`src/scss/`).
+- Paleta azul marino: `#0B1F3A` (menú), `#1F3B5C` (marca, enlaces, foco). Botones por acción:
+  verde crear o guardar, naranja editar, rojo eliminar, azul claro ver.
+- En modo oscuro, nada de colores claros fijos: variables `--cui-*` del tema.
+- Paginación con HTML nativo de Bootstrap y peticiones `?page=0&size=20`.
+- Validación con `[class.is-invalid]`.
+- Sin emojis en la interfaz: íconos de Font Awesome.
 
 ---
 
-## Scripts Disponibles
-
-```bash
-# Desarrollo
-npm start                    # ng serve
-npm run dev                  # ng serve con configuración de desarrollo
-
-# Build
-npm run build                # ng build
-npm run build:prod           # ng build --configuration production
-
-# Testing
-npm test                     # ng test
-npm run test:coverage        # ng test --code-coverage
-npm run e2e                  # ng e2e
-
-# Linting
-npm run lint                 # ng lint
-npm run lint:fix             # ng lint --fix
-
-# Otros
-npm run analyze              # Analizar tamaño del bundle
-npm run format               # Formatear código con Prettier
-```
-
-## Licencia
-
-Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.
-
----
-
-## Contacto
-
-**Winner Systems Corporation S.A.C.**
-
-- Website: [www.winner-systems.com](https://www.winner-systems.com)
-- Email: contacto@winner-systems.com
-- WhatsApp: +51 931 741 355
-- Dirección: Jangas, Huaraz, Áncash, Perú
-
-**Desarrollador Principal:**
-- Edwin Yoner
-- edwinyoner@winner-systems.com
-- LinkedIn: [linkedin.com/in/edwinyoner](https://linkedin.com/in/edwinyoner)
-- GitHub: [@edwinyoner](https://github.com/edwinyoner)
-
----
-
-## Agradecimientos
-
-- [Angular Team](https://angular.dev) - Framework increíble
-- [CoreUI Team](https://coreui.io) - Template admin gratuito
-- [Font Awesome](https://fontawesome.com) - Iconos profesionales
-- [Municipalidad de Huaraz](https://munihuaraz.gob.pe) - Cliente piloto
-
----
-
-<div align="center">
-
-**Hecho en Perú**
-
-[![Winner Systems](https://img.shields.io/badge/Winner_Systems-0066CC?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiAyMkgyMkwxMiAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+&logoColor=white)](https://www.winner-systems.com)
-
-</div>
+**Winner Systems Corporation S.A.C.** · Huaraz, Áncash, Perú · [www.winner-systems.com](https://www.winner-systems.com)

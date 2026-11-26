@@ -1,628 +1,237 @@
 <div align="center">
-<h1>
-Winner Systems - Smart Parking Platform
-</h1>
+
+# System Smart Parking - Backend
 
 ![Java](https://img.shields.io/badge/Java-25-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.7-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
-![Spring Cloud](https://img.shields.io/badge/Spring_Cloud-4.3.0-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
-![Go](https://img.shields.io/badge/Go-1.23-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Spring Cloud](https://img.shields.io/badge/Spring_Cloud-2025.0-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![C](https://img.shields.io/badge/C-A8B9CC?style=for-the-badge&logo=c&logoColor=white)
-![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
-![Maven](https://img.shields.io/badge/Maven-3.9-C71A36?style=for-the-badge&logo=apache-maven&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-7.2-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-24.0-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker_Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 </div>
 
+Microservicios del prototipo de Smart Parking (tesis UNASAM). Prototipo académico; no es un
+sistema oficial de la Municipalidad Provincial de Huaraz.
+
 ---
 
-## Tabla de Contenidos
+## Contenido
 
-- [Acerca del Proyecto](#acerca-del-proyecto)
 - [Arquitectura](#arquitectura)
-- [Tecnologías](#tecnologías)
-- [Requisitos Previos](#requisitos-previos)
-- [Instalación](#instalación)
-- [Microservicios](#microservicios)
-- [Configuración](#configuración)
-- [Ejecución](#ejecución)
-- [Testing](#testing)
-- [Despliegue](#despliegue)
-- [API Documentation](#api-documentation)
-- [Licencia](#licencia)
-- [Contacto](#contacto)
-
----
-
-## Acerca del Proyecto
-
-**Smart Parking Platform - Backend** es la capa de servicios backend desarrollada por [Winner Systems Corporation S.A.C.](https://www.winner-systems.com) utilizando una arquitectura de microservicios moderna y escalable.
-
-### Objetivo
-
-Proporcionar una infraestructura robusta, escalable y mantenible para la gestión integral de estacionamientos inteligentes, aplicando tecnologías de vanguardia como IoT, Inteligencia Artificial y Cloud Computing.
-
-### Características Principales
-
-- **Arquitectura de Microservicios** con Spring Cloud
-- **Service Discovery** con Eureka Server
-- **Configuración Centralizada** con Config Server
-- **API Gateway** para enrutamiento inteligente
-- **Arquitectura Hexagonal** en cada microservicio
-- **Servicios IoT** en Go para alto rendimiento
-- **Procesamiento AI/ML** con Python
-- **Componentes críticos** en C/C++ para máxima eficiencia
-- **Contenedorización** con Docker
-- **Orquestación** con Kubernetes
+- [Servicios](#servicios)
+- [Rutas públicas del gateway](#rutas-públicas-del-gateway)
+- [Seguridad](#seguridad)
+- [Configuración y secretos](#configuración-y-secretos)
+- [Ejecución local](#ejecución-local)
+- [Pruebas](#pruebas)
+- [Estructura](#estructura)
 
 ---
 
 ## Arquitectura
 
+```text
+                         ┌───────────────────────────────┐
+ Angular / Flutter /     │        api-gateway :8080       │  única puerta pública
+ ESP32-CAM ─────────────►│ rutas, CORS, IP real del cliente│  bloquea /internal/** y /service-token
+                         └──┬─────────┬──────────┬───────┬┘
+                            │         │          │       │ (URI fija: iot no está en Eureka)
+                  auth-service  parking-service  payment-service  iot-service
+                  :8081         :8082            :8085            :8083
+                  PostgreSQL    Oracle           SQL Server       MySQL + Redis
+                      ▲             ▲  ▲               │              │   │
+                      │ Feign       │  └── /internal/charges ◄────────┘   │ multipart
+                      └─────────────┤        (token de servicio)          ▼
+                                    └──── /internal/captures, /sensors ── ia-service :8084
+                                          (token de servicio)              MongoDB
+
+ config-server :8888 (configuración centralizada) · eureka-server :8761 (registro de servicios)
+ Mosquitto :1883 (MQTT: sensores y paneles) · MinIO :9000 (fotos de las cámaras)
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         API Gateway                              │
-│                        (Port: 8080)                              │
-│              Enrutamiento, Autenticación, CORS                   │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-             ├──────────────────┬─────────────────┬────────────────
-             │                  │                 │
-    ┌────────▼────────┐ ┌──────▼──────┐  ┌──────▼──────────┐
-    │ Eureka Server   │ │Config Server│  │ Auth Service    │
-    │  (Port: 8761)   │ │(Port: 8888) │  │  (Port: 8081)   │
-    │ Service Registry│ │Central Config│  │  Spring Boot    │
-    └─────────────────┘ └─────────────┘  └─────────────────┘
-             │
-             │  Service Discovery & Load Balancing
-             │
-    ┌────────┴──────────────────────────────────────────────────┐
-    │                                                            │
-┌───▼────────────┐  ┌──────────────┐  ┌──────────────────────┐
-│ User Service   │  │ Parking      │  │ Payment Service      │
-│ (Port: 8082)   │  │ Service      │  │ (Port: 8084)         │
-│ Spring Boot    │  │ (Port: 8083) │  │ Spring Boot          │
-│ PostgreSQL     │  │ Spring Boot  │  │ MySQL                │
-└────────────────┘  │ MySQL        │  └──────────────────────┘
-                    └──────────────┘
-┌────────────────┐  ┌──────────────┐  ┌──────────────────────┐
-│ IoT Service    │  │ Notification │  │ Analytics Service    │
-│ (Port: 8085)   │  │ Service      │  │ (Port: 8087)         │
-│ Go             │  │ (Port: 8086) │  │ Python               │
-│ MongoDB        │  │ Spring Boot  │  │ MongoDB              │
-└────────────────┘  │ Redis        │  └──────────────────────┘
-                    └──────────────┘
-┌────────────────┐  ┌──────────────┐
-│ ML/AI Service  │  │ Sensor       │
-│ (Port: 8088)   │  │ Processing   │
-│ Python         │  │ C/C++        │
-│ TensorFlow     │  │ High Perf.   │
-└────────────────┘  └──────────────┘
-```
+
+| Tráfico | Cómo |
+|---|---|
+| Norte-sur (clientes) | Siempre por el gateway (`:8080`) |
+| Este-oeste (entre servicios) | Directo por la red interna, con **token de servicio** |
+| Dispositivos IoT | Cámaras por HTTP (necesitan respuesta inmediata de la barrera); sensores y paneles por MQTT |
 
 ---
 
-## Tecnologías
+## Servicios
 
-### Backend Core
+| Servicio | Tecnología | Arquitectura | BD | Puerto | Responsabilidad |
+|---|---|---|---|---|---|
+| [config-server](infrastructure/config-server/README.md) | Spring Cloud Config | — | — | 8888 | Configuración de todos los servicios Java (`config/*.yml`) |
+| [eureka-server](infrastructure/eureka-server/README.md) | Netflix Eureka | — | — | 8761 | Registro y descubrimiento |
+| [api-gateway](infrastructure/api-gateway/README.md) | Spring Cloud Gateway WebFlux | — | — | 8080 | Rutas públicas, CORS, bloqueo de rutas internas |
+| auth-service | Java 25 / Spring Boot | Hexagonal | PostgreSQL | 8081 | Usuarios, roles dinámicos, permisos, JWT, correo, token de servicio |
+| parking-service | Java 25 / Spring Boot | Hexagonal | Oracle | 8082 | Parqueos, zonas, espacios, turnos, tarifas, operadores, transacciones, revisión de placas, ocupación, disponibilidad pública |
+| payment-service | Java 25 / Spring Boot | Hexagonal | SQL Server | 8085 | Tipos de pago, cobros QR (pasarela simulada) y efectivo, devoluciones |
+| [iot-service](services/iot-service/README.md) | Go / Gin | Por capas | MySQL + Redis | 8083 | Orquesta cámaras, sensores y paneles |
+| [ia-service](services/ia-service/README.md) | Python / FastAPI | Por capas, sin estado | MongoDB | 8084 | Lectura de placas y ocupación aérea (solo inferencia) |
 
-| Tecnología | Versión | Propósito |
-|-----------|---------|-----------|
-| **Java** | 25 | Microservicios de negocio |
-| **Spring Boot** | 3.5.7 | Framework principal |
-| **Spring Cloud** | 4.3.0 | Microservicios cloud-native |
-| **Go** | 1.23+ | Servicios IoT de alto rendimiento |
-| **Python** | 3.12+ | Servicios de IA/ML |
-| **C/C++** | - | Procesamiento de sensores crítico |
-
-### Infraestructura
-
-| Servicio | Puerto | Tecnología | Estado |
-|----------|--------|-----------|--------|
-| **Config Server** | 8888 | Spring Cloud Config | Implementado |
-| **Eureka Server** | 8761 | Netflix Eureka | Implementado |
-| **API Gateway** | 8080 | Spring Cloud Gateway | Implementado |
-| **Auth Service** | 8081 | Spring Boot + JWT | En desarrollo |
-| **User Service** | 8082 | Spring Boot | Planificado |
-
-### Bases de Datos
-
-- **PostgreSQL** 16 - Datos transaccionales (usuarios, roles)
-- **MySQL** 8.0 - Datos de estacionamiento y pagos
-- **MongoDB** 7.0 - Datos IoT y analytics
-- **Redis** 7.2 - Cache y sesiones
-
-### DevOps & Cloud
-
-- **Docker** - Contenedorización
-- **Kubernetes** - Orquestación
-- **GitHub Actions** - CI/CD
-- **AWS/Azure** - Cloud deployment
+Reparto de responsabilidades en los cobros: **parking-service sabe cuánto se debe** y
+**payment-service registra si se pagó**. ia-service no tiene lógica de negocio y nunca llama a
+parking-service; el orquestador es iot-service.
 
 ---
 
-## Requisitos Previos
+## Rutas públicas del gateway
 
-### Java Development
+Convención: `/api/<microservicio>/...`. El gateway quita el prefijo antes de reenviar.
+
+| Ruta pública | Destino | Ruta en el servicio |
+|---|---|---|
+| `/api/auth/**` | auth-service | `/**` |
+| `/api/users/**`, `/api/roles/**`, `/api/permissions/**` | auth-service | `/users/**`, `/roles/**`, `/permissions/**` |
+| `/api/parking-service/v1/**` | parking-service | `/**` |
+| `/api/parking-service/v1/public/**` | parking-service | `/public/**` (sin token: disponibilidad) |
+| `/api/payment-service/v1/**` | payment-service | `/**` |
+| `/api/iot-service/v1/captures/**` | iot-service | `/api/v1/captures/**` |
+| `/api/iot-service/v1/displays/availability` | iot-service | `/api/v1/displays/availability` |
+| `/api/auth/service-token`, `/api/parking-service/v1/internal/**` | **bloqueadas (404)** | solo red interna |
+
+El discovery locator está desactivado y el actuator del gateway solo expone `health`.
+ia-service no se publica.
+
+### Disponibilidad pública (sin login)
+
+| Endpoint | Uso |
+|---|---|
+| `GET /api/parking-service/v1/public/parkings` | Lista con disponibles, ocupados, total, turno y tarifa vigentes |
+| `GET /api/parking-service/v1/public/parkings/{id}` | Detalle con zonas y horario |
+| `GET /api/parking-service/v1/public/parkings/{id}/availability` | Solo los números |
+| `GET /api/parking-service/v1/public/parkings/{id}/spaces` | Mapa de espacios (disponible, ocupado, no disponible; sin placas) |
+
+Total = disponibles + ocupados (los espacios en mantenimiento o fuera de servicio no cuentan).
+Si el parqueo no atiende a esa hora, los disponibles son 0.
+
+---
+
+## Seguridad
+
+- **JWT de usuario** emitido por auth-service. Las autoridades son los permisos del **rol activo**
+  (`users.create`, `parkings.read`, ...). Las rutas se protegen por permiso, no por nombre de rol.
+- **Token de servicio** (`POST /service-token`, 5 minutos) para iot-service y payment-service.
+  Solo lleva permisos `internal.*` y no sirve en rutas de usuario; un token de usuario tampoco
+  sirve en `/internal/**`.
+- **Webhook de la pasarela** firmado con HMAC-SHA256.
+- **MQTT** con usuario por dispositivo y ACL: cada sensor solo escribe en su tema y cada panel
+  solo lee el suyo.
+- El gateway descarta `X-Forwarded-For` del cliente y pone la IP real (base del límite de
+  peticiones de iot-service).
+
+---
+
+## Configuración y secretos
+
+- La configuración de los servicios Java está en
+  `infrastructure/config-server/src/main/resources/config/` (`application.yml` común y un
+  `<servicio>.yml` por servicio). Los valores sensibles son `${VARIABLE}`.
+- Los secretos se leen de **`backend/.env`**, que **no se versiona**. Copia la plantilla y
+  complétala:
+
+  ```bash
+  cp .env.example .env
+  ```
+
+  Variables principales: `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `MAIL_USERNAME`,
+  `MAIL_PASSWORD`, `PAYMENT_SERVICE_CLIENT_SECRET`, `IOT_SERVICE_CLIENT_SECRET`,
+  `PAYMENT_GATEWAY_WEBHOOK_SECRET`, `MSSQL_*`, `MQTT_IOT_PASSWORD` (los secretos, de 32
+  caracteres o más).
+- iot-service e ia-service tienen su propio `.env` (plantilla `.env.example` en cada carpeta).
+- En desarrollo, `ddl-auto: create-drop`: cada reinicio de auth o parking recrea las tablas y el
+  seeder vuelve a cargar los datos iniciales (admin, roles, permisos, turnos, tarifas).
+
+---
+
+## Ejecución local
+
+### 1. Contenedores
 
 ```bash
-
-# Java Development Kit (JDK)
-Java 25 (Eclipse Temurin recomendado)
-Descargar: https://adoptium.net/
-
-# Maven
-Maven 3.9+
-Descargar: https://maven.apache.org/
-
-# IDE (Opcional pero recomendado)
-IntelliJ IDEA Community Edition
-Descargar: https://www.jetbrains.com/idea/
+docker compose up -d          # ver README-DOCKER.md
 ```
 
-### Go Development
+### 2. Servicios, en este orden
 
 ```bash
-
-# Go Programming Language
-Go 1.23+
-Descargar: https://go.dev/dl/
-```
-
-### Python Development
-
-```bash
+# Java: cada uno desde su carpeta. En IntelliJ, la configuración de ejecución debe cargar backend/.env
+cd infrastructure/config-server && ./mvnw spring-boot:run    # 8888
+cd infrastructure/eureka-server && ./mvnw spring-boot:run    # 8761
+cd infrastructure/api-gateway   && ./mvnw spring-boot:run    # 8080
+cd services/auth-service        && ./mvnw spring-boot:run    # 8081
+cd services/parking-service     && ./mvnw spring-boot:run    # 8082
+cd services/payment-service     && ./mvnw spring-boot:run    # 8085
 
 # Python
-Python 3.12+
-Descargar: https://www.python.org/
-
-# pip (incluido con Python)
-# virtualenv o venv para entornos virtuales
-```
-
-### C/C++ Development
-
-```bash
-
-# GCC Compiler
-gcc/g++ 11+
-
-# Linux/macOS: generalmente preinstalado
-# Windows: MinGW o MSYS2
-```
-
-### Herramientas Adicionales
-
-```bash
-
-# Git
-git 2.40+
-
-# Docker (opcional, para contenedores)
-Docker 24.0+
-Docker Compose 2.20+
-
-# Postman o Insomnia (para testing de APIs)
-```
-
-### Verificar Instalación
-
-```bash
-
-# Java y Maven
-java --version          # openjdk 25
-mvn --version           # Apache Maven 3.9.x
+cd services/ia-service && .venv/bin/python -m app.main        # 8084
 
 # Go
-go version              # go version go1.23.x
-
-# Python
-python --version        # Python 3.12.x
-pip --version           # pip 24.x
-
-# C/C++
-gcc --version           # gcc 11.x+
-g++ --version           # g++ 11.x+
-
-# Git
-git --version           # git version 2.x.x
-
-# Docker (opcional)
-docker --version        # Docker version 24.x
-docker-compose --version # Docker Compose version 2.x
+cd services/iot-service && go run ./cmd                       # 8083
 ```
+
+> `ADMIN_PASSWORD` y otros secretos pueden contener `$`: no cargues `.env` con `source` en el
+> shell (lo expande). Usa la opción de archivo de entorno del IDE.
+
+### 3. Verificar
+
+```bash
+curl -s localhost:8888/actuator/health
+curl -s localhost:8761/actuator/health
+curl -s localhost:8080/actuator/health
+curl -s localhost:8081/actuator/health
+curl -s localhost:8082/actuator/health
+curl -s localhost:8085/actuator/health
+curl -s localhost:8083/health
+curl -s localhost:8084/api/health
+curl -s localhost:8080/api/parking-service/v1/public/parkings   # disponibilidad pública
+```
+
+Documentación Swagger de cada servicio Java: `http://localhost:<puerto>/swagger-ui.html`.
+ia-service: `http://localhost:8084/api/docs`.
 
 ---
 
-## Instalación
+## Pruebas
 
-### 1. Clonar el Repositorio
+| Servicio | Comando |
+|---|---|
+| auth, parking, payment | `./mvnw test` (el test `contextLoads` necesita config-server y la BD en marcha) |
+| iot-service | `go build ./... && go test ./...` |
+| ia-service | `.venv/bin/python -m pytest` (no carga los modelos ni usa MongoDB) |
 
-```bash
+---
 
-git clone https://github.com/edwinyoner/system-smart-parking.git
-cd system-smart-parking/backend
-```
+## Estructura
 
-### 2. Estructura del Proyecto
-
-```
+```text
 backend/
-├── infrastructure/              # Servicios de infraestructura
-│   ├── config-server/          # Configuración centralizada (Puerto 8888)
-│   ├── eureka-server/          # Service discovery (Puerto 8761)
-│   └── api-gateway/            # API Gateway (Puerto 8080)
-├── services/                    # Microservicios de negocio
-│   ├── auth-service/           # Autenticación (Spring Boot - Java)
-│   ├── user-service/           # Usuarios (Spring Boot - Java)
-│   ├── parking-service/        # Estacionamiento (Spring Boot - Java)
-│   ├── payment-service/        # Pagos (Spring Boot - Java)
-│   ├── iot-service/            # IoT (Go)
-│   ├── notification-service/   # Notificaciones (Spring Boot - Java)
-│   ├── analytics-service/      # Analytics (Python)
-│   ├── ml-service/             # Machine Learning (Python)
-│   └── sensor-processing/      # Procesamiento de sensores (C/C++)
-└── README.md                    # Este archivo
+├── docker-compose.yml        Bases de datos, Redis, Mosquitto y MinIO
+├── .env.example              Plantilla de secretos (copiar a .env)
+├── docker-init/              postgres, mysql, mongodb, oracle, sqlserver, mosquitto
+├── README-DOCKER.md
+├── infrastructure/
+│   ├── config-server/
+│   ├── eureka-server/
+│   └── api-gateway/
+└── services/
+    ├── auth-service/         com.winnersystems.smartparking.auth
+    ├── parking-service/      com.winnersystems.smartparking.parking
+    ├── payment-service/      com.winnersystems.smartparking.payment
+    ├── iot-service/          Go
+    └── ia-service/           Python
 ```
 
-### 3. Configurar Variables de Entorno
+Capas de los servicios hexagonales:
 
-```bash
-
-# Copiar archivo de ejemplo
-cp .env.example .env
-
-# Editar con tus configuraciones
-nano .env
+```text
+domain/          modelo puro (sin anotaciones de framework) y excepciones
+application/     dto, port/input (casos de uso), port/output (puertos), service
+infrastructure/  adapter/input/rest, adapter/output/persistence, config (seguridad, Feign)
 ```
 
 ---
 
-## Ejecución
-
-### Opción 1: Ejecución Manual (Desarrollo)
-
-#### 1. Iniciar Config Server
-
-```bash
-
-cd infrastructure/config-server
-mvn clean install
-mvn spring-boot:run
-
-# Servidor corriendo en: http://localhost:8888
-```
-
-#### 2. Iniciar Eureka Server
-
-```bash
-
-cd infrastructure/eureka-server
-mvn clean install
-mvn spring-boot:run
-
-# Servidor corriendo en: http://localhost:8761
-```
-
-#### 3. Iniciar API Gateway
-
-```bash
-
-cd infrastructure/api-gateway
-mvn clean install
-mvn spring-boot:run
-
-# Servidor corriendo en: http://localhost:8080
-```
-
-#### 4. Iniciar Microservicios de Negocio
-
-```bash
-
-# Ejemplo: Auth Service
-cd services/auth-service
-mvn clean install
-mvn spring-boot:run
-```
-
-### Opción 2: Script de Inicio Automatizado
-
-```bash
-
-# Dar permisos de ejecución
-chmod +x start-all.sh
-
-# Ejecutar todos los servicios
-./start-all.sh
-```
-
-### Opción 3: Docker Compose (Recomendado para Producción)
-
-```bash
-
-# Construir imágenes
-docker-compose build
-
-# Iniciar todos los servicios
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Detener servicios
-docker-compose down
-```
-
-### Orden de Inicio Recomendado
-
-1. **Config Server** (8888) - Primero siempre
-2. **Eureka Server** (8761) - Segundo
-3. **API Gateway** (8080) - Tercero
-4. **Microservicios de negocio** - En cualquier orden
-
----
-
-## Testing
-
-### Tests Unitarios (Java/Spring Boot)
-
-```bash
-
-# Ejecutar tests de un microservicio
-cd infrastructure/config-server
-mvn test
-
-# Ejecutar con coverage
-mvn test jacoco:report
-
-# Ver reporte en: target/site/jacoco/index.html
-```
-
-### Tests de Integración
-
-```bash
-
-# Ejecutar tests de integración
-mvn verify
-```
-
-### Tests End-to-End
-
-```bash
-
-# Usando herramientas como Postman, Insomnia o scripts
-cd tests/e2e
-npm test
-```
-
----
-
-## API Documentation
-
-### Swagger UI
-
-Una vez que los servicios estén corriendo, accede a la documentación interactiva:
-
-- **Config Server**: http://localhost:8888/swagger-ui.html
-- **Eureka Server**: http://localhost:8761
-- **API Gateway**: http://localhost:8080/swagger-ui.html
-- **Auth Service**: http://localhost:8081/swagger-ui.html
-- **User Service**: http://localhost:8082/swagger-ui.html
-
-### Endpoints Principales
-
-#### Config Server
-```
-GET http://localhost:8888/actuator/health
-GET http://localhost:8888/{application}/{profile}
-```
-
-#### Eureka Server
-```
-GET http://localhost:8761/
-GET http://localhost:8761/eureka/apps
-```
-
-#### API Gateway
-```
-GET http://localhost:8080/actuator/health
-GET http://localhost:8080/actuator/gateway/routes
-```
-
----
-
-## Despliegue
-
-### Docker
-
-```bash
-
-# Build de imagen individual
-docker build -t smart-parking/config-server:latest ./infrastructure/config-server
-
-# Run de contenedor
-docker run -p 8888:8888 smart-parking/config-server:latest
-```
-
-### Kubernetes
-
-```bash
-
-# Aplicar configuración
-kubectl apply -f k8s/
-
-# Ver pods
-kubectl get pods
-
-# Ver servicios
-kubectl get services
-```
-
-### Cloud Deployment
-
-- **AWS**: ECS/EKS
-- **Azure**: AKS
-- **Google Cloud**: GKE
-
----
-
-## Configuración
-
-### application.yml
-
-Los archivos de configuración centralizados están en:
-```
-infrastructure/config-server/src/main/resources/config/
-├── application.yml           # Configuración global
-├── api-gateway.yml          # Config para API Gateway
-├── auth-service.yml         # Config para Auth Service
-├── eureka-server.yml        # Config para Eureka Server
-└── user-service.yml         # Config para User Service
-```
-
-### Variables de Entorno
-
-```env
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=smart_parking
-DB_USER=admin
-DB_PASSWORD=secure_password
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# JWT
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRATION=86400000
-
-# Email
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASSWORD=your_password
-```
-
----
-
-## Monitoreo
-
-### Spring Boot Actuator
-
-```bash
-
-# Health check
-curl http://localhost:8080/actuator/health
-
-# Metrics
-curl http://localhost:8080/actuator/metrics
-
-# Info
-curl http://localhost:8080/actuator/info
-```
-
-### Prometheus & Grafana
-
-```bash
-
-# Prometheus: http://localhost:9090
-# Grafana: http://localhost:3000
-```
-
----
-
-## Desarrollo
-
-### Crear Nuevo Microservicio (Java/Spring Boot)
-
-```bash
-
-# Usando Spring Initializr
-curl https://start.spring.io/starter.zip \
-  -d dependencies=web,data-jpa,actuator,eureka-client \
-  -d name=nuevo-servicio \
-  -d groupId=com.winnersystems.smartparking \
-  -d artifactId=nuevo-servicio \
-  -o nuevo-servicio.zip
-
-unzip nuevo-servicio.zip -d services/nuevo-servicio
-```
-
-### Crear Nuevo Servicio (Go)
-
-```bash
-
-cd services
-mkdir nuevo-servicio-go
-cd nuevo-servicio-go
-go mod init github.com/winnersystems/smartparking/nuevo-servicio
-```
-
-### Crear Nuevo Servicio (Python)
-
-```bash
-
-cd services
-mkdir nuevo-servicio-python
-cd nuevo-servicio-python
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# venv\Scripts\activate   # Windows
-pip install flask
-```
-
----
-
-## Licencia
-
-Distribuido bajo la Licencia MIT. Ver `LICENSE` para más información.
-
----
-
-## Contacto
-
-**Winner Systems Corporation S.A.C.**
-
-- Website: [www.winner-systems.com](https://www.winner-systems.com)
-- Email: contacto@winner-systems.com
-- WhatsApp: +51 931 741 355
-- Dirección: Jangas, Huaraz, Áncash, Perú
-
-**Desarrollador Principal:**
-- Edwin Yoner
-- edwinyoner@winner-systems.com
-- LinkedIn: [linkedin.com/in/edwinyoner](https://linkedin.com/in/edwinyoner)
-- GitHub: [@edwinyoner](https://github.com/edwinyoner)
-
----
-
-## Agradecimientos
-
-- [Spring Framework](https://spring.io/) - Framework empresarial robusto
-- [Netflix OSS](https://netflix.github.io/) - Herramientas de microservicios
-- [Go Team](https://go.dev/) - Lenguaje eficiente y concurrente
-- [Python Software Foundation](https://www.python.org/) - Lenguaje versátil para IA/ML
-- [Docker](https://www.docker.com/) - Plataforma de contenedorización
-- [Kubernetes](https://kubernetes.io/) - Orquestación de contenedores
-
----
-
-<div align="center">
-
-**Hecho en Perú**
-
-[![Winner Systems](https://img.shields.io/badge/Winner_Systems-0066CC?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMiAyMkgyMkwxMiAyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+&logoColor=white)](https://www.winner-systems.com)
-
-**Construyendo el futuro de las ciudades inteligentes**
-
-</div>
+**Winner Systems Corporation S.A.C.** · Huaraz, Áncash, Perú · [www.winner-systems.com](https://www.winner-systems.com)

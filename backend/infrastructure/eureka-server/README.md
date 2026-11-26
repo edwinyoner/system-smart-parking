@@ -1,26 +1,28 @@
-# Eureka Server - Smart Parking Platform
+# eureka-server
 
-Netflix Eureka Server para Service Discovery.
+Netflix Eureka (puerto **8761**): registro y descubrimiento de servicios. El gateway resuelve
+las rutas `lb://AUTH-SERVICE`, `lb://PARKING-SERVICE` y `lb://PAYMENT-SERVICE` con él.
 
-## Prerequisitos
+Se registran: api-gateway, auth-service, parking-service y payment-service. iot-service (Go) e
+ia-service (Python) **no** se registran: el gateway llega a iot-service por una URI fija
+(`IOT_SERVICE_URL`) e ia-service no es público.
 
-- Config Serveer debe estar corriendo en puerto 8888
+## Requisito
+
+config-server en marcha (puerto 8888). Su configuración está en `eureka-server.yml` del
+config-server.
 
 ## Ejecutar
-```
-mvn spring-boot:run
+
+```bash
+./mvnw spring-boot:run
 ```
 
 ## Verificar
 
-- Eureka Dashboard: http://localhost:8761
-- Health: http://localhost:8761/actuator/health
-- Eureka Apps: http://localhost:876/eureka/apps
+- Panel: http://localhost:8761
+- Salud: `curl -s localhost:8761/actuator/health`
+- Aplicaciones registradas: `curl -s -H 'Accept: application/json' localhost:8761/eureka/apps`
 
-## Dashbooard
-
-El Dashboard de Eureka muestra:
-- Servicios registrados
-- Instancias disponibles
-- Estado de salud
-- Renovacioes y desalojos
+> Tras reiniciar un servicio, el gateway puede responder 503 unos segundos hasta que Eureka
+> actualiza el registro.
