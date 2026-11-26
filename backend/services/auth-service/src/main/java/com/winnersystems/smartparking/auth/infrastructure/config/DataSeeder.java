@@ -131,7 +131,7 @@ public class DataSeeder implements CommandLineRunner {
             {"zones.read", "Ver información de zonas"},
             {"zones.update", "Actualizar zonas existentes"},
             {"zones.delete", "Eliminar zonas"},
-            {"zones.activate", "Activar/Desactivar zonas"},
+            {"zones.restore", "Ver zonas eliminadas y restaurarlas"},
 
             // Tipos de Espacio
             {"space-types.create", "Crear nuevos tipos de espacio"},
@@ -256,7 +256,7 @@ public class DataSeeder implements CommandLineRunner {
                   // Gestión de Parqueos
                   "parkings.create", "parkings.read", "parkings.update", "parkings.delete", "parkings.restore",
                   // Gestión de Zonas
-                  "zones.create", "zones.read", "zones.update", "zones.delete", "zones.activate",
+                  "zones.create", "zones.read", "zones.update", "zones.delete", "zones.restore",
                   // Gestión de Tipos de Espacio
                   "space-types.create", "space-types.read", "space-types.update", "space-types.delete",
                   // Gestión de Espacios

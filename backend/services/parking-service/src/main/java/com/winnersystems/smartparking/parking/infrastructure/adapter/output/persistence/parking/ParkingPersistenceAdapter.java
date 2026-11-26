@@ -55,6 +55,14 @@ public class ParkingPersistenceAdapter implements ParkingPersistencePort {
    }
 
    @Override
+   public List<Parking> findAllByIdsIncludingDeleted(java.util.Collection<Long> ids) {
+      if (ids == null || ids.isEmpty()) {
+         return List.of();
+      }
+      return repository.findAllById(ids).stream().map(mapper::toDomain).toList();
+   }
+
+   @Override
    public Optional<Parking> findDeletedById(Long id) {
       return repository.findByIdAndDeletedAtIsNotNull(id).map(mapper::toDomain);
    }

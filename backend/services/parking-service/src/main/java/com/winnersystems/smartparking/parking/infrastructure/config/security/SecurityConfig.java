@@ -47,7 +47,6 @@ public class SecurityConfig {
                         "/error",
                         // TEMPORAL: módulos aún sin revisar. Al revisar cada uno se quita de aquí
                         // y sus endpoints se protegen con @PreAuthorize por permiso.
-                        "/zones/**",
                         "/spaces/**",
                         "/transactions/**"
                   ).permitAll()

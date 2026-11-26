@@ -20,6 +20,9 @@ public interface ParkingPersistencePort {
     */
    Optional<Parking> findByIdIncludingDeleted(Long id);
 
+   /** Varios parqueos por ID, incluidos los eliminados (para mostrar nombres en listas) */
+   List<Parking> findAllByIdsIncludingDeleted(java.util.Collection<Long> ids);
+
    /** Solo parqueos eliminados (papelera) */
    Optional<Parking> findDeletedById(Long id);
 

@@ -7,31 +7,40 @@ import com.winnersystems.smartparking.parking.domain.model.Zone;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Puerto de salida para persistencia de Zone.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
- */
 public interface ZonePersistencePort {
 
    Zone save(Zone zone);
 
+   /** Zona no eliminada y de un parqueo no eliminado */
    Optional<Zone> findById(Long id);
 
-   Optional<Zone> findByCode(String code);
+   /** Incluye eliminadas (y de parqueos eliminados): para mostrar el historial */
+   Optional<Zone> findByIdIncludingDeleted(Long id);
 
-   List<Zone> findAllActive();
+   /** Solo zonas eliminadas (papelera) */
+   Optional<Zone> findDeletedById(Long id);
 
+   /** Código dentro del parqueo, sin distinguir mayúsculas, también entre las eliminadas */
+   Optional<Zone> findByParkingIdAndCodeIncludingDeleted(Long parkingId, String code);
+
+   /** Nombre dentro del parqueo, sin distinguir mayúsculas, solo entre las no eliminadas */
+   Optional<Zone> findByParkingIdAndName(Long parkingId, String name);
+
+   /** Zonas no eliminadas de un parqueo, por nombre */
    List<Zone> findByParkingId(Long parkingId);
 
-   PageResult<Zone> findAll(PageRequest pageRequest, String search, String status);
+   /**
+    * Zonas ACTIVE de parqueos ACTIVE (ninguno eliminado): las que reciben vehículos.
+    *
+    * @param parkingId null = de todos los parqueos
+    */
+   List<Zone> findAllActive(Long parkingId);
 
-   void delete(Long id);
-
-   boolean existsByCode(String code);
-
-   boolean existsByCodeAndIdNot(String code, Long id);
-
-   boolean existsByName(String name);
+   /**
+    * @param search    texto en nombre o código (null = sin filtro)
+    * @param status    estado exacto (null = todos)
+    * @param parkingId parqueo (null = todos)
+    * @param deleted   true = solo eliminadas (papelera), false = vigentes de parqueos vigentes
+    */
+   PageResult<Zone> findAll(PageRequest pageRequest, String search, String status, Long parkingId, boolean deleted);
 }

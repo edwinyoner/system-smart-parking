@@ -9,71 +9,31 @@ import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper para conversión entre DTOs REST y DTOs de aplicación para zonas.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre los DTO REST de zonas y los de la capa de aplicación.
  */
 @Component
 public class ZoneRestMapper {
 
-   /**
-    * Convierte CreateZoneRequest a CreateZoneCommand.
-    */
-   public CreateZoneCommand toCommand(CreateZoneRequest request) {
-      return CreateZoneCommand.builder()
-            .parkingId(request.getParkingId())
-            .name(request.getName())
-            .code(request.getCode())
-            .address(request.getAddress())
-            .description(request.getDescription())
-            .totalSpaces(request.getTotalSpaces())
-            .latitude(request.getLatitude())
-            .longitude(request.getLongitude())
-            .hasCamera(request.getHasCamera())
-            .cameraIds(request.getCameraIds())
-            .build();
+   public CreateZoneCommand toCommand(CreateZoneRequest r) {
+      return new CreateZoneCommand(r.parkingId(), r.name(), r.code(), r.address(), r.description(),
+            r.latitude(), r.longitude(), r.cameraIds());
    }
 
-   /**
-    * Convierte UpdateZoneRequest a UpdateZoneCommand.
-    */
-   public UpdateZoneCommand toCommand(UpdateZoneRequest request) {
-      return UpdateZoneCommand.builder()
-            .name(request.getName())
-            .address(request.getAddress())
-            .description(request.getDescription())
-            .totalSpaces(request.getTotalSpaces())
-            .latitude(request.getLatitude())
-            .longitude(request.getLongitude())
-            .hasCamera(request.getHasCamera())
-            .cameraIds(request.getCameraIds())
-            .status(request.getStatus())
-            .build();
+   public UpdateZoneCommand toCommand(UpdateZoneRequest r) {
+      return new UpdateZoneCommand(r.name(), r.address(), r.description(),
+            r.latitude(), r.longitude(), r.cameraIds(), r.status());
    }
 
-   /**
-    * Convierte ZoneDto a ZoneResponse.
-    */
-   public ZoneResponse toResponse(ZoneDto dto) {
+   public ZoneResponse toResponse(ZoneDto d) {
       return new ZoneResponse(
-            dto.id(),
-            dto.parkingId(),
-            dto.name(),
-            dto.code(),
-            dto.address(),
-            dto.description(),
-            dto.totalSpaces(),
-            dto.availableSpaces(),
-            dto.occupancyPercentage(),
-            dto.latitude(),
-            dto.longitude(),
-            dto.hasCamera(),
-            dto.cameraIds(),
-            dto.cameraCount(),
-            dto.status(),
-            dto.createdAt(),
-            dto.updatedAt()
+            d.id(), d.parkingId(), d.parkingName(), d.parkingCode(),
+            d.name(), d.code(), d.address(), d.description(),
+            d.totalSpaces(), d.availableSpaces(), d.occupiedSpaces(), d.unavailableSpaces(),
+            d.occupancyPercentage(), d.latitude(), d.longitude(),
+            d.hasCamera(), d.cameraIds(), d.cameraCount(),
+            d.status(), d.operational(),
+            d.createdAt(), d.createdBy(), d.updatedAt(), d.updatedBy(),
+            d.deletedAt(), d.deletedBy()
       );
    }
 }

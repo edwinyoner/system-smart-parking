@@ -305,7 +305,7 @@ public class InfractionService implements
             : null;
 
       String zoneName = i.getZoneId() != null
-            ? zonePersistencePort.findById(i.getZoneId()).map(Zone::getName).orElse(null)
+            ? zonePersistencePort.findByIdIncludingDeleted(i.getZoneId()).map(Zone::getName).orElse(null)
             : null;
 
       String vehiclePlate = i.getVehicleId() != null

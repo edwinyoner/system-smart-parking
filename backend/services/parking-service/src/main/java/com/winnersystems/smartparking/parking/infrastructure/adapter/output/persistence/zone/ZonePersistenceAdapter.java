@@ -3,11 +3,11 @@ package com.winnersystems.smartparking.parking.infrastructure.adapter.output.per
 import com.winnersystems.smartparking.parking.application.dto.query.PageRequest;
 import com.winnersystems.smartparking.parking.application.dto.query.PageResult;
 import com.winnersystems.smartparking.parking.application.port.output.ZonePersistencePort;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
 import com.winnersystems.smartparking.parking.domain.model.Zone;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.zone.entity.ZoneEntity;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.zone.mapper.ZonePersistenceMapper;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.zone.repository.ZoneRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -17,109 +17,93 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Adaptador de persistencia para Zone.
- * Implementa el puerto de salida ZonePersistencePort.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Adaptador de persistencia de Zone (Oracle).
  */
 @Component
-@RequiredArgsConstructor
 public class ZonePersistenceAdapter implements ZonePersistencePort {
 
    private final ZoneRepository repository;
    private final ZonePersistenceMapper mapper;
 
-   // ========================= SAVE =========================
+   public ZonePersistenceAdapter(ZoneRepository repository, ZonePersistenceMapper mapper) {
+      this.repository = repository;
+      this.mapper = mapper;
+   }
 
    @Override
    public Zone save(Zone zone) {
       ZoneEntity entity;
-
       if (zone.getId() != null) {
+         // findById de JPA incluye eliminadas: así también se guarda una restauración
          entity = repository.findById(zone.getId())
-               .orElseThrow(() -> new IllegalArgumentException(
-                     "Zona no encontrada con ID: " + zone.getId()
-               ));
+               .orElseThrow(() -> new ResourceNotFoundException("Zona", zone.getId()));
          mapper.updateEntity(entity, zone);
       } else {
          entity = mapper.toEntity(zone);
       }
-
       return mapper.toDomain(repository.save(entity));
    }
 
-   // ========================= FIND =========================
-
    @Override
    public Optional<Zone> findById(Long id) {
-      return repository.findByIdAndDeletedAtIsNull(id)
+      return repository.findVigentById(id).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Zone> findByIdIncludingDeleted(Long id) {
+      return repository.findById(id).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Zone> findDeletedById(Long id) {
+      return repository.findByIdAndDeletedAtIsNotNull(id).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Zone> findByParkingIdAndCodeIncludingDeleted(Long parkingId, String code) {
+      if (parkingId == null || code == null || code.isBlank()) {
+         return Optional.empty();
+      }
+      return repository.findFirstByParkingIdAndCodeIgnoreCase(parkingId, code.trim()).map(mapper::toDomain);
+   }
+
+   @Override
+   public Optional<Zone> findByParkingIdAndName(Long parkingId, String name) {
+      if (parkingId == null || name == null || name.isBlank()) {
+         return Optional.empty();
+      }
+      return repository.findFirstByParkingIdAndNameIgnoreCaseAndDeletedAtIsNull(parkingId, name.trim())
             .map(mapper::toDomain);
    }
 
    @Override
-   public Optional<Zone> findByCode(String code) {
-      return repository.findByCodeAndDeletedAtIsNull(code)
-            .map(mapper::toDomain);
-   }
-
-   // ========================= LIST SIN PAGINAR =========================
-
-   @Override
-   public List<Zone> findAllActive() {
-      return repository.findByStatusAndDeletedAtIsNullOrderByNameAsc(Zone.STATUS_ACTIVE)
-            .stream()
+   public List<Zone> findByParkingId(Long parkingId) {
+      return repository.findByParkingIdAndDeletedAtIsNullOrderByNameAsc(parkingId).stream()
             .map(mapper::toDomain)
             .toList();
    }
 
    @Override
-   public List<Zone> findByParkingId(Long parkingId) {              // ← AGREGADO
-      return repository.findByParkingIdAndDeletedAtIsNull(parkingId)
-            .stream()
-            .map(mapper::toDomain)
-            .toList();
+   public List<Zone> findAllActive(Long parkingId) {
+      return repository.findAllActive(parkingId).stream().map(mapper::toDomain).toList();
    }
 
-   // ========================= LIST PAGINADO =========================
-
    @Override
-   public PageResult<Zone> findAll(PageRequest pageRequest, String search, String status) {
-      Page<ZoneEntity> page = repository.findAllWithFilters(
-            search,
-            status,
-            buildPageable(pageRequest)
+   public PageResult<Zone> findAll(PageRequest pageRequest, String search, String status, Long parkingId,
+                                   boolean deleted) {
+      String text = search == null || search.isBlank() ? null : search.trim().toLowerCase();
+      // %, _ y \ escritos por el usuario se buscan como texto, no como comodines
+      if (text != null) {
+         text = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+      }
+      Page<ZoneEntity> page = repository.search(text, status, parkingId, deleted, buildPageable(pageRequest));
+      return PageResult.of(
+            page.getContent().stream().map(mapper::toDomain).toList(),
+            page.getNumber(),
+            page.getSize(),
+            page.getTotalElements()
       );
-      return toPageResult(page);
    }
-
-   // ========================= EXISTS =========================
-
-   @Override
-   public boolean existsByCode(String code) {
-      return repository.existsByCodeAndDeletedAtIsNull(code);
-   }
-
-   @Override
-   public boolean existsByCodeAndIdNot(String code, Long id) {
-      return repository.findByCodeAndDeletedAtIsNull(code)
-            .map(e -> !e.getId().equals(id))
-            .orElse(false);
-   }
-
-   @Override
-   public boolean existsByName(String name) {
-      return repository.existsByNameAndDeletedAtIsNull(name);
-   }
-
-   // ========================= DELETE =========================
-
-   @Override
-   public void delete(Long id) {
-      repository.deleteById(id);
-   }
-
-   // ========================= HELPERS PRIVADOS =========================
 
    private Pageable buildPageable(PageRequest pageRequest) {
       if (pageRequest.hasSorting()) {
@@ -129,16 +113,6 @@ public class ZonePersistenceAdapter implements ZonePersistencePort {
                Sort.by(Sort.Direction.fromString(pageRequest.sortDirection()), pageRequest.sortBy())
          );
       }
-      return org.springframework.data.domain.PageRequest.of(
-            pageRequest.page(),
-            pageRequest.size()
-      );
-   }
-
-   private PageResult<Zone> toPageResult(Page<ZoneEntity> page) {
-      List<Zone> content = page.getContent().stream()
-            .map(mapper::toDomain)
-            .toList();
-      return PageResult.of(content, page.getNumber(), page.getSize(), page.getTotalElements());
+      return org.springframework.data.domain.PageRequest.of(pageRequest.page(), pageRequest.size());
    }
 }

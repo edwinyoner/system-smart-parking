@@ -1,4 +1,3 @@
-
 package com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.zone.mapper;
 
 import com.winnersystems.smartparking.parking.domain.model.Zone;
@@ -6,80 +5,71 @@ import com.winnersystems.smartparking.parking.infrastructure.adapter.output.pers
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper para conversión entre Zone (dominio) y ZoneEntity (JPA).
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre Zone (dominio) y ZoneEntity (JPA).
  */
 @Component
 public class ZonePersistenceMapper {
 
-   public Zone toDomain(ZoneEntity entity) {
-      if (entity == null) return null;
+   public Zone toDomain(ZoneEntity e) {
+      if (e == null) return null;
 
-      Zone zone = new Zone(entity.getName(), entity.getCode(), entity.getAddress());
-      zone.setId(entity.getId());
-      zone.setParkingId(entity.getParkingId());          // ← AGREGADO
-      zone.setDescription(entity.getDescription());
-      zone.setTotalSpaces(entity.getTotalSpaces());
-      zone.setAvailableSpaces(entity.getAvailableSpaces());
-      zone.setLatitude(entity.getLatitude());
-      zone.setLongitude(entity.getLongitude());
-      zone.setHasCamera(entity.getHasCamera());
-      zone.setCameraIds(entity.getCameraIds());
-      zone.setStatus(entity.getStatus());
-      zone.setCreatedAt(entity.getCreatedAt());
-      zone.setCreatedBy(entity.getCreatedBy());
-      zone.setUpdatedAt(entity.getUpdatedAt());
-      zone.setUpdatedBy(entity.getUpdatedBy());
-      zone.setDeletedAt(entity.getDeletedAt());
-      zone.setDeletedBy(entity.getDeletedBy());
+      Zone zone = new Zone();
+      zone.setId(e.getId());
+      zone.setParkingId(e.getParkingId());
+      zone.setName(e.getName());
+      zone.setCode(e.getCode());
+      zone.setAddress(e.getAddress());
+      zone.setDescription(e.getDescription());
+      zone.setLatitude(e.getLatitude());
+      zone.setLongitude(e.getLongitude());
+      zone.setCameraIds(e.getCameraIds());
+      zone.setStatus(e.getStatus());
+      zone.setCreatedAt(e.getCreatedAt());
+      zone.setCreatedBy(e.getCreatedBy());
+      zone.setUpdatedAt(e.getUpdatedAt());
+      zone.setUpdatedBy(e.getUpdatedBy());
+      zone.setDeletedAt(e.getDeletedAt());
+      zone.setDeletedBy(e.getDeletedBy());
       return zone;
    }
 
-   public ZoneEntity toEntity(Zone zone) {
-      if (zone == null) return null;
+   public ZoneEntity toEntity(Zone z) {
+      if (z == null) return null;
 
       return ZoneEntity.builder()
-            .id(zone.getId())
-            .parkingId(zone.getParkingId())              // ← AGREGADO
-            .name(zone.getName())
-            .code(zone.getCode())
-            .address(zone.getAddress())
-            .description(zone.getDescription())
-            .totalSpaces(zone.getTotalSpaces())
-            .availableSpaces(zone.getAvailableSpaces())
-            .latitude(zone.getLatitude())
-            .longitude(zone.getLongitude())
-            .hasCamera(zone.getHasCamera())
-            .cameraIds(zone.getCameraIds())
-            .status(zone.getStatus())
-            .createdAt(zone.getCreatedAt())
-            .createdBy(zone.getCreatedBy())
-            .updatedAt(zone.getUpdatedAt())
-            .updatedBy(zone.getUpdatedBy())
-            .deletedAt(zone.getDeletedAt())
-            .deletedBy(zone.getDeletedBy())
+            .id(z.getId())
+            .parkingId(z.getParkingId())
+            .name(z.getName())
+            .code(z.getCode())
+            .address(z.getAddress())
+            .description(z.getDescription())
+            .latitude(z.getLatitude())
+            .longitude(z.getLongitude())
+            .cameraIds(z.getCameraIds())
+            .status(z.getStatus())
+            .createdAt(z.getCreatedAt())
+            .createdBy(z.getCreatedBy())
+            .updatedAt(z.getUpdatedAt())
+            .updatedBy(z.getUpdatedBy())
+            .deletedAt(z.getDeletedAt())
+            .deletedBy(z.getDeletedBy())
             .build();
    }
 
-   public void updateEntity(ZoneEntity entity, Zone zone) {
-      if (entity == null || zone == null) return;
+   /** El parqueo, el código y la creación no cambian después de crear */
+   public void updateEntity(ZoneEntity e, Zone z) {
+      if (e == null || z == null) return;
 
-      // parkingId NO se actualiza — una zona no cambia de parking
-      entity.setName(zone.getName());
-      entity.setAddress(zone.getAddress());
-      entity.setDescription(zone.getDescription());
-      entity.setTotalSpaces(zone.getTotalSpaces());
-      entity.setAvailableSpaces(zone.getAvailableSpaces());
-      entity.setLatitude(zone.getLatitude());
-      entity.setLongitude(zone.getLongitude());
-      entity.setHasCamera(zone.getHasCamera());
-      entity.setCameraIds(zone.getCameraIds());
-      entity.setStatus(zone.getStatus());
-      entity.setUpdatedAt(zone.getUpdatedAt());
-      entity.setUpdatedBy(zone.getUpdatedBy());
-      entity.setDeletedAt(zone.getDeletedAt());
-      entity.setDeletedBy(zone.getDeletedBy());
+      e.setName(z.getName());
+      e.setAddress(z.getAddress());
+      e.setDescription(z.getDescription());
+      e.setLatitude(z.getLatitude());
+      e.setLongitude(z.getLongitude());
+      e.setCameraIds(z.getCameraIds());
+      e.setStatus(z.getStatus());
+      e.setUpdatedAt(z.getUpdatedAt());
+      e.setUpdatedBy(z.getUpdatedBy());
+      e.setDeletedAt(z.getDeletedAt());
+      e.setDeletedBy(z.getDeletedBy());
    }
 }

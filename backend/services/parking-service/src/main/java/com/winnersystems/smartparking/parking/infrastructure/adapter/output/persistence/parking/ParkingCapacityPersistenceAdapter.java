@@ -1,10 +1,12 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.parking;
 
 import com.winnersystems.smartparking.parking.application.dto.query.ParkingCapacity;
+import com.winnersystems.smartparking.parking.application.dto.query.ZoneCapacity;
 import com.winnersystems.smartparking.parking.application.port.output.ParkingCapacityPort;
 import com.winnersystems.smartparking.parking.domain.model.Space;
 import com.winnersystems.smartparking.parking.domain.model.Zone;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.parking.repository.ParkingRepository;
+import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.zone.repository.ZoneRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -24,9 +26,11 @@ import java.util.Objects;
 public class ParkingCapacityPersistenceAdapter implements ParkingCapacityPort {
 
    private final ParkingRepository repository;
+   private final ZoneRepository zoneRepository;
 
-   public ParkingCapacityPersistenceAdapter(ParkingRepository repository) {
+   public ParkingCapacityPersistenceAdapter(ParkingRepository repository, ZoneRepository zoneRepository) {
       this.repository = repository;
+      this.zoneRepository = zoneRepository;
    }
 
    @Override
@@ -59,7 +63,31 @@ public class ParkingCapacityPersistenceAdapter implements ParkingCapacityPort {
       return result;
    }
 
-   /** Acumulador temporal por parqueo */
+   @Override
+   public Map<Long, ZoneCapacity> capacityOfZones(Collection<Long> zoneIds) {
+      List<Long> ids = zoneIds == null ? List.of()
+            : zoneIds.stream().filter(Objects::nonNull).distinct().toList();
+      if (ids.isEmpty()) {
+         return Map.of();
+      }
+      Map<Long, Counter> counters = new HashMap<>();
+      for (Object[] row : zoneRepository.countSpacesByZone(ids)) {
+         Counter c = counters.computeIfAbsent((Long) row[0], k -> new Counter());
+         String spaceStatus = (String) row[1];
+         int count = ((Number) row[2]).intValue();
+         c.spaces += count;
+         if (Space.STATUS_OCCUPIED.equals(spaceStatus)) {
+            c.occupied += count;
+         } else if (Space.STATUS_AVAILABLE.equals(spaceStatus)) {
+            c.available += count;
+         }
+      }
+      Map<Long, ZoneCapacity> result = new HashMap<>();
+      counters.forEach((id, c) -> result.put(id, new ZoneCapacity(c.spaces, c.available, c.occupied)));
+      return result;
+   }
+
+   /** Acumulador temporal por parqueo o zona */
    private static final class Counter {
       int zones;
       int spaces;

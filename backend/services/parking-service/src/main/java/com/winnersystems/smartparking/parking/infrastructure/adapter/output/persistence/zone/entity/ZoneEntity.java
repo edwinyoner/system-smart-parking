@@ -9,13 +9,15 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Entidad JPA para Zone. Configurada para Oracle Database.
+ * Entidad JPA de Zone (Oracle).
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * El código es único dentro de cada parqueo (UK_ZONES_PARKING_CODE), no en todo el
+ * sistema. La capacidad no se guarda: se cuenta desde SPACES.
  */
 @Entity
-@Table(name = "ZONES")
+@Table(name = "ZONES",
+      uniqueConstraints = @UniqueConstraint(name = "UK_ZONES_PARKING_CODE", columnNames = {"PARKING_ID", "CODE"}),
+      indexes = @Index(name = "IDX_ZONES_PARKING", columnList = "PARKING_ID"))
 @Data
 @Builder
 @NoArgsConstructor
@@ -28,26 +30,20 @@ public class ZoneEntity {
    @Column(name = "ID")
    private Long id;
 
-   @Column(name = "PARKING_ID", nullable = false)          // ← AGREGADO: FK a PARKINGS
+   @Column(name = "PARKING_ID", nullable = false)
    private Long parkingId;
 
    @Column(name = "NAME", nullable = false, length = 100)
    private String name;
 
-   @Column(name = "CODE", nullable = false, unique = true, length = 50)
+   @Column(name = "CODE", nullable = false, length = 20)
    private String code;
 
-   @Column(name = "ADDRESS", nullable = false, length = 200)
+   @Column(name = "ADDRESS", length = 200)
    private String address;
 
-   @Column(name = "DESCRIPTION", columnDefinition = "CLOB")
+   @Column(name = "DESCRIPTION", length = 500)
    private String description;
-
-   @Column(name = "TOTAL_SPACES")
-   private Integer totalSpaces;
-
-   @Column(name = "AVAILABLE_SPACES")
-   private Integer availableSpaces;
 
    @Column(name = "LATITUDE")
    private Double latitude;
@@ -55,16 +51,11 @@ public class ZoneEntity {
    @Column(name = "LONGITUDE")
    private Double longitude;
 
-   @Column(name = "HAS_CAMERA")
-   private Boolean hasCamera;
-
    @Column(name = "CAMERA_IDS", length = 500)
    private String cameraIds;
 
    @Column(name = "STATUS", nullable = false, length = 20)
    private String status;
-
-   // ========================= AUDITORÍA =========================
 
    @Column(name = "CREATED_AT", nullable = false, updatable = false)
    private LocalDateTime createdAt;
@@ -84,19 +75,9 @@ public class ZoneEntity {
    @Column(name = "DELETED_BY")
    private Long deletedBy;
 
-   // ========================= LIFECYCLE CALLBACKS =========================
-
    @PrePersist
    protected void onCreate() {
-      if (this.createdAt == null)       this.createdAt = LocalDateTime.now();
-      if (this.updatedAt == null)       this.updatedAt = LocalDateTime.now();
-      if (this.totalSpaces == null)     this.totalSpaces = 0;
-      if (this.availableSpaces == null) this.availableSpaces = 0;
-      if (this.hasCamera == null)       this.hasCamera = false;
-   }
-
-   @PreUpdate
-   protected void onUpdate() {
-      if (this.updatedAt == null) this.updatedAt = LocalDateTime.now();
+      if (this.createdAt == null) this.createdAt = LocalDateTime.now();
+      if (this.updatedAt == null) this.updatedAt = this.createdAt;
    }
 }

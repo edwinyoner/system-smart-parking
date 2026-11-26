@@ -104,6 +104,9 @@ public class TransactionService implements
       // 2. Validar y cargar zona
       Zone zone = loadZone(command.zoneId());
       validateZoneOperational(zone);
+      if (!zone.belongsTo(parking.getId())) {
+         throw new ParkingDomainException("La zona " + zone.getName() + " no pertenece al parqueo " + parking.getName());
+      }
 
       // 3. Validar y cargar espacio
       Space space = loadSpace(command.spaceId());
@@ -292,8 +295,12 @@ public class TransactionService implements
             .orElseThrow(() -> new IllegalArgumentException("Transacción no encontrada: " + transactionId));
    }
 
+   /**
+    * Incluye eliminadas para mostrar el historial. Una entrada nueva igual se rechaza:
+    * validateZoneOperational exige una zona activa y no eliminada.
+    */
    private Zone loadZone(Long zoneId) {
-      return zonePersistencePort.findById(zoneId)
+      return zonePersistencePort.findByIdIncludingDeleted(zoneId)
             .orElseThrow(() -> new IllegalArgumentException("Zona no encontrada: " + zoneId));
    }
 

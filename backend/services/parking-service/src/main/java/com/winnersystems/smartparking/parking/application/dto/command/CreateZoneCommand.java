@@ -1,31 +1,19 @@
-// application/dto/command/CreateZoneCommand.java
 package com.winnersystems.smartparking.parking.application.dto.command;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 /**
- * Command para crear una nueva zona de estacionamiento.
- *
- * @author Edwin Yoner - Winner Systems
+ * Datos para crear una zona dentro de un parqueo. La capacidad no se indica:
+ * se cuenta desde los espacios que se creen en la zona.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateZoneCommand {
-   private Long parkingId;
-   private String name;
-   private String code;
-   private String address;
-   private String description;
-   private Integer totalSpaces;
-   private Double latitude;
-   private Double longitude;
-   private Boolean hasCamera;
-   private List<String> cameraIds;
+public record CreateZoneCommand(
+      Long parkingId,
+      String name,
+      String code,
+      String address,
+      String description,
+      Double latitude,
+      Double longitude,
+      List<String> cameraIds
+) {
 }
