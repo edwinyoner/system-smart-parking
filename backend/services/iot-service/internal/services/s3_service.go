@@ -15,6 +15,7 @@ import (
 type S3Service struct {
 	client     *minio.Client
 	bucketName string
+	urlExpiry  time.Duration
 }
 
 // S3Config configuración para S3/MinIO
@@ -24,6 +25,7 @@ type S3Config struct {
 	SecretAccessKey string
 	BucketName      string
 	UseSSL          bool
+	URLExpiry       time.Duration // vigencia de la URL firmada (0 = 7 días)
 }
 
 // NewS3Service crea una nueva instancia del servicio S3
@@ -37,10 +39,20 @@ func NewS3Service(config S3Config) (*S3Service, error) {
 		return nil, fmt.Errorf("error al crear cliente MinIO: %w", err)
 	}
 
+	expiry := config.URLExpiry
+	if expiry <= 0 || expiry > MaxSignedURLExpiry {
+		expiry = MaxSignedURLExpiry
+	}
 	return &S3Service{
 		client:     client,
 		bucketName: config.BucketName,
+		urlExpiry:  expiry,
 	}, nil
+}
+
+// Provider implementa ImageStorage (MinIO, solo para desarrollo local)
+func (s *S3Service) Provider() string {
+	return StorageMinIO
 }
 
 // EnsureBucket verifica que el bucket exista, si no lo crea
@@ -76,8 +88,8 @@ func (s *S3Service) UploadImage(ctx context.Context, objectName string, data []b
 		return "", fmt.Errorf("error al subir imagen: %w", err)
 	}
 
-	// Generar URL pública (válida por 7 días)
-	url, err := s.GetPresignedURL(ctx, objectName, 7*24*time.Hour)
+	// URL firmada temporal (el bucket es privado)
+	url, err := s.GetPresignedURL(ctx, objectName, s.urlExpiry)
 	if err != nil {
 		return "", fmt.Errorf("error al generar URL: %w", err)
 	}
@@ -96,7 +108,7 @@ func (s *S3Service) UploadImageFromReader(ctx context.Context, objectName string
 		return "", fmt.Errorf("error al subir imagen: %w", err)
 	}
 
-	url, err := s.GetPresignedURL(ctx, objectName, 7*24*time.Hour)
+	url, err := s.GetPresignedURL(ctx, objectName, s.urlExpiry)
 	if err != nil {
 		return "", fmt.Errorf("error al generar URL: %w", err)
 	}

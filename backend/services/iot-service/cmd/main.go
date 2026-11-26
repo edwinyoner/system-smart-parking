@@ -13,6 +13,7 @@ import (
 	"github.com/edwinyoner/winner-systems-system-smart-parking/backend/services/iot-service/internal/api/handlers"
 	"github.com/edwinyoner/winner-systems-system-smart-parking/backend/services/iot-service/internal/config"
 	"github.com/edwinyoner/winner-systems-system-smart-parking/backend/services/iot-service/internal/database"
+	"github.com/edwinyoner/winner-systems-system-smart-parking/backend/services/iot-service/internal/messaging"
 	"github.com/edwinyoner/winner-systems-system-smart-parking/backend/services/iot-service/internal/repository"
 	"github.com/edwinyoner/winner-systems-system-smart-parking/backend/services/iot-service/internal/services"
 	"github.com/sirupsen/logrus"
@@ -70,6 +71,7 @@ func main() {
 	// snapshotRepo := repository.NewSnapshotRepository(db)      // Comentado (no usado aún)
 	// detectionRepo := repository.NewDetectionRepository(db)    // Comentado (no usado aún)
 	displayLogRepo := repository.NewDisplayLogRepository(db)
+	sensorReadingRepo := repository.NewSensorReadingRepository(db)
 	logger.Info("Repositorios inicializados")
 
 	// ========================================================================
@@ -96,23 +98,29 @@ func main() {
 	parkingClient := services.NewParkingClient(cfg.Services.ParkingServiceURL, serviceTokens)
 	logger.WithField("url", cfg.Services.ParkingServiceURL).Info("parking-service client configurado")
 
-	// Servicio S3/MinIO
-	s3Service, err := services.NewS3Service(services.S3Config{
-		Endpoint:        cfg.S3.Endpoint,
-		AccessKeyID:     cfg.S3.AccessKey,
-		SecretAccessKey: cfg.S3.SecretKey,
-		BucketName:      cfg.S3.BucketName,
-		UseSSL:          cfg.S3.UseSSL,
+	// Almacenamiento de fotos: MinIO en desarrollo, Google Cloud Storage en GCP
+	imageStorage, err := services.NewImageStorage(context.Background(), services.StorageOptions{
+		Provider:        cfg.Storage.Provider,
+		SignedURLExpiry: time.Duration(cfg.Storage.SignedURLHours) * time.Hour,
+		MinIO: services.S3Config{
+			Endpoint:        cfg.S3.Endpoint,
+			AccessKeyID:     cfg.S3.AccessKey,
+			SecretAccessKey: cfg.S3.SecretKey,
+			BucketName:      cfg.S3.BucketName,
+			UseSSL:          cfg.S3.UseSSL,
+		},
+		GCS: services.GCSConfig{
+			BucketName:      cfg.Storage.GCSBucketName,
+			CredentialsFile: cfg.Storage.GCSCredentialsFile,
+		},
 	})
 	if err != nil {
-		logger.Fatalf("Error al inicializar S3 service: %v", err)
+		logger.Fatalf("Error al inicializar el almacenamiento de fotos: %v", err)
 	}
-
-	// Asegurar que el bucket existe
-	if err := s3Service.EnsureBucket(context.Background()); err != nil {
-		logger.Warnf("Error al crear bucket (puede ya existir): %v", err)
+	if err := imageStorage.EnsureBucket(context.Background()); err != nil {
+		logger.Warnf("Bucket de fotos no disponible (%s): %v", imageStorage.Provider(), err)
 	} else {
-		logger.Info("S3/MinIO bucket verificado")
+		logger.WithField("provider", imageStorage.Provider()).Info("Bucket de fotos verificado")
 	}
 
 	// ========================================================================
@@ -125,16 +133,22 @@ func main() {
 		captureRepo,
 		iaClient,
 		parkingClient,
-		s3Service,
+		imageStorage,
 		time.Duration(cfg.Services.CaptureTimeoutSeconds)*time.Second,
 		logger,
+	)
+
+	// Disponibilidad para los paneles (HTTP y MQTT), con caché corta en Redis
+	availabilityService := services.NewAvailabilityService(
+		parkingClient,
+		redisClient,
+		time.Duration(cfg.Services.DisplayCacheSeconds)*time.Second,
 	)
 
 	displayHandler := handlers.NewDisplayHandler(
 		deviceRepo,
 		displayLogRepo,
-		parkingClient,
-		redisClient,
+		availabilityService,
 		logger,
 	)
 
@@ -146,6 +160,47 @@ func main() {
 		logger,
 	)
 	logger.Info("Handlers inicializados")
+
+	// ========================================================================
+	// MQTT: SENSORES HC-SR04 Y PANELES LED
+	// ========================================================================
+
+	mqttCtx, stopMQTT := context.WithCancel(context.Background())
+	defer stopMQTT()
+	var mqttClient *messaging.Client
+	if cfg.MQTT.Enabled {
+		sensorService := services.NewSensorService(
+			deviceRepo,
+			sensorReadingRepo,
+			parkingClient,
+			services.NewSensorTracker(time.Duration(cfg.MQTT.SensorDebounceSeconds)*time.Second),
+			services.SensorThresholds{MinCm: cfg.MQTT.SensorMinCm, OccupiedMaxCm: cfg.MQTT.SensorOccupiedMaxCm},
+			logger,
+		)
+		mqttClient = messaging.NewClient(messaging.Config{
+			BrokerURL: cfg.MQTT.BrokerURL,
+			Username:  cfg.MQTT.Username,
+			Password:  cfg.MQTT.Password,
+			ClientID:  cfg.MQTT.ClientID,
+		}, sensorService, logger)
+
+		publisher := services.NewAvailabilityPublisher(
+			deviceRepo,
+			availabilityService,
+			mqttClient,
+			time.Duration(cfg.MQTT.AvailabilityPublishSeconds)*time.Second,
+			logger,
+		)
+		sensorService.OnChange(publisher.Notify)
+		// Tras (re)conectar, el broker pudo perder los mensajes retenidos: se republica todo
+		mqttClient.OnConnect(publisher.Reset)
+
+		mqttClient.Connect()
+		go publisher.Run(mqttCtx)
+		logger.WithField("broker", cfg.MQTT.BrokerURL).Info("MQTT iniciado (sensores y paneles)")
+	} else {
+		logger.Info("MQTT deshabilitado (MQTT_ENABLED=false): los paneles solo consultan por HTTP")
+	}
 
 	// ========================================================================
 	// CONFIGURAR ROUTER
@@ -168,10 +223,11 @@ func main() {
 
 	serverAddr := fmt.Sprintf(":%s", cfg.Server.Port)
 	srv := &http.Server{
-		Addr:         serverAddr,
-		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		Addr:        serverAddr,
+		Handler:     router,
+		ReadTimeout: 15 * time.Second,
+		// Mayor que lo que la cámara espera el resultado; si no, se cortaría la respuesta 202
+		WriteTimeout: time.Duration(cfg.Services.CaptureTimeoutSeconds+15) * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
@@ -209,6 +265,13 @@ func main() {
 		if err := srv.Shutdown(ctx); err != nil {
 			logger.Errorf("Error durante shutdown del servidor: %v", err)
 			srv.Close()
+		}
+
+		// Cerrar MQTT
+		stopMQTT()
+		if mqttClient != nil {
+			logger.Info("Cerrando conexión MQTT...")
+			mqttClient.Disconnect()
 		}
 
 		// Cerrar conexión MySQL

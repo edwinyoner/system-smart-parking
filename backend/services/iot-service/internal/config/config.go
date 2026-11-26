@@ -13,9 +13,11 @@ type Config struct {
 	Server   ServerConfig
 	MySQL    MySQLConfig
 	Redis    RedisConfig
+	Storage  StorageConfig
 	S3       S3Config
 	Eureka   EurekaConfig
 	Services ServicesConfig
+	MQTT     MQTTConfig
 	RabbitMQ RabbitMQConfig
 	Logging  LoggingConfig
 }
@@ -44,6 +46,14 @@ type RedisConfig struct {
 	PoolSize int
 }
 
+// StorageConfig dónde se guardan las fotos: minio (desarrollo) o gcs (GCP)
+type StorageConfig struct {
+	Provider           string
+	SignedURLHours     int
+	GCSBucketName      string
+	GCSCredentialsFile string
+}
+
 type S3Config struct {
 	Endpoint   string
 	AccessKey  string
@@ -68,6 +78,24 @@ type ServicesConfig struct {
 	ServiceClientSecret string
 	// Tiempo máximo que el ESP32 espera el resultado de una captura (IA + parking)
 	CaptureTimeoutSeconds int
+	// Segundos que la disponibilidad queda en Redis (menos que los 10 s de polling del panel)
+	DisplayCacheSeconds int
+}
+
+// MQTTConfig broker Mosquitto: solo sensores HC-SR04 y paneles LED (las cámaras van por HTTP)
+type MQTTConfig struct {
+	Enabled   bool
+	BrokerURL string // tcp://host:1883
+	Username  string
+	Password  string
+	ClientID  string
+	// Distancia del HC-SR04 (cm): entre SensorMinCm y SensorOccupiedMaxCm hay un vehículo
+	SensorMinCm         float64
+	SensorOccupiedMaxCm float64
+	// Segundos que una lectura debe mantenerse antes de cambiar el estado (filtra personas que pasan)
+	SensorDebounceSeconds int
+	// Cada cuántos segundos se revisa la disponibilidad para publicarla a los paneles si cambió
+	AvailabilityPublishSeconds int
 }
 
 type RabbitMQConfig struct {
@@ -112,6 +140,12 @@ func LoadConfig() *Config {
 			DB:       getEnvAsInt("REDIS_DB", 0),
 			PoolSize: getEnvAsInt("REDIS_POOL_SIZE", 10),
 		},
+		Storage: StorageConfig{
+			Provider:           getEnv("STORAGE_PROVIDER", "minio"),
+			SignedURLHours:     getEnvAsInt("STORAGE_SIGNED_URL_HOURS", 168),
+			GCSBucketName:      getEnv("GCS_BUCKET_NAME", ""),
+			GCSCredentialsFile: getEnv("GOOGLE_APPLICATION_CREDENTIALS", ""),
+		},
 		S3: S3Config{
 			Endpoint:   getEnv("S3_ENDPOINT", "localhost:9000"),
 			AccessKey:  getEnv("S3_ACCESS_KEY", "minioadmin"),
@@ -133,6 +167,18 @@ func LoadConfig() *Config {
 			// Mismo valor que IOT_SERVICE_CLIENT_SECRET de backend/.env (lo valida auth-service)
 			ServiceClientSecret:   getEnv("IOT_SERVICE_CLIENT_SECRET", ""),
 			CaptureTimeoutSeconds: getEnvAsInt("CAPTURE_TIMEOUT_SECONDS", 15),
+			DisplayCacheSeconds:   getEnvAsInt("DISPLAY_CACHE_SECONDS", 5),
+		},
+		MQTT: MQTTConfig{
+			Enabled:                    getEnvAsBool("MQTT_ENABLED", true),
+			BrokerURL:                  getEnv("MQTT_BROKER_URL", "tcp://localhost:1883"),
+			Username:                   getEnv("MQTT_IOT_USERNAME", "iot-service"),
+			Password:                   getEnv("MQTT_IOT_PASSWORD", ""),
+			ClientID:                   getEnv("MQTT_CLIENT_ID", "iot-service-1"),
+			SensorMinCm:                getEnvAsFloat("SENSOR_MIN_CM", 3),
+			SensorOccupiedMaxCm:        getEnvAsFloat("SENSOR_OCCUPIED_MAX_CM", 80),
+			SensorDebounceSeconds:      getEnvAsInt("SENSOR_DEBOUNCE_SECONDS", 5),
+			AvailabilityPublishSeconds: getEnvAsInt("AVAILABILITY_PUBLISH_SECONDS", 5),
 		},
 		RabbitMQ: RabbitMQConfig{
 			URL:      getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
@@ -176,6 +222,14 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 		return defaultValue
 	}
 	value, err := strconv.ParseBool(valueStr)
+	if err != nil {
+		return defaultValue
+	}
+	return value
+}
+
+func getEnvAsFloat(key string, defaultValue float64) float64 {
+	value, err := strconv.ParseFloat(os.Getenv(key), 64)
 	if err != nil {
 		return defaultValue
 	}

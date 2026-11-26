@@ -26,7 +26,7 @@ type CaptureHandler struct {
 	captureRepo    *repository.CaptureRepository
 	iaClient       *services.IaClient
 	parkingClient  *services.ParkingClient
-	s3Service      *services.S3Service
+	storage        services.ImageStorage
 	captureTimeout time.Duration
 	logger         *logrus.Logger
 }
@@ -37,7 +37,7 @@ func NewCaptureHandler(
 	captureRepo *repository.CaptureRepository,
 	iaClient *services.IaClient,
 	parkingClient *services.ParkingClient,
-	s3Service *services.S3Service,
+	storage services.ImageStorage,
 	captureTimeout time.Duration,
 	logger *logrus.Logger,
 ) *CaptureHandler {
@@ -49,7 +49,7 @@ func NewCaptureHandler(
 		captureRepo:    captureRepo,
 		iaClient:       iaClient,
 		parkingClient:  parkingClient,
-		s3Service:      s3Service,
+		storage:        storage,
 		captureTimeout: captureTimeout,
 		logger:         logger,
 	}
@@ -141,7 +141,7 @@ func (h *CaptureHandler) CreateCapture(c *gin.Context) {
 
 	// La foto se guarda primero: el operador la necesita si la lectura va a "Por revisar"
 	objectName := services.GenerateObjectName("captures", device.DeviceID, "jpg")
-	imageURL, err := h.s3Service.UploadImage(c.Request.Context(), objectName, imageData, "image/jpeg")
+	imageURL, err := h.storage.UploadImage(c.Request.Context(), objectName, imageData, "image/jpeg")
 	if err != nil {
 		h.logger.WithError(err).Error("Error al subir imagen a S3")
 		c.JSON(http.StatusInternalServerError, ErrorResponse{

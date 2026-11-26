@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -163,42 +164,96 @@ func (c *ParkingClient) BulkUpdateOccupancy(ctx context.Context, req BulkUpdateO
 }
 
 // ============================================================================
-// CONSULTAS - DISPONIBILIDAD (Para Displays LED)
+// SENSORES HC-SR04 (OCUPACIÓN POR ESPACIO)
 // ============================================================================
 
-// GetAvailabilityRequest consulta de disponibilidad
-type GetAvailabilityRequest struct {
-	ParkingID uint64 `json:"parkingId"`
+// SensorReadingRequest lectura estable de un sensor (sensorId = device_id = Space.sensorId)
+type SensorReadingRequest struct {
+	SensorID string `json:"sensorId"`
+	Occupied bool   `json:"occupied"`
 }
 
-// GetAvailabilityResponse respuesta de disponibilidad
-type GetAvailabilityResponse struct {
-	ParkingID       uint64 `json:"parkingId"`
-	TotalSpaces     int    `json:"totalSpaces"`
-	OccupiedSpaces  int    `json:"occupiedSpaces"`
-	AvailableSpaces int    `json:"availableSpaces"`
-	LastUpdated     string `json:"lastUpdated"`
+// SensorReadingResult qué hizo parking-service (SPACE_OCCUPIED, SPACE_RELEASED, STAY_MOVED, NO_CHANGE)
+type SensorReadingResult struct {
+	Outcome       string  `json:"outcome"`
+	SpaceID       *uint64 `json:"spaceId"`
+	SpaceCode     string  `json:"spaceCode"`
+	SpaceStatus   string  `json:"spaceStatus"`
+	TransactionID *uint64 `json:"transactionId"`
+	Message       string  `json:"message"`
 }
 
-// GetAvailability obtiene la disponibilidad actual de un parking.
-// PENDIENTE: parking-service aún no tiene el endpoint público de disponibilidad.
-// Endpoint: GET /api/v1/parkings/{parkingId}/availability
-func (c *ParkingClient) GetAvailability(ctx context.Context, parkingID uint64) (*GetAvailabilityResponse, error) {
-	path := fmt.Sprintf("/api/v1/parkings/%d/availability", parkingID)
+// ErrSensorNotAssigned ningún espacio de parking-service tiene ese sensor
+var ErrSensorNotAssigned = errors.New("el sensor no está asignado a ningún espacio")
 
-	resp, err := c.client.Get(ctx, path, nil)
+// ProcessSensorReading envía la lectura a parking-service.
+// Endpoint: POST /internal/sensors/readings (token de servicio con internal.sensors.process)
+func (c *ParkingClient) ProcessSensorReading(ctx context.Context, req SensorReadingRequest) (*SensorReadingResult, error) {
+	resp, err := c.postWithToken(ctx, "/internal/sensors/readings", req)
 	if err != nil {
-		return nil, fmt.Errorf("error al obtener disponibilidad: %w", err)
+		return nil, err
 	}
-
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrSensorNotAssigned
+	}
 	if !resp.IsSuccess() {
-		return nil, resp.GetError()
+		return nil, fmt.Errorf("parking-service rechazó la lectura (HTTP %d): %s", resp.StatusCode, string(resp.Body))
 	}
-
-	var result GetAvailabilityResponse
+	var result SensorReadingResult
 	if err := resp.DecodeJSON(&result); err != nil {
-		return nil, fmt.Errorf("error al decodificar respuesta: %w", err)
+		return nil, fmt.Errorf("error al decodificar la respuesta de parking-service: %w", err)
+	}
+	return &result, nil
+}
+
+// ============================================================================
+// DISPONIBILIDAD PÚBLICA (PANELES LED)
+// ============================================================================
+
+// ZoneAvailability espacios libres de una zona (solo cuenta las que reciben vehículos)
+type ZoneAvailability struct {
+	Code            string `json:"code"`
+	Name            string `json:"name"`
+	Operational     bool   `json:"operational"`
+	TotalSpaces     int    `json:"totalSpaces"`
+	AvailableSpaces int    `json:"availableSpaces"`
+}
+
+// ParkingAvailability respuesta de GET /public/parkings/{id}/availability.
+// AvailableSpaces es 0 si el parqueo no está operativo o no atiende a esta hora.
+type ParkingAvailability struct {
+	ParkingID       uint64             `json:"parkingId"`
+	Code            string             `json:"code"`
+	Name            string             `json:"name"`
+	Status          string             `json:"status"`
+	Operational     bool               `json:"operational"`
+	OpenNow         bool               `json:"openNow"`
+	TotalSpaces     int                `json:"totalSpaces"`
+	AvailableSpaces int                `json:"availableSpaces"`
+	Zones           []ZoneAvailability `json:"zones"`
+	GeneratedAt     string             `json:"generatedAt"`
+}
+
+// ErrParkingNotFound el parqueo no existe, está eliminado o desactivado
+var ErrParkingNotFound = errors.New("parqueo no encontrado")
+
+// GetAvailability consulta la disponibilidad pública de un parqueo (no necesita token).
+// Endpoint: GET /public/parkings/{parkingId}/availability
+func (c *ParkingClient) GetAvailability(ctx context.Context, parkingID uint64) (*ParkingAvailability, error) {
+	resp, err := c.client.Get(ctx, fmt.Sprintf("/public/parkings/%d/availability", parkingID), nil)
+	if err != nil {
+		return nil, fmt.Errorf("parking-service no respondió: %w", err)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrParkingNotFound
+	}
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("parking-service respondió HTTP %d", resp.StatusCode)
 	}
 
+	var result ParkingAvailability
+	if err := resp.DecodeJSON(&result); err != nil {
+		return nil, fmt.Errorf("error al decodificar la disponibilidad: %w", err)
+	}
 	return &result, nil
 }

@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,35 +10,29 @@ import (
 	"github.com/edwinyoner/winner-systems-system-smart-parking/backend/services/iot-service/internal/repository"
 	"github.com/edwinyoner/winner-systems-system-smart-parking/backend/services/iot-service/internal/services"
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
-// DisplayHandler maneja las operaciones de displays LED
+// DisplayHandler maneja los paneles LED de disponibilidad
 type DisplayHandler struct {
 	deviceRepo     *repository.DeviceRepository
 	displayLogRepo *repository.DisplayLogRepository
-	parkingClient  *services.ParkingClient
-	redisClient    *redis.Client
+	availability   *services.AvailabilityService
 	logger         *logrus.Logger
-	cacheTTL       time.Duration
 }
 
 // NewDisplayHandler crea una nueva instancia del handler
 func NewDisplayHandler(
 	deviceRepo *repository.DeviceRepository,
 	displayLogRepo *repository.DisplayLogRepository,
-	parkingClient *services.ParkingClient,
-	redisClient *redis.Client,
+	availability *services.AvailabilityService,
 	logger *logrus.Logger,
 ) *DisplayHandler {
 	return &DisplayHandler{
 		deviceRepo:     deviceRepo,
 		displayLogRepo: displayLogRepo,
-		parkingClient:  parkingClient,
-		redisClient:    redisClient,
+		availability:   availability,
 		logger:         logger,
-		cacheTTL:       30 * time.Second, // 30 segundos de cache
 	}
 }
 
@@ -47,119 +40,87 @@ func NewDisplayHandler(
 // REQUEST/RESPONSE STRUCTS
 // ============================================================================
 
-// GetAvailabilityRequest solicitud de disponibilidad (desde ESP32 Display)
+// GetAvailabilityRequest solicitud del panel. El parqueo sale del registro del dispositivo;
+// parking_id es opcional y, si se envía, debe coincidir.
 type GetAvailabilityRequest struct {
 	DeviceID  string `json:"device_id" binding:"required"`
-	ParkingID uint64 `json:"parking_id" binding:"required"`
+	ParkingID uint64 `json:"parking_id,omitempty"`
 }
 
-// GetAvailabilityResponse respuesta de disponibilidad para display
+// GetAvailabilityResponse lo que recibe el panel: la disponibilidad y el texto a mostrar
 type GetAvailabilityResponse struct {
-	Success         bool   `json:"success"`
-	ParkingID       uint64 `json:"parking_id"`
-	TotalSpaces     int    `json:"total_spaces"`
-	OccupiedSpaces  int    `json:"occupied_spaces"`
-	AvailableSpaces int    `json:"available_spaces"`
-	LastUpdated     string `json:"last_updated"`
-	CacheHit        bool   `json:"cache_hit"`
-	ResponseTimeMS  int64  `json:"response_time_ms"`
+	Success bool `json:"success"`
+	services.PanelAvailability
+	CacheHit       bool  `json:"cache_hit"`
+	ResponseTimeMS int64 `json:"response_time_ms"`
 }
 
 // ============================================================================
 // ENDPOINTS
 // ============================================================================
 
-// GetAvailability maneja POST /api/v1/displays/availability
-// Endpoint optimizado con Redis cache para consultas frecuentes de displays LED
+// GetAvailability maneja POST /api/v1/displays/availability (polling del panel cada 10 s).
+// Con MQTT el panel recibe los cambios sin preguntar; este endpoint queda como respaldo.
 func (h *DisplayHandler) GetAvailability(c *gin.Context) {
 	startTime := time.Now()
 
 	var req GetAvailabilityRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
-			Success: false,
-			Error:   "Invalid request",
-			Message: err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Success: false, Error: "Invalid request", Message: err.Error()})
 		return
 	}
 
-	// Verificar que el dispositivo existe
 	device, err := h.deviceRepo.FindByDeviceID(req.DeviceID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, ErrorResponse{
-			Success: false,
-			Error:   "Device not found",
-			Message: "Dispositivo no encontrado",
-		})
+		c.JSON(http.StatusNotFound, ErrorResponse{Success: false, Error: "Device not found", Message: "Dispositivo no encontrado"})
 		return
 	}
-
-	// Validación simplificada - solo verificar que no sea CAMERA
-	// (por ahora aceptamos cualquier tipo de dispositivo excepto CAMERA)
-	if device.DeviceType == "CAMERA" {
+	if !device.IsActive() {
+		c.JSON(http.StatusForbidden, ErrorResponse{Success: false, Error: "Device inactive", Message: "El dispositivo no está activo"})
+		return
+	}
+	if device.DeviceType != models.DeviceTypeESP32Display {
 		c.JSON(http.StatusForbidden, ErrorResponse{
-			Success: false,
-			Error:   "Invalid device type",
-			Message: "Este endpoint no acepta dispositivos de tipo CAMERA",
+			Success: false, Error: "Wrong device type", Message: "Solo los paneles consultan la disponibilidad",
 		})
 		return
 	}
-
-	// Actualizar heartbeat del dispositivo
-	go h.deviceRepo.UpdateHeartbeat(req.DeviceID)
-
-	// Intentar obtener de cache
-	cacheKey := fmt.Sprintf("availability:parking:%d", req.ParkingID)
-	cachedData, err := h.redisClient.Get(c.Request.Context(), cacheKey).Result()
-
-	var response GetAvailabilityResponse
-
-	if err == nil && cachedData != "" {
-		// Cache hit
-		if err := json.Unmarshal([]byte(cachedData), &response); err == nil {
-			response.CacheHit = true
-			response.ResponseTimeMS = time.Since(startTime).Milliseconds()
-
-			// Registrar log de display (cache hit)
-			go h.logDisplayQuery(req.DeviceID, req.ParkingID, response)
-
-			c.JSON(http.StatusOK, response)
-			return
-		}
+	if device.ParkingID == nil {
+		c.JSON(http.StatusConflict, ErrorResponse{
+			Success: false, Error: "Device without parking", Message: "El panel no tiene un parqueo asignado",
+		})
+		return
 	}
+	if req.ParkingID != 0 && req.ParkingID != *device.ParkingID {
+		c.JSON(http.StatusForbidden, ErrorResponse{
+			Success: false, Error: "Parking mismatch", Message: "El panel está registrado en otro parqueo",
+		})
+		return
+	}
+	parkingID := *device.ParkingID
 
-	// Cache miss - consultar parking-service
-	availability, err := h.parkingClient.GetAvailability(c.Request.Context(), req.ParkingID)
+	go h.deviceRepo.UpdateHeartbeat(device.DeviceID)
+
+	panel, cacheHit, err := h.availability.Get(c.Request.Context(), parkingID)
+	if errors.Is(err, services.ErrParkingNotFound) {
+		c.JSON(http.StatusNotFound, ErrorResponse{Success: false, Error: "Parking not found", Message: "El parqueo no está publicado"})
+		return
+	}
 	if err != nil {
 		h.logger.WithError(err).Error("Error al obtener disponibilidad de parking-service")
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Success: false,
-			Error:   "Service unavailable",
-			Message: "Error al obtener disponibilidad",
+		c.JSON(http.StatusServiceUnavailable, ErrorResponse{
+			Success: false, Error: "Service unavailable", Message: "SIN DATOS",
 		})
 		return
 	}
 
-	// Construir respuesta
-	response = GetAvailabilityResponse{
-		Success:         true,
-		ParkingID:       availability.ParkingID,
-		TotalSpaces:     availability.TotalSpaces,
-		OccupiedSpaces:  availability.OccupiedSpaces,
-		AvailableSpaces: availability.AvailableSpaces,
-		LastUpdated:     availability.LastUpdated,
-		CacheHit:        false,
-		ResponseTimeMS:  time.Since(startTime).Milliseconds(),
+	response := GetAvailabilityResponse{
+		Success:           true,
+		PanelAvailability: *panel,
+		CacheHit:          cacheHit,
+		ResponseTimeMS:    time.Since(startTime).Milliseconds(),
 	}
-
-	// Guardar en cache
-	responseJSON, _ := json.Marshal(response)
-	h.redisClient.Set(c.Request.Context(), cacheKey, responseJSON, h.cacheTTL)
-
-	// Registrar log de display (cache miss)
-	go h.logDisplayQuery(req.DeviceID, req.ParkingID, response)
-
+	go h.logDisplayQuery(device.DeviceID, parkingID, response)
 	c.JSON(http.StatusOK, response)
 }
 
@@ -171,8 +132,10 @@ func (h *DisplayHandler) logDisplayQuery(deviceID string, parkingID uint64, resp
 	log := &models.DisplayLog{
 		DeviceID:        deviceID,
 		ParkingID:       parkingID,
+		TotalSpaces:     response.TotalSpaces,
 		AvailableSpaces: response.AvailableSpaces,
 		OccupiedSpaces:  response.OccupiedSpaces,
+		FromCache:       response.CacheHit,
 		ResponseTimeMs:  &responseTimeMs, // Puntero a int
 	}
 
@@ -266,8 +229,7 @@ func (h *DisplayHandler) InvalidateCache(c *gin.Context) {
 		return
 	}
 
-	cacheKey := fmt.Sprintf("availability:parking:%d", parkingID)
-	err = h.redisClient.Del(c.Request.Context(), cacheKey).Err()
+	err = h.availability.Invalidate(c.Request.Context(), parkingID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Success: false,
