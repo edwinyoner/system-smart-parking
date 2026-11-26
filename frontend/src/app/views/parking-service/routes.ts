@@ -1,6 +1,7 @@
 // src/app/views/parking-service/routes.ts
 import { Routes } from "@angular/router";
 import { AuthGuard } from "../../core/guards/auth.guard";
+import { RoleGuard } from "../../core/guards/role.guard";
 
 export const parkingRoutes: Routes = [
   // ==================== CONFIGURACIÓN BASE ====================
@@ -23,6 +24,14 @@ export const parkingRoutes: Routes = [
     path: "parkings",
     loadChildren: () => import("./parkings/routes").then((m) => m.routes),
     canActivate: [AuthGuard],
+  },
+
+  // MAPA DE OCUPACIÓN EN TIEMPO REAL
+  {
+    path: "occupancy",
+    loadComponent: () => import("./occupancy/occupancy-map.component").then((m) => m.OccupancyMapComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { title: "Mapa de ocupación", requiredPermissions: ["occupancy.view"] },
   },
 
   // ZONAS (y sus espacios): se llega desde el detalle del parqueo

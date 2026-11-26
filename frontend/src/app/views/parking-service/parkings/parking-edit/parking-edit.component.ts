@@ -69,6 +69,7 @@ export class ParkingEditComponent implements OnInit {
           longitude: parking.longitude ?? null,
           managerId: parking.managerId ?? null,
           status: parking.status,
+          requireDriverDocument: !!parking.requireDriverDocument,
         });
         this.loadingData = false;
       },
@@ -114,6 +115,7 @@ export class ParkingEditComponent implements OnInit {
       longitude: numberOrUndefined(v.longitude),
       managerId: v.managerId ? Number(v.managerId) : null,
       status: v.status,
+      requireDriverDocument: !!v.requireDriverDocument,
     };
     this.parkingService.update(this.parkingId, request).subscribe({
       next: parking => {

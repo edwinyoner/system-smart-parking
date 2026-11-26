@@ -1,0 +1,236 @@
+<!-- src/app/views/parking-service/transactions/plate-reviews/plate-reviews.component.html -->
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h4 class="mb-0">
+      <i class="fa-solid fa-camera me-2"></i>
+      Por revisar
+      @if (tab === 'PENDING' && result) {
+        <c-badge [color]="result.totalElements > 0 ? 'danger' : 'success'" class="ms-2">{{ result.totalElements }}</c-badge>
+      }
+    </h4>
+    <small class="text-body-secondary">
+      Lecturas de las cámaras que necesitan a un operador. La barrera espera hasta que se resuelvan.
+    </small>
+  </div>
+  @if (lastUpdate) {
+    <small class="text-body-secondary"><span class="live-dot"></span>En vivo · {{ lastUpdate | date: 'HH:mm:ss' }}</small>
+  }
+</div>
+
+@if (successMessage) {
+  <c-alert color="success" [dismissible]="true" (visibleChange)="successMessage = ''">
+    <i class="fa-solid fa-circle-check me-2"></i>{{ successMessage }}
+    @if (successLink) {
+      <a class="alert-link ms-1" [routerLink]="['/transactions', successLink]">Ver estadía</a>
+    }
+  </c-alert>
+}
+@if (errorMessage) {
+  <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ errorMessage }}
+  </c-alert>
+}
+
+<!-- ========================= FILTROS ========================= -->
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+  <div class="btn-group">
+    <button type="button" class="btn" [class.btn-primary]="tab === 'PENDING'" [class.btn-outline-primary]="tab !== 'PENDING'"
+            (click)="setTab('PENDING')">
+      <i class="fa-solid fa-hourglass-half me-1"></i>Pendientes
+    </button>
+    <button type="button" class="btn" [class.btn-primary]="tab === 'RESOLVED'" [class.btn-outline-primary]="tab !== 'RESOLVED'"
+            (click)="setTab('RESOLVED')">
+      <i class="fa-solid fa-clock-rotate-left me-1"></i>Resueltas
+    </button>
+  </div>
+  <div class="d-flex gap-2">
+    @if (tab === 'RESOLVED') {
+      <select class="form-select" [(ngModel)]="resolvedStatus" (ngModelChange)="reloadFromStart()">
+        <option value="ALL">Todas</option>
+        <option value="CONFIRMED">Confirmadas</option>
+        <option value="DISCARDED">Descartadas</option>
+      </select>
+    }
+    <select class="form-select" [(ngModel)]="parkingId" (ngModelChange)="reloadFromStart()">
+      <option [ngValue]="null">Todos los parqueos</option>
+      @for (p of parkings; track p.id) {
+        <option [ngValue]="p.id">{{ p.name }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+@if (loading) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else if (!result || result.content.length === 0) {
+  <c-card>
+    <c-card-body class="text-center py-5 text-body-secondary">
+      <i class="fa-solid fa-circle-check fa-3x mb-3 text-success"></i>
+      <p class="mb-0">{{ tab === 'PENDING' ? 'No hay lecturas por revisar.' : 'Todavía no hay lecturas resueltas.' }}</p>
+    </c-card-body>
+  </c-card>
+} @else {
+  <div class="review-grid">
+    @for (r of result.content; track r.id) {
+      @let d = draft(r);
+      <c-card class="review-card" [class.pending]="r.status === 'PENDING'">
+        <!-- Foto de la captura -->
+        <div class="photo">
+          @if (r.photoUrl && !photoFailed.has(r.id)) {
+            <a [href]="r.photoUrl" target="_blank" rel="noopener" title="Abrir la foto">
+              <img [src]="r.photoUrl" alt="Captura de la cámara" loading="lazy" (error)="photoFailed.add(r.id)" />
+            </a>
+          } @else {
+            <div class="no-photo"><i class="fa-solid fa-image me-2"></i>Sin foto disponible</div>
+          }
+          <span class="direction" [class.exit]="r.direction === 'EXIT'">
+            <i class="fa-solid me-1" [class.fa-right-to-bracket]="r.direction === 'ENTRY'"
+               [class.fa-right-from-bracket]="r.direction === 'EXIT'"></i>
+            {{ r.direction === 'ENTRY' ? 'Entrada' : 'Salida' }}
+          </span>
+        </div>
+
+        <c-card-body>
+          <div class="d-flex justify-content-between gap-2 mb-2">
+            <div>
+              <strong>{{ r.parkingName || 'Parqueo #' + r.parkingId }}</strong>
+              @if (r.zoneName) { <span class="text-body-secondary"> · {{ r.zoneName }}</span> }
+              <div><small class="text-body-secondary">
+                {{ r.createdAt | date: 'dd/MM HH:mm' }} ({{ ago(r.createdAt) }})
+                @if (r.deviceId) { · cámara {{ r.deviceId }} }
+              </small></div>
+            </div>
+          </div>
+
+          <!-- Lo que leyó la IA -->
+          <div class="reading mb-2">
+            <div>
+              <small class="text-body-secondary d-block">Leído por la cámara</small>
+              <span class="read-plate">{{ r.detectedPlate || 'Sin lectura' }}</span>
+            </div>
+            <div class="text-end">
+              <small class="text-body-secondary d-block">Confianza</small>
+              <span class="conf" [ngClass]="confidenceLevel(r.confidence)">{{ confidencePercent(r.confidence) }}</span>
+            </div>
+          </div>
+          <div class="conf-bar mb-2">
+            <span [ngClass]="confidenceLevel(r.confidence)" [style.width.%]="r.confidence * 100"></span>
+            <i class="threshold" [style.left.%]="minConfidence * 100" title="Mínimo para registrar solo"></i>
+          </div>
+
+          @if (r.status === 'PENDING') {
+            <p class="small text-body-secondary mb-3"><i class="fa-solid fa-circle-info me-1"></i>{{ reasonOf(r) }}</p>
+
+            @if (d.error) {
+              <c-alert color="danger" class="py-2 small">
+                {{ d.error }}
+                @if (r.direction === 'EXIT' && canExit) {
+                  <a class="alert-link d-block mt-1" [routerLink]="['/transactions/exit']"
+                     [queryParams]="{ plateNumber: d.plate }">Ir a Registrar salida (cobrar primero)</a>
+                }
+              </c-alert>
+            }
+
+            @if (!canResolve(r)) {
+              <p class="small text-warning mb-0">
+                Necesitas el permiso de registrar {{ r.direction === 'ENTRY' ? 'entradas' : 'salidas' }} para resolverla.
+              </p>
+            } @else if (!d.discarding) {
+              <label class="form-label small mb-1" [for]="'plate' + r.id">Placa correcta</label>
+              <input [id]="'plate' + r.id" class="form-control plate-input mb-1" maxlength="10" autocomplete="off"
+                     [(ngModel)]="d.plate" (input)="onPlateInput(d)" [class.is-invalid]="d.plate && !plateOk(d)" />
+              @if (d.plate && !plateOk(d)) {
+                <div class="invalid-feedback d-block">Formato peruano: ABC-123 o A1B-234</div>
+              }
+
+              @if (documentRequired(r)) {
+                <div class="row g-2 mt-1">
+                  <div class="col-5">
+                    <select class="form-select form-select-sm" [(ngModel)]="d.documentTypeId">
+                      <option [ngValue]="null">Documento</option>
+                      @for (t of documentTypes; track t.id) {
+                        <option [ngValue]="t.id">{{ t.code }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="col-7">
+                    <input class="form-control form-control-sm" maxlength="20" placeholder="Número"
+                           [(ngModel)]="d.documentNumber" />
+                  </div>
+                </div>
+                @if (documentError(r, d) && d.documentNumber) {
+                  <small class="text-danger">{{ documentError(r, d) }}</small>
+                } @else {
+                  <small class="text-body-secondary">
+                    {{ r.direction === 'ENTRY' ? 'Obligatorio en este parqueo' : 'El mismo que presentó al entrar (si entró con uno)' }}
+                  </small>
+                }
+              }
+
+              <div class="d-flex gap-2 mt-3">
+                <button cButton color="success" class="flex-grow-1" (click)="confirm(r)" [disabled]="!canConfirm(r, d)">
+                  @if (d.saving) { <c-spinner size="sm" class="me-1"></c-spinner> } @else { <i class="fa-solid fa-check me-1"></i> }
+                  Confirmar {{ r.direction === 'ENTRY' ? 'entrada' : 'salida' }}
+                </button>
+                <button cButton color="danger" variant="outline" (click)="d.discarding = true" [disabled]="d.saving"
+                        title="Descartar la lectura">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            } @else {
+              <label class="form-label small mb-1" [for]="'reason' + r.id">Motivo para descartar</label>
+              <div class="d-flex flex-wrap gap-1 mb-2">
+                @for (q of quickReasons; track q) {
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="d.reason = q">{{ q }}</button>
+                }
+              </div>
+              <textarea [id]="'reason' + r.id" class="form-control form-control-sm" rows="2" maxlength="255"
+                        [(ngModel)]="d.reason"></textarea>
+              <div class="d-flex gap-2 mt-2">
+                <button cButton color="secondary" variant="outline" (click)="d.discarding = false" [disabled]="d.saving">Volver</button>
+                <button cButton color="danger" class="flex-grow-1" (click)="discard(r)" [disabled]="!d.reason.trim() || d.saving">
+                  @if (d.saving) { <c-spinner size="sm" class="me-1"></c-spinner> }
+                  Descartar
+                </button>
+              </div>
+            }
+          } @else {
+            <!-- Resuelta -->
+            @if (r.status === 'CONFIRMED') {
+              <div class="resolved ok">
+                <i class="fa-solid fa-circle-check me-1"></i>Confirmada como <strong>{{ r.confirmedPlate }}</strong>
+                @if (r.transactionId) {
+                  <a class="ms-1" [routerLink]="['/transactions', r.transactionId]">Ver estadía</a>
+                }
+              </div>
+            } @else {
+              <div class="resolved discarded">
+                <i class="fa-solid fa-ban me-1"></i>Descartada: {{ r.discardReason }}
+              </div>
+            }
+            @if (r.resolvedAt) {
+              <small class="text-body-secondary">
+                {{ r.resolvedAt | date: 'dd/MM HH:mm' }}@if (r.resolvedBy) { · usuario #{{ r.resolvedBy }} }
+              </small>
+            }
+          }
+        </c-card-body>
+      </c-card>
+    }
+  </div>
+
+  @if (result.totalPages > 1) {
+    <nav class="d-flex justify-content-end mt-3">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" [class.disabled]="page === 0">
+          <button class="page-link" (click)="goTo(page - 1)">Anterior</button>
+        </li>
+        <li class="page-item active"><span class="page-link">{{ page + 1 }} / {{ result.totalPages }}</span></li>
+        <li class="page-item" [class.disabled]="page >= result.totalPages - 1">
+          <button class="page-link" (click)="goTo(page + 1)">Siguiente</button>
+        </li>
+      </ul>
+    </nav>
+  }
+}

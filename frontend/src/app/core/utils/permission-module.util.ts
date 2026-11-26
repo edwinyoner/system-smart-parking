@@ -22,6 +22,7 @@ const MODULES: Record<string, ModuleInfo> = {
   zones:            { label: 'Zonas',                icon: 'fa-map-marked-alt',      section: 'Estacionamientos' },
   'space-types':    { label: 'Tipos de espacio',     icon: 'fa-th-large',            section: 'Estacionamientos' },
   spaces:           { label: 'Espacios',             icon: 'fa-parking',             section: 'Estacionamientos' },
+  occupancy:        { label: 'Mapa de ocupación',    icon: 'fa-th',                  section: 'Estacionamientos' },
   'operator-assignments': { label: 'Asignación de operadores', icon: 'fa-user-clock', section: 'Estacionamientos' },
   shifts:           { label: 'Turnos',               icon: 'fa-clock',               section: 'Estacionamientos' },
   rates:            { label: 'Tarifas',              icon: 'fa-tags',                section: 'Estacionamientos' },

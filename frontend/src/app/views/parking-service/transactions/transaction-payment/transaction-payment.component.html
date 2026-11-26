@@ -50,7 +50,7 @@
           <dt class="col-sm-5">Placa</dt>
           <dd class="col-sm-7 fw-bold">{{ t.vehicle.plateNumber }}</dd>
           <dt class="col-sm-5">Cliente</dt>
-          <dd class="col-sm-7">{{ t.customer.name }}</dd>
+          <dd class="col-sm-7">{{ t.customer?.name ?? 'Solo placa' }}</dd>
           <dt class="col-sm-5">Parqueo</dt>
           <dd class="col-sm-7">{{ t.parking.name }} · {{ t.zone.name }} - {{ t.space.code }}</dd>
           <dt class="col-sm-5">Entrada</dt>

@@ -44,7 +44,7 @@
             <div>
               <strong>
                 <i class="fa-solid fa-file-invoice me-2"></i>
-                Transacción #{{ transaction.id }}
+                Estadía #{{ transaction.id }}
               </strong>
               <c-badge [color]="getStatusBadge(transaction.status)" class="ms-2">
                 {{ getStatusText(transaction.status) }}
@@ -67,6 +67,11 @@
         </c-card-header>
         
         <c-card-body>
+          @if (successMessage) {
+            <c-alert color="success" [dismissible]="true" (visibleChange)="successMessage = ''">
+              <i class="fa-solid fa-circle-check me-2"></i>{{ successMessage }}
+            </c-alert>
+          }
           
           <!-- ========================= INFORMACIÓN PRINCIPAL ========================= -->
           <c-row class="mb-4">
@@ -91,24 +96,24 @@
                 </h5>
                 <dl class="row">
                   <dt class="col-sm-4">Nombre:</dt>
-                  <dd class="col-sm-8">{{ transaction.customer.name }}</dd>
+                  <dd class="col-sm-8">{{ transaction.customer?.name }}</dd>
                   
                   <dt class="col-sm-4">Documento:</dt>
-                  <dd class="col-sm-8">{{ transaction.customer.documentNumber }}</dd>
+                  <dd class="col-sm-8">{{ transaction.customer?.documentType }} {{ transaction.customer?.documentNumber }}</dd>
                   
-                  @if (transaction.customer.phone) {
+                  @if (transaction.customer?.phone) {
                     <dt class="col-sm-4">Teléfono:</dt>
                     <dd class="col-sm-8">
                       <i class="fa-solid fa-phone me-1"></i>
-                      {{ transaction.customer.phone }}
+                      {{ transaction.customer?.phone }}
                     </dd>
                   }
                   
-                  @if (transaction.customer.email) {
+                  @if (transaction.customer?.email) {
                     <dt class="col-sm-4">Email:</dt>
                     <dd class="col-sm-8">
                       <i class="fa-solid fa-envelope me-1"></i>
-                      {{ transaction.customer.email }}
+                      {{ transaction.customer?.email }}
                     </dd>
                   }
                 </dl>
@@ -158,6 +163,28 @@
                   <dd class="col-sm-8">
                     <strong class="text-info">{{ transaction.durationFormatted }}</strong>
                   </dd>
+
+                  <dt class="col-sm-4">Registro entrada:</dt>
+                  <dd class="col-sm-8">
+                    <i class="fa-solid me-1" [class.fa-camera]="transaction.entryMethod === 'CAMERA_AI'"
+                       [class.fa-user]="transaction.entryMethod !== 'CAMERA_AI'"></i>
+                    {{ methodLabel(transaction.entryMethod, transaction.entryPlateConfidence) }}
+                    @if (transaction.entryOperatorId) {
+                      <small class="text-body-secondary">· operador #{{ transaction.entryOperatorId }}</small>
+                    }
+                  </dd>
+
+                  @if (transaction.exitMethod) {
+                    <dt class="col-sm-4">Registro salida:</dt>
+                    <dd class="col-sm-8">
+                      <i class="fa-solid me-1" [class.fa-camera]="transaction.exitMethod === 'CAMERA_AI'"
+                         [class.fa-user]="transaction.exitMethod !== 'CAMERA_AI'"></i>
+                      {{ methodLabel(transaction.exitMethod, transaction.exitPlateConfidence) }}
+                      @if (transaction.exitOperatorId) {
+                        <small class="text-body-secondary">· operador #{{ transaction.exitOperatorId }}</small>
+                      }
+                    </dd>
+                  }
                 </dl>
               </div>
             </c-col>
@@ -270,7 +297,7 @@
                 </h5>
                 <dl class="row">
                   <dt class="col-sm-6">Doc. Entrada:</dt>
-                  <dd class="col-sm-6">{{ transaction.entryDocument.number }}</dd>
+                  <dd class="col-sm-6">{{ transaction.entryDocument?.number ?? 'Sin documento' }}</dd>
                   
                   @if (transaction.exitDocument) {
                     <dt class="col-sm-6">Doc. Salida:</dt>
@@ -341,20 +368,33 @@
           </c-row>
           
           <!-- ========================= OBSERVACIONES ========================= -->
-          @if (transaction.notes || transaction.cancellationReason) {
+          @if (transaction.notes || transaction.cancellationReason || canEditNotes) {
             <hr class="my-4">
-            
+
             <c-row>
               <c-col xs="12">
-                @if (transaction.notes) {
-                  <div class="info-section mb-3">
-                    <h5>
-                      <i class="fa-solid fa-comment me-2"></i>
-                      Observaciones
-                    </h5>
-                    <p class="mb-0">{{ transaction.notes }}</p>
-                  </div>
-                }
+                <div class="info-section mb-3">
+                  <h5 class="d-flex justify-content-between align-items-center">
+                    <span><i class="fa-solid fa-comment me-2"></i>Observaciones</span>
+                    @if (canEditNotes && !editingNotes) {
+                      <button cButton size="sm" color="warning" variant="outline" (click)="startNotes()">
+                        <i class="fa-solid fa-pen me-1"></i>Editar
+                      </button>
+                    }
+                  </h5>
+                  @if (editingNotes) {
+                    <textarea class="form-control mb-2" rows="3" maxlength="500" [(ngModel)]="notesDraft"></textarea>
+                    <div class="d-flex justify-content-end gap-2">
+                      <button cButton size="sm" color="secondary" variant="outline" (click)="editingNotes = false"
+                              [disabled]="savingNotes">Cancelar</button>
+                      <button cButton size="sm" color="success" (click)="saveNotes()" [disabled]="savingNotes">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>Guardar
+                      </button>
+                    </div>
+                  } @else {
+                    <p class="mb-0" [class.text-body-secondary]="!transaction.notes">{{ transaction.notes || 'Sin observaciones' }}</p>
+                  }
+                </div>
                 
                 @if (transaction.cancellationReason) {
                   <div class="alert alert-danger">
@@ -394,23 +434,28 @@
           <hr class="my-4">
           
           <div class="d-flex justify-content-end gap-2">
-            @if (transaction.status === 'ACTIVE') {
-              <button 
-                cButton 
-                color="warning"
-                (click)="goToRegisterExit()">
-                <i class="fa-solid fa-right-from-bracket me-1"></i>
-                Registrar Salida
+            @if (transaction.status === 'ACTIVE' && canMove) {
+              <button cButton color="warning" variant="outline" (click)="open('space')">
+                <i class="fa-solid fa-arrows-left-right me-1"></i>Cambiar espacio
               </button>
             }
-            
-            @if (transaction.status === 'ACTIVE' && (transaction.payment?.amountDue ?? 0) > 0) {
+            @if (transaction.status === 'ACTIVE' && canCancel) {
+              <button cButton color="danger" variant="outline" (click)="open('cancel')">
+                <i class="fa-solid fa-ban me-1"></i>Cancelar estadía
+              </button>
+            }
+            @if (transaction.status === 'ACTIVE' && canExit) {
+              <button cButton color="success" (click)="goToRegisterExit()">
+                <i class="fa-solid fa-right-from-bracket me-1"></i>Registrar salida
+              </button>
+            }
+            @if (transaction.status === 'ACTIVE' && canPay && (transaction.payment?.amountDue ?? 0) > 0) {
               <button 
                 cButton 
-                color="success"
+                color="primary"
                 (click)="goToProcessPayment()">
                 <i class="fa-solid fa-money-bill-wave me-1"></i>
-                Procesar Pago
+                Cobrar
               </button>
             }
           </div>
@@ -420,3 +465,6 @@
     }
   </c-col>
 </c-row>
+
+<app-stay-action-modal [stay]="actionStay" [action]="action" (done)="onActionDone($event)" (closed)="closeAction()">
+</app-stay-action-modal>

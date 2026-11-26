@@ -1,5 +1,8 @@
 // src/app/views/parking-service/transactions/transaction-detail/transaction-detail.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, catchError, exhaustMap, filter } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -21,6 +24,11 @@ import { Payment } from '../../../../core/models/payment-service/payment.model';
 import {
   paymentStatusBadge, paymentStatusLabel, stayPaymentStatusColor, stayPaymentStatusLabel,
 } from '../../../../core/utils/payment.util';
+import { PermissionService } from '../../../../core/services/auth-service/permission.service';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
+import { confidencePercent } from '../../../../core/utils/plate.util';
+import { apiError } from '../../../../core/utils/parking.util';
+import { StayAction, StayActionModalComponent, StayRef } from '../shared/stay-action-modal.component';
 
 @Component({
   selector: 'app-transaction-detail',
@@ -28,6 +36,8 @@ import {
   imports: [
     RouterLink,
     CommonModule,
+    FormsModule,
+    StayActionModalComponent,
     CardComponent,
     CardBodyComponent,
     CardHeaderComponent,
@@ -48,6 +58,25 @@ export class TransactionDetailComponent implements OnInit {
   errorMessage = '';
   /** Pagos de esta estadía en payment-service */
   payments: Payment[] = [];
+  successMessage = '';
+
+  // Acciones sobre la estadía en curso
+  action: StayAction | null = null;
+  actionStay: StayRef | null = null;
+
+  // Observaciones editables
+  editingNotes = false;
+  notesDraft = '';
+  savingNotes = false;
+
+  private readonly permissions = inject(PermissionService);
+  private readonly destroyRef = inject(DestroyRef);
+  readonly canExit = this.permissions.hasPermission('transactions.exit');
+  readonly canMove = this.permissions.hasPermission('transactions.entry');
+  readonly canCancel = this.permissions.hasPermission('transactions.cancel');
+  readonly canPay = this.permissions.hasPermission('payments.process');
+  readonly canEditNotes = this.permissions.hasAnyPermission(['transactions.entry', 'transactions.exit']);
+  readonly confidencePercent = confidencePercent;
   
   constructor(
     private route: ActivatedRoute,
@@ -61,6 +90,76 @@ export class TransactionDetailComponent implements OnInit {
     if (id) {
       this.loadTransaction(+id);
     }
+
+    // En curso: el tiempo y lo que se debe cambian; se recarga cada 10 s sin spinner
+    liveRefresh(10000).pipe(
+      filter(() => this.transaction?.status === 'ACTIVE' && !this.editingNotes),
+      exhaustMap(() => this.transactionService.getById(this.transaction!.id, true).pipe(catchError(() => EMPTY))),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(t => {
+      const paidBefore = this.transaction?.payment?.paidAmount;
+      this.transaction = t;
+      if (t.payment?.paidAmount !== paidBefore) this.loadPayments(t.id);
+    });
+  }
+
+  private loadPayments(id: number): void {
+    this.paymentService.getBySource('PARKING_STAY', id, true).subscribe({
+      next: payments => (this.payments = payments),
+      error: () => (this.payments = []),   // sin permiso de pagos: solo se ve el resumen
+    });
+  }
+
+  // ========================= ACCIONES =========================
+
+  open(action: StayAction): void {
+    const t = this.transaction;
+    if (!t) return;
+    this.actionStay = {
+      id: t.id, plateNumber: t.vehicle.plateNumber, zoneId: t.zone.id, zoneName: t.zone.name,
+      spaceCode: t.space.code, paidAmount: t.payment?.paidAmount ?? 0
+    };
+    this.action = action;
+  }
+
+  closeAction(): void {
+    this.action = null;
+    this.actionStay = null;
+  }
+
+  onActionDone(message: string): void {
+    this.successMessage = message;
+    if (this.transaction) {
+      this.transactionService.getById(this.transaction.id, true).subscribe(t => (this.transaction = t));
+    }
+  }
+
+  startNotes(): void {
+    this.notesDraft = this.transaction?.notes ?? '';
+    this.editingNotes = true;
+  }
+
+  saveNotes(): void {
+    if (!this.transaction || this.savingNotes) return;
+    this.savingNotes = true;
+    const notes = this.notesDraft.trim() || null;
+    this.transactionService.updateNotes(this.transaction.id, notes).subscribe({
+      next: () => {
+        this.savingNotes = false;
+        this.editingNotes = false;
+        this.transaction = { ...this.transaction!, notes: notes ?? undefined };
+        this.successMessage = 'Observaciones guardadas';
+      },
+      error: err => {
+        this.savingNotes = false;
+        this.errorMessage = apiError(err, 'No se pudieron guardar las observaciones');
+      }
+    });
+  }
+
+  methodLabel(method?: string | null, confidence?: number): string {
+    if (!method) return '-';
+    return method === 'CAMERA_AI' ? `Cámara (lectura ${confidencePercent(confidence)})` : 'Manual (operador)';
   }
   
   // ========================= CARGA DE DATOS =========================
@@ -71,14 +170,10 @@ export class TransactionDetailComponent implements OnInit {
       next: (transaction) => {
         this.transaction = transaction;
         this.loading = false;
-        this.paymentService.getBySource('PARKING_STAY', id, true).subscribe({
-          next: payments => (this.payments = payments),
-          error: () => (this.payments = []),   // sin permiso de pagos: solo se ve el resumen
-        });
+        this.loadPayments(id);
       },
       error: (error) => {
-        console.error('Error loading transaction:', error);
-        this.errorMessage = 'No se pudo cargar la transacción';
+        this.errorMessage = apiError(error, 'No se pudo cargar la estadía');
         this.loading = false;
       }
     });
@@ -101,7 +196,7 @@ export class TransactionDetailComponent implements OnInit {
   goToRegisterExit(): void {
     if (this.transaction && this.transaction.status === 'ACTIVE') {
       this.router.navigate(['/transactions/exit'], {
-        queryParams: { plateNumber: this.transaction.vehicle.plateNumber }
+        queryParams: { transactionId: this.transaction.id }
       });
     }
   }
@@ -119,7 +214,7 @@ export class TransactionDetailComponent implements OnInit {
   
   getStatusText(status: string): string {
     switch (status) {
-      case 'ACTIVE': return 'Activa';
+      case 'ACTIVE': return 'En curso';
       case 'COMPLETED': return 'Completada';
       case 'CANCELLED': return 'Cancelada';
       default: return status;

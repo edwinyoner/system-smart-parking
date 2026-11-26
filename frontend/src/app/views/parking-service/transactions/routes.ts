@@ -1,5 +1,6 @@
 // src/app/views/parking-service/transactions/routes.ts
 import { Routes } from '@angular/router';
+import { RoleGuard } from '../../../core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -11,14 +12,23 @@ export const routes: Routes = [
         redirectTo: 'list',
         pathMatch: 'full'
       },
-      // Dashboard en tiempo real (COMO TU IMAGEN)
+      // Vehículos dentro, en vivo
       {
         path: 'active',
         loadComponent: () =>
           import('./active-transactions/active-transactions.component').then(
             (m) => m.ActiveTransactionsComponent
           ),
-        data: { title: 'Transacciones Activas' }
+        canActivate: [RoleGuard],
+        data: { title: 'Vehículos dentro', requiredPermissions: ['transactions.view'] }
+      },
+      // Cola de lecturas dudosas de las cámaras
+      {
+        path: 'reviews',
+        loadComponent: () =>
+          import('./plate-reviews/plate-reviews.component').then((m) => m.PlateReviewsComponent),
+        canActivate: [RoleGuard],
+        data: { title: 'Por revisar', requiredPermissions: ['transactions.view'] }
       },
       // Operaciones
       {
@@ -27,7 +37,8 @@ export const routes: Routes = [
           import('./transaction-entry/transaction-entry.component').then(
             (m) => m.TransactionEntryComponent
           ),
-        data: { title: 'Registrar Entrada' }
+        canActivate: [RoleGuard],
+        data: { title: 'Registrar Entrada', requiredPermissions: ['transactions.entry'] }
       },
       {
         path: 'exit',
@@ -35,7 +46,8 @@ export const routes: Routes = [
           import('./transaction-exit/transaction-exit.component').then(
             (m) => m.TransactionExitComponent
           ),
-        data: { title: 'Registrar Salida' }
+        canActivate: [RoleGuard],
+        data: { title: 'Registrar Salida', requiredPermissions: ['transactions.exit'] }
       },
       {
         path: 'payment',
@@ -43,7 +55,8 @@ export const routes: Routes = [
           import('./transaction-payment/transaction-payment.component').then(
             (m) => m.TransactionPaymentComponent
           ),
-        data: { title: 'Procesar Pago' }
+        canActivate: [RoleGuard],
+        data: { title: 'Procesar Pago', requiredPermissions: ['payments.process'] }
       },
       // Historial
       {
@@ -52,7 +65,8 @@ export const routes: Routes = [
           import('./transaction-list/transaction-list.component').then(
             (m) => m.TransactionListComponent
           ),
-        data: { title: 'Historial de Transacciones' }
+        canActivate: [RoleGuard],
+        data: { title: 'Historial de Transacciones', requiredPermissions: ['transactions.view'] }
       },
       // Detalle
       {
@@ -61,7 +75,8 @@ export const routes: Routes = [
           import('./transaction-detail/transaction-detail.component').then(
             (m) => m.TransactionDetailComponent
           ),
-        data: { title: 'Detalle de Transacción' }
+        canActivate: [RoleGuard],
+        data: { title: 'Detalle de Transacción', requiredPermissions: ['transactions.view'] }
       }
     ]
   }

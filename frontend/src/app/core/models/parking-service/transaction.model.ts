@@ -1,181 +1,100 @@
 // src/app/core/models/parking-service/transaction.model.ts
-/**
- * Estados posibles de una Transacción
- */
+// Estadías de parking-service (/parking-service/v1/transactions).
+
 export type TransactionStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-
-/**
- * Estado de pago de una estadía (lo calcula parking-service con los avisos de payment-service):
- * PENDING (debe), PAID (pagada), NOT_REQUIRED (salió en el tiempo de gracia),
- * REFUNDED (se devolvió el pago tras salir), OVERDUE (vencida).
- */
 export type TransactionPaymentStatus = 'PENDING' | 'PAID' | 'NOT_REQUIRED' | 'REFUNDED' | 'OVERDUE';
+/** MANUAL: operador desde el panel. CAMERA_AI: cámara (sola o confirmada por un operador) */
+export type TransactionMethod = 'MANUAL' | 'CAMERA_AI';
+
+// ========================= PETICIONES =========================
 
 /**
- * Métodos de registro (entrada/salida)
- */
-export type TransactionMethod = 'MANUAL' | 'CAMERA_AI' | 'SENSOR';
-
-// ========================= REQUEST DTOs =========================
-
-/**
- * Request para registrar ENTRADA de vehículo.
- * 
- * IMPORTANTE: Solo se registra la PLACA. 
- * Información adicional del vehículo vendrá de SUNARP en futuras versiones.
+ * Entrada manual. El operador no se envía: el backend lo toma del token.
+ * Espacio y documento son opcionales (sin espacio, se descuenta uno libre al azar de la zona;
+ * el documento solo es obligatorio si el parqueo lo exige).
  */
 export interface TransactionEntryRequest {
-  // Ubicación
-  parkingId: number;              // Backend lo requiere
-  zoneId: number;
-  spaceId: number;                // CORREGIDO (era parkingSpaceId)
-
-  // Vehículo - SOLO PLACA
   plateNumber: string;
-
-  // Documento
-  documentTypeId: number;
-  documentNumber: string;
-
-  // Cliente - NOMBRES SEPARADOS
-  customerFirstName: string;      // CORREGIDO (antes era customerName)
-  customerLastName: string;
-  customerEmail?: string;
-  customerPhone?: string;
-
-  // Operador
-  operatorId: number;
-
-  // Evidencia (opcional)
-  entryMethod?: TransactionMethod;
-  photoUrl?: string;
-  plateConfidence?: number;
-
-  // Observaciones
-  notes?: string;
+  parkingId: number;
+  zoneId: number;
+  spaceId?: number | null;
+  documentTypeId?: number | null;
+  documentNumber?: string | null;
+  customerFirstName?: string | null;
+  customerLastName?: string | null;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  notes?: string | null;
 }
 
-/**
- * Request para registrar SALIDA de vehículo.
- */
+/** Salida manual, por estadía o por placa. Documento solo si el parqueo lo exige */
 export interface TransactionExitRequest {
-  // Identificar transacción (uno u otro)
-  transactionId?: number;
-  plateNumber?: string;
-
-  // Documento de salida (SEGURIDAD - debe coincidir con entrada)
-  exitDocumentTypeId: number;
-  exitDocumentNumber: string;
-
-  // Operador
-  operatorId: number;
-
-  // Evidencia (opcional)
-  exitMethod?: TransactionMethod;
-  photoUrl?: string;
-  plateConfidence?: number;
-
-  // Observaciones
-  notes?: string;
+  transactionId?: number | null;
+  plateNumber?: string | null;
+  exitDocumentTypeId?: number | null;
+  exitDocumentNumber?: string | null;
+  notes?: string | null;
 }
 
-// ========================= RESPONSE DTOs =========================
+// ========================= RESPUESTAS =========================
 
-/**
- * DTO simplificado para LISTADOS de transacciones.
- */
 export interface TransactionDto {
   id: number;
   plateNumber: string;
-  customerName: string;
+  customerName?: string | null;     // null: entró solo con la placa
   parkingName: string;
   zoneName: string;
   spaceCode: string;
   entryTime: string;
   exitTime?: string;
-  duration: string;               // Formato: "3h 30min"
+  duration: string;
   totalAmount?: number;
   status: TransactionStatus;
   paymentStatus: TransactionPaymentStatus;
   createdAt: string;
 }
 
-/**
- * DTO completo con TODOS los detalles de una transacción.
- */
+export interface TransactionDocument {
+  type?: string | null;             // DNI, CE, PASSPORT
+  number: string;
+}
+
 export interface TransactionDetailResponse {
   id: number;
   status: TransactionStatus;
   paymentStatus: TransactionPaymentStatus;
 
-  // ========================= ENTIDADES ANIDADAS =========================
-
-  vehicle: {
+  vehicle: { id: number; plateNumber: string };
+  /** null si entró solo con la placa */
+  customer?: {
     id: number;
-    plateNumber: string;
-    // brand, color no existen todavía (futuro SUNARP)
-  };
-
-  customer: {
-    id: number;
+    documentType?: string | null;
     documentNumber: string;
-    name: string;                 // fullName del backend
+    name: string;
     phone?: string;
     email?: string;
-  };
-
-  parking: {                      // Backend sí lo retorna
-    id: number;
-    name: string;
-    code: string;
-  };
-
-  zone: {
-    id: number;
-    name: string;
-    code: string;
-  };
-
-  space: {
-    id: number;
-    code: string;
-  };
-
-  // ========================= TIEMPOS =========================
+  } | null;
+  /** requireDriverDocument: la salida exige el mismo documento de entrada (si se entró con uno) */
+  parking: { id: number; name: string; code: string; requireDriverDocument?: boolean };
+  zone: { id: number; name: string; code: string };
+  space: { id: number; code: string };
 
   entryTime: string;
   exitTime?: string;
   durationMinutes?: number;
-  durationFormatted: string;      // "3h 30min"
+  durationFormatted: string;
 
-  // ========================= DOCUMENTOS =========================
+  entryDocument?: TransactionDocument | null;
+  exitDocument?: TransactionDocument | null;
 
-  entryDocument: {
-    number: string;
-  };
-  exitDocument?: {
-    number: string;
-  };
-
-  // ========================= TARIFA =========================
-
-  rate: {
-    id: number;
-    name: string;
-    hourlyRate: number;
-  };
-
-  // ========================= MONTOS =========================
+  rate: { id: number; name: string; hourlyRate: number };
 
   calculatedAmount?: number;
   discountAmount: number;
   totalAmount?: number;
   currency: string;
 
-  // ========================= PAGO =========================
-
-  // Se paga antes de salir. El detalle de cada pago está en payment-service
-  // (GET /payments/by-source/PARKING_STAY/{id})
+  // Se paga antes de salir; cada pago está en payment-service (/payments/by-source/PARKING_STAY/{id})
   payment?: {
     paidAmount: number;       // pagado, neto de devoluciones
     paidAt?: string;          // último pago
@@ -183,82 +102,66 @@ export interface TransactionDetailResponse {
     exitDeadline?: string;    // hasta cuándo puede salir sin pagar más
   };
 
-  // ========================= EVIDENCIA =========================
+  // Cómo y quién (operador null: la cámara registró sola)
+  entryMethod: TransactionMethod;
+  exitMethod?: TransactionMethod | null;
+  entryOperatorId?: number | null;
+  exitOperatorId?: number | null;
 
   entryPhotoUrl?: string;
   exitPhotoUrl?: string;
   entryPlateConfidence?: number;
   exitPlateConfidence?: number;
 
-  // ========================= COMPROBANTE =========================
-
   receiptSent: boolean;
   receiptSentAt?: string;
   receiptWhatsAppStatus?: string;
   receiptEmailStatus?: string;
 
-  // ========================= OBSERVACIONES =========================
-
   notes?: string;
   cancellationReason?: string;
-
-  // ========================= AUDITORÍA =========================
 
   createdAt: string;
   updatedAt: string;
 }
 
-/**
- * DTO para transacciones ACTIVAS (monitoreo en tiempo real).
- */
 export interface ActiveTransactionDto {
   id: number;
-
-  // Vehículo
   vehicleId: number;
   plateNumber: string;
 
-  // Cliente
-  customerId: number;
-  customerName: string;
-  customerPhone?: string;
-  customerEmail?: string;
-  documentNumber: string;
+  // Conductor (todo null si entró solo con la placa)
+  customerId?: number | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  documentType?: string | null;
+  documentNumber?: string | null;
 
-  // Ubicación
-  parkingId: number;           
+  parkingId: number;
   parkingName: string;
   zoneId: number;
   zoneName: string;
   spaceId: number;
   spaceCode: string;
 
-  // Tiempos
   entryTime: string;
   elapsedMinutes: number;
-  elapsedFormatted: string;       // "2h 15min"
+  elapsedFormatted: string;
 
-  // Cálculo en tiempo real
   hourlyRate: number;
-  currentAmount: number;          // Lo que falta pagar si saliera ahora (descuenta lo ya pagado)
+  currentAmount: number;          // lo que falta pagar si saliera ahora
   currency: string;
 
-  // Alertas
   maxRecommendedMinutes: number;
   isOverdue: boolean;
   requiresAttention: boolean;
 
-  // Operador
-  entryOperatorId: number;
+  entryOperatorId?: number | null;
   entryMethod: TransactionMethod;
-
-  // Evidencia
   entryPhotoUrl?: string;
   plateConfidence?: number;
 
-  // Observaciones
   notes?: string;
-
-  // Auditoría
   createdAt: string;
 }

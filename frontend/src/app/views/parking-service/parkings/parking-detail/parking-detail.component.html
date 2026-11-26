@@ -51,6 +51,14 @@
           <dl class="row mb-0">
             <dt class="col-sm-4">Dirección</dt><dd class="col-sm-8">{{ parking.address }}</dd>
             <dt class="col-sm-4">Responsable</dt><dd class="col-sm-8">{{ parking.managerName || 'Sin responsable' }}</dd>
+            <dt class="col-sm-4">Documento</dt>
+            <dd class="col-sm-8">
+              @if (parking.requireDriverDocument) {
+                <i class="fas fa-shield-halved me-1 text-warning"></i>Exige el documento del conductor (entrada y salida)
+              } @else {
+                <span class="text-body-secondary">Solo con la placa</span>
+              }
+            </dd>
             <dt class="col-sm-4">Ubicación</dt>
             <dd class="col-sm-8">
               @if (parking.latitude != null && parking.longitude != null) {

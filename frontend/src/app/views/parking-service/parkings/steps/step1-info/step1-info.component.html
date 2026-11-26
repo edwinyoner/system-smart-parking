@@ -68,6 +68,18 @@
           }
         </div>
 
+        <div class="col-12">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="requireDriverDocument"
+                   formControlName="requireDriverDocument">
+            <label class="form-check-label fw-semibold" for="requireDriverDocument">Exigir documento del conductor</label>
+          </div>
+          <small class="text-muted">
+            Apagado: se entra y sale solo con la placa. Encendido: la entrada pide el documento y la salida
+            exige el mismo (protege contra robos). Las lecturas de cámara de este parqueo pasan a "Por revisar".
+          </small>
+        </div>
+
         @if (coordinatesError) {
         <div class="col-12">
           <small class="text-danger">Indica la latitud y la longitud juntas, o deja ambas vacías.</small>

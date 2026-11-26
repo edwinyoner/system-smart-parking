@@ -19,6 +19,12 @@ export const navItems: INavDataWithPermissions[] = [
     icon: "fa-solid fa-gauge-high",
     badge: { color: "info", text: "INICIO" },
   },
+  {
+    name: "Mapa de ocupación",
+    url: "/occupancy",
+    icon: "fa-solid fa-table-cells",
+    requiredPermissions: ["occupancy.view"],
+  },
 
   // GESTIÓN DE ACCESOS
   {
@@ -109,20 +115,28 @@ export const navItems: INavDataWithPermissions[] = [
     class: "nav-title",
   },
   {
-    name: "Transacciones Activas",
+    name: "Vehículos dentro",
     url: "/transactions/active",
     icon: "fa-solid fa-clock",
-    badge: { color: "warning", text: "15" },
+    requiredPermissions: ["transactions.view"],
+  },
+  {
+    name: "Por revisar",
+    url: "/transactions/reviews",
+    icon: "fa-solid fa-camera",
+    requiredPermissions: ["transactions.view"],
   },
   {
     name: "Registrar Entrada",
     url: "/transactions/entry",
     icon: "fa-solid fa-right-to-bracket",
+    requiredPermissions: ["transactions.entry"],
   },
   {
     name: "Registrar Salida",
     url: "/transactions/exit",
     icon: "fa-solid fa-right-from-bracket",
+    requiredPermissions: ["transactions.exit"],
   },
   {
     name: "Procesar Pago",
@@ -134,6 +148,7 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Historial Transacciones",
     url: "/transactions",
     icon: "fa-solid fa-list",
+    requiredPermissions: ["transactions.view"],
   },
 
   // ==================== INFRACCIONES ====================

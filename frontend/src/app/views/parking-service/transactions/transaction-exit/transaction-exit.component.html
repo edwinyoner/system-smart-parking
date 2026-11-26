@@ -3,283 +3,237 @@
 <c-row>
   <c-col xs="12">
     <c-card class="mb-4">
-      <c-card-header>
+      <c-card-header class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <strong>
           <i class="fa-solid fa-right-from-bracket me-2"></i>
-          Registrar Salida de Vehículo
+          Registrar salida
         </strong>
+        <small class="text-body-secondary">
+          <i class="fa-solid fa-circle-info me-1"></i>
+          Se paga antes de salir
+        </small>
       </c-card-header>
-      
+
       <c-card-body>
-        
-        <!-- ========================= BÚSQUEDA POR PLACA ========================= -->
-        <div class="search-section mb-4">
-          <h5 class="mb-3">
-            <i class="fa-solid fa-search me-2"></i>
-            Buscar Vehículo
-          </h5>
-          
-          @if (searchErrorMessage) {
-            <c-alert color="warning" [dismissible]="true" (visibleChange)="searchErrorMessage = ''">
-              <i class="fa-solid fa-triangle-exclamation me-2"></i>
-              {{ searchErrorMessage }}
-            </c-alert>
-          }
-          
-          <form cForm [formGroup]="searchForm" (ngSubmit)="searchByPlate()">
-            <c-row class="align-items-end">
-              <c-col md="6">
-                <label cFormLabel for="plateNumber">
-                  Placa del Vehículo <span class="text-danger">*</span>
-                </label>
-                <input 
-                  cFormControl 
-                  type="text" 
-                  id="plateNumber"
-                  formControlName="plateNumber"
-                  placeholder="Ej: ABC-123"
-                  [class.is-invalid]="isFieldInvalid(searchForm, 'plateNumber')"
-                  style="text-transform: uppercase;">
-                @if (isFieldInvalid(searchForm, 'plateNumber')) {
-                  <div class="invalid-feedback d-block">
-                    Placa requerida (mínimo 6 caracteres)
-                  </div>
+
+        @if (lastExit) {
+          <c-alert color="success" [dismissible]="true" (visibleChange)="lastExit = null">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            Salida registrada: <strong>{{ lastExit.vehicle.plateNumber }}</strong>,
+            {{ lastExit.durationFormatted }}, total S/ {{ (lastExit.totalAmount ?? 0) | number: '1.2-2' }}.
+            <a class="alert-link ms-1" [routerLink]="['/transactions', lastExit.id]">Ver estadía</a>
+          </c-alert>
+        }
+
+        <!-- ========================= BÚSQUEDA ========================= -->
+        <h5 class="section-title">
+          <i class="fa-solid fa-magnifying-glass me-2"></i>
+          Buscar vehículo
+        </h5>
+
+        @if (searchErrorMessage) {
+          <c-alert color="warning" [dismissible]="true" (visibleChange)="searchErrorMessage = ''">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            {{ searchErrorMessage }}
+          </c-alert>
+        }
+
+        <form cForm [formGroup]="searchForm" (ngSubmit)="searchByPlate()" class="mb-4">
+          <c-row class="g-3 align-items-start">
+            <c-col md="4">
+              <label cLabel for="plateNumber">Placa <span class="text-danger">*</span></label>
+              <input cFormControl id="plateNumber" formControlName="plateNumber" class="plate-input"
+                     maxlength="10" autocomplete="off" placeholder="ABC-123" (input)="onPlateInput()"
+                     [class.is-invalid]="isFieldInvalid(searchForm, 'plateNumber')" />
+              @if (isFieldInvalid(searchForm, 'plateNumber')) {
+                <div class="invalid-feedback d-block">Formato peruano: ABC-123 o A1B-234</div>
+              }
+            </c-col>
+            <c-col md="8" class="d-flex gap-2 search-actions">
+              <button cButton color="primary" type="submit" [disabled]="searching">
+                @if (searching) {
+                  <c-spinner size="sm" class="me-1"></c-spinner>
+                } @else {
+                  <i class="fa-solid fa-magnifying-glass me-1"></i>
                 }
-              </c-col>
-              
-              <c-col md="6">
-                <div class="d-flex gap-2">
-                  <button 
-                    cButton 
-                    color="primary" 
-                    type="submit"
-                    [disabled]="searchForm.invalid || searching">
-                    @if (searching) {
-                      <c-spinner size="sm" class="me-1"></c-spinner>
-                    } @else {
-                      <i class="fa-solid fa-search me-1"></i>
-                    }
-                    Buscar
-                  </button>
-                  
-                  @if (transaction) {
-                    <button 
-                      cButton 
-                      color="secondary" 
-                      type="button"
-                      (click)="clearSearch()">
-                      <i class="fa-solid fa-times me-1"></i>
-                      Limpiar
-                    </button>
-                  }
-                </div>
-              </c-col>
-            </c-row>
-          </form>
-        </div>
-        
-        <hr class="my-4">
-        
-        <!-- ========================= DATOS DE LA TRANSACCIÓN ========================= -->
-        @if (transaction) {
-          <div class="transaction-details mb-4">
-            <h5 class="mb-3">
-              <i class="fa-solid fa-info-circle me-2"></i>
-              Datos de la Transacción
-            </h5>
-            
-            <c-row>
-              <c-col md="6">
-                <dl class="row">
-                  <dt class="col-sm-5">Transacción ID:</dt>
-                  <dd class="col-sm-7"><strong>#{{ transaction.id }}</strong></dd>
-                  
-                  <dt class="col-sm-5">Placa:</dt>
-                  <dd class="col-sm-7">
-                    <strong class="text-primary">{{ transaction.vehicle.plateNumber }}</strong>
-                  </dd>
-                  
-                  <dt class="col-sm-5">Cliente:</dt>
-                  <dd class="col-sm-7">{{ transaction.customer.name }}</dd>
-                  
-                  <dt class="col-sm-5">Documento:</dt>
-                  <dd class="col-sm-7">{{ transaction.entryDocument.number }}</dd>
-                  
-                  <dt class="col-sm-5">Parqueo:</dt>
-                  <dd class="col-sm-7">{{ transaction.parking.name }}</dd>
-                  
-                  <dt class="col-sm-5">Zona:</dt>
-                  <dd class="col-sm-7">{{ transaction.zone.name }}</dd>
-                  
-                  <dt class="col-sm-5">Espacio:</dt>
-                  <dd class="col-sm-7">{{ transaction.space.code }}</dd>
-                </dl>
-              </c-col>
-              
-              <c-col md="6">
-                <dl class="row">
-                  <dt class="col-sm-5">Hora Entrada:</dt>
-                  <dd class="col-sm-7">{{ transaction.entryTime | date: 'dd/MM/yyyy HH:mm' }}</dd>
-                  
-                  <dt class="col-sm-5">Tiempo:</dt>
-                  <dd class="col-sm-7">
-                    <c-badge color="warning">{{ transaction.durationFormatted }}</c-badge>
-                  </dd>
-                  
-                  <dt class="col-sm-5">Tarifa:</dt>
-                  <dd class="col-sm-7">S/ {{ transaction.rate.hourlyRate }} / hora</dd>
-                  
-                  @if ((transaction.payment?.paidAmount ?? 0) > 0) {
-                    <dt class="col-sm-5">Ya pagado:</dt>
-                    <dd class="col-sm-7">S/ {{ transaction.payment!.paidAmount | number: '1.2-2' }}</dd>
-                  }
+                Buscar
+              </button>
+              @if (transaction) {
+                <button cButton color="secondary" variant="outline" type="button" (click)="clearSearch()">
+                  <i class="fa-solid fa-xmark me-1"></i>
+                  Limpiar
+                </button>
+              }
+            </c-col>
+          </c-row>
+        </form>
 
-                  <dt class="col-sm-5">Falta pagar:</dt>
-                  <dd class="col-sm-7">
-                    <strong class="fs-5" [class.text-success]="amountDue === 0" [class.text-danger]="amountDue > 0">
-                      S/ {{ amountDue | number: '1.2-2' }}
-                    </strong>
-                  </dd>
-                  
-                  <dt class="col-sm-5">Estado Pago:</dt>
-                  <dd class="col-sm-7">
-                    <c-badge [color]="paymentStatusColor(transaction.paymentStatus)">
-                      {{ paymentStatusLabel(transaction.paymentStatus) }}
+        @if (transaction; as t) {
+
+          <!-- ========================= ESTADÍA ========================= -->
+          <h5 class="section-title">
+            <i class="fa-solid fa-circle-info me-2"></i>
+            Estadía #{{ t.id }}
+          </h5>
+
+          <c-row class="mb-3">
+            <c-col md="6">
+              <dl class="row mb-0">
+                <dt class="col-sm-5">Placa</dt>
+                <dd class="col-sm-7"><strong class="text-primary fs-5">{{ t.vehicle.plateNumber }}</strong></dd>
+
+                <dt class="col-sm-5">Conductor</dt>
+                <dd class="col-sm-7">{{ t.customer?.name || (t.entryDocument ? 'Sin nombre' : 'Solo placa') }}</dd>
+
+                <dt class="col-sm-5">Ubicación</dt>
+                <dd class="col-sm-7">{{ t.parking.name }} / {{ t.zone.name }} / {{ t.space.code }}</dd>
+
+                <dt class="col-sm-5">Entrada</dt>
+                <dd class="col-sm-7">
+                  {{ t.entryTime | date: 'dd/MM/yyyy HH:mm' }}
+                  @if (t.entryMethod === 'CAMERA_AI') {
+                    <c-badge color="info" class="ms-1">
+                      <i class="fa-solid fa-camera me-1"></i>Cámara {{ confidencePercent(t.entryPlateConfidence) }}
                     </c-badge>
-                  </dd>
-                </dl>
-              </c-col>
-            </c-row>
-          </div>
-          
-          <hr class="my-4">
+                  } @else {
+                    <c-badge color="secondary" class="ms-1"><i class="fa-solid fa-user me-1"></i>Manual</c-badge>
+                  }
+                </dd>
+              </dl>
+            </c-col>
 
-          <!-- ========================= PAGO (antes de salir) ========================= -->
+            <c-col md="6">
+              <dl class="row mb-0">
+                <dt class="col-sm-5">Tiempo</dt>
+                <dd class="col-sm-7"><c-badge color="warning">{{ t.durationFormatted }}</c-badge></dd>
+
+                <dt class="col-sm-5">Tarifa</dt>
+                <dd class="col-sm-7">{{ t.rate.name }}: S/ {{ t.rate.hourlyRate | number: '1.2-2' }} / hora</dd>
+
+                @if ((t.payment?.paidAmount ?? 0) > 0) {
+                  <dt class="col-sm-5">Ya pagado</dt>
+                  <dd class="col-sm-7">S/ {{ t.payment!.paidAmount | number: '1.2-2' }}</dd>
+                }
+
+                <dt class="col-sm-5">Falta pagar</dt>
+                <dd class="col-sm-7">
+                  <strong class="fs-5" [class.text-success]="amountDue === 0" [class.text-danger]="amountDue > 0">
+                    S/ {{ amountDue | number: '1.2-2' }}
+                  </strong>
+                </dd>
+
+                <dt class="col-sm-5">Estado de pago</dt>
+                <dd class="col-sm-7">
+                  <c-badge [color]="paymentStatusColor(t.paymentStatus)">{{ paymentStatusLabel(t.paymentStatus) }}</c-badge>
+                </dd>
+              </dl>
+            </c-col>
+          </c-row>
+
+          <!-- ========================= 1. COBRAR ========================= -->
           @if (amountDue > 0) {
-            <div class="payment-step mb-4">
-              <h5 class="mb-3">
-                <i class="fa-solid fa-money-bill-wave me-2"></i>
-                1. Cobrar antes de salir
-              </h5>
-              <app-charge-payment [concept]="'PARKING_STAY'" [sourceId]="transaction.id" [amountDue]="amountDue"
-                [currency]="transaction.currency" (paid)="onPaid()"></app-charge-payment>
+            <h5 class="section-title">
+              <i class="fa-solid fa-money-bill-wave me-2"></i>
+              1. Cobrar antes de salir
+            </h5>
+            <div class="mb-4">
+              <app-charge-payment [concept]="'PARKING_STAY'" [sourceId]="t.id" [amountDue]="amountDue"
+                                  [currency]="t.currency" (paid)="onPaid()"></app-charge-payment>
             </div>
-          } @else if (transaction.payment?.exitDeadline) {
-            <div class="alert alert-success mb-4">
-              <i class="fa-solid fa-check-circle me-2"></i>
-              Estadía pagada. Puede salir sin pagar más hasta las <strong>{{ transaction.payment!.exitDeadline | date: 'HH:mm' }}</strong>.
+          } @else if (t.payment?.exitDeadline) {
+            <div class="info-box ok mb-4">
+              <i class="fa-solid fa-circle-check me-2"></i>
+              Estadía pagada. Puede salir sin pagar más hasta las
+              <strong>{{ t.payment!.exitDeadline | date: 'HH:mm' }}</strong>.
+            </div>
+          } @else {
+            <div class="info-box ok mb-4">
+              <i class="fa-solid fa-circle-check me-2"></i>
+              No hay nada que pagar (dentro del tiempo de gracia).
             </div>
           }
-          
-          <!-- ========================= FORMULARIO DE SALIDA ========================= -->
+
+          <!-- ========================= 2. SALIDA ========================= -->
           @if (errorMessage) {
             <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
               <i class="fa-solid fa-triangle-exclamation me-2"></i>
               {{ errorMessage }}
             </c-alert>
           }
-          
+
           <form cForm [formGroup]="exitForm" (ngSubmit)="onSubmit()">
-            <h5 class="mb-3">
+            <h5 class="section-title">
               <i class="fa-solid fa-clipboard-check me-2"></i>
-              Verificación de Salida
+              {{ amountDue > 0 ? '2. ' : '' }}Registrar la salida
             </h5>
-            
-            <c-row class="mb-3">
-              <c-col md="4">
-                <label cFormLabel for="exitDocumentTypeId">
-                  Tipo Documento <span class="text-danger">*</span>
-                </label>
-                <select 
-                  cFormSelect 
-                  id="exitDocumentTypeId"
-                  formControlName="exitDocumentTypeId"
-                  [class.is-invalid]="isFieldInvalid(exitForm, 'exitDocumentTypeId')">
-                  <option [ngValue]="null">Seleccione</option>
-                  @for (docType of documentTypes; track docType.id) {
-                    <option [ngValue]="docType.id">{{ docType.name }}</option>
-                  }
-                </select>
-                @if (isFieldInvalid(exitForm, 'exitDocumentTypeId')) {
-                  <div class="invalid-feedback d-block">Requerido</div>
-                }
-              </c-col>
-              
-              <c-col md="4">
-                <label cFormLabel for="exitDocumentNumber">
-                  Nº Documento <span class="text-danger">*</span>
-                </label>
-                <input 
-                  cFormControl 
-                  type="text" 
-                  id="exitDocumentNumber"
-                  formControlName="exitDocumentNumber"
-                  placeholder="12345678"
-                  [class.is-invalid]="isFieldInvalid(exitForm, 'exitDocumentNumber')">
-                <small cFormText class="text-warning">
-                  <i class="fa-solid fa-shield-halved"></i>
-                  Debe coincidir con el documento de entrada
-                </small>
-                @if (isFieldInvalid(exitForm, 'exitDocumentNumber')) {
-                  <div class="invalid-feedback d-block">
-                    Documento requerido (mínimo 8 caracteres)
-                  </div>
-                }
-              </c-col>
-            </c-row>
-            
-            <c-row class="mb-3">
-              <c-col xs="12">
-                <label cFormLabel for="notes">
-                  Observaciones
-                </label>
-                <textarea 
-                  cFormControl 
-                  id="notes"
-                  formControlName="notes"
-                  rows="3"
-                  placeholder="Comentarios adicionales (opcional)">
-                </textarea>
-              </c-col>
-            </c-row>
-            
-            <!-- ========================= BOTONES ========================= -->
-            <c-row class="mt-4">
-              <c-col xs="12" class="d-flex justify-content-end gap-2">
-                <button 
-                  cButton 
-                  color="secondary" 
-                  type="button"
-                  (click)="cancel()"
-                  [disabled]="submitting">
-                  <i class="fa-solid fa-times me-1"></i>
-                  Cancelar
-                </button>
-                <button 
-                  cButton 
-                  color="success" 
-                  type="submit"
-                  [disabled]="exitForm.invalid || submitting || amountDue > 0"
-                  [title]="amountDue > 0 ? 'Primero cobra la estadía' : ''">
-                  @if (submitting) {
-                    <c-spinner size="sm" class="me-1"></c-spinner>
+
+            @if (documentRequired) {
+              <div class="info-box warn mb-3">
+                <i class="fa-solid fa-shield-halved me-2"></i>
+                Este parqueo exige el documento: pide el mismo que presentó al entrar
+                (<strong>{{ entryDocumentHint }}</strong>).
+              </div>
+
+              <c-row class="g-3 mb-3">
+                <c-col md="4">
+                  <label cLabel for="exitDocumentTypeId">Tipo de documento <span class="text-danger">*</span></label>
+                  <select cSelect id="exitDocumentTypeId" formControlName="exitDocumentTypeId"
+                          [class.is-invalid]="isFieldInvalid(exitForm, 'exitDocumentTypeId')">
+                    <option [ngValue]="null">Selecciona</option>
+                    @for (type of documentTypes; track type.id) {
+                      <option [ngValue]="type.id">{{ type.code }} - {{ type.name }}</option>
+                    }
+                  </select>
+                </c-col>
+                <c-col md="4">
+                  <label cLabel for="exitDocumentNumber">Número <span class="text-danger">*</span></label>
+                  <input cFormControl id="exitDocumentNumber" formControlName="exitDocumentNumber" maxlength="20"
+                         autocomplete="off"
+                         [class.is-invalid]="(isFieldInvalid(exitForm, 'exitDocumentNumber') || exitForm.get('exitDocumentNumber')?.dirty) && !!documentError" />
+                  @if ((isFieldInvalid(exitForm, 'exitDocumentNumber') || exitForm.get('exitDocumentNumber')?.dirty) && documentError) {
+                    <div class="invalid-feedback d-block">{{ documentError }}</div>
                   } @else {
-                    <i class="fa-solid fa-check me-1"></i>
+                    <small class="text-body-secondary">{{ documentHint }}</small>
                   }
-                  Registrar Salida
-                </button>
+                </c-col>
+              </c-row>
+            } @else {
+              <p class="text-body-secondary mb-3">
+                <i class="fa-solid fa-car me-1"></i>
+                Sale con la placa: {{ t.entryDocument ? 'este parqueo no exige documento.' : 'entró sin documento.' }}
+              </p>
+            }
+
+            <c-row class="g-3 mb-3">
+              <c-col xs="12">
+                <label cLabel for="notes">Observaciones</label>
+                <textarea cFormControl id="notes" rows="2" formControlName="notes" maxlength="500"
+                          placeholder="Opcional"></textarea>
               </c-col>
             </c-row>
+
+            <div class="d-flex justify-content-end gap-2">
+              <button cButton color="secondary" variant="outline" type="button" (click)="cancel()" [disabled]="submitting">
+                <i class="fa-solid fa-xmark me-1"></i>
+                Volver
+              </button>
+              <button cButton color="success" type="submit" [disabled]="!canSubmit"
+                      [title]="amountDue > 0 ? 'Primero cobra la estadía' : ''">
+                @if (submitting) {
+                  <c-spinner size="sm" class="me-1"></c-spinner>
+                } @else {
+                  <i class="fa-solid fa-check me-1"></i>
+                }
+                Registrar salida
+              </button>
+            </div>
           </form>
-        }
-        
-        @if (!transaction && !searching) {
+        } @else if (!searching) {
           <div class="text-center py-5">
-            <i class="fa-solid fa-search fa-3x text-body-secondary mb-3"></i>
-            <p class="text-body-secondary">Ingrese una placa para buscar la transacción activa</p>
+            <i class="fa-solid fa-magnifying-glass fa-3x text-body-secondary mb-3"></i>
+            <p class="text-body-secondary mb-0">Escribe la placa para buscar la estadía en curso</p>
           </div>
         }
-        
       </c-card-body>
     </c-card>
   </c-col>

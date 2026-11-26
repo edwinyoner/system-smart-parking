@@ -3,301 +3,253 @@
 <c-row>
   <c-col xs="12">
     <c-card class="mb-4">
-      <c-card-header>
+      <c-card-header class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <strong>
           <i class="fa-solid fa-right-to-bracket me-2"></i>
-          Registrar Entrada de Vehículo
+          Registrar entrada
         </strong>
+        <small class="text-body-secondary">
+          <i class="fa-solid fa-circle-info me-1"></i>
+          Respaldo manual: las cámaras registran solas cuando la lectura es confiable
+        </small>
       </c-card-header>
-      
+
       <c-card-body>
-        
         @if (loading) {
           <div class="text-center py-5">
             <c-spinner color="primary"></c-spinner>
-            <p class="mt-3 text-body-secondary">Cargando datos...</p>
+            <p class="mt-3 text-body-secondary">Cargando parqueos...</p>
           </div>
         } @else {
-          
-          <!-- Error Alert -->
+
+          @if (lastEntry) {
+            <c-alert color="success" [dismissible]="true" (visibleChange)="lastEntry = null">
+              <i class="fa-solid fa-circle-check me-2"></i>
+              Entrada registrada: <strong>{{ lastEntry.vehicle.plateNumber }}</strong>
+              en {{ lastEntry.zone.name }}, espacio referencial {{ lastEntry.space.code }}.
+              <a class="alert-link ms-1" [routerLink]="['/transactions', lastEntry.id]">Ver estadía</a>
+            </c-alert>
+          }
+
           @if (errorMessage) {
             <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
               <i class="fa-solid fa-triangle-exclamation me-2"></i>
               {{ errorMessage }}
             </c-alert>
           }
-          
-          <form cForm [formGroup]="entryForm" (ngSubmit)="onSubmit()">
-            
-            <!-- ========================= UBICACIÓN ========================= -->
-            <h5 class="mb-3">
-              <i class="fa-solid fa-map-location-dot me-2"></i>
-              Ubicación del Espacio
-            </h5>
-            
-            <c-row class="mb-3">
-              <c-col md="4">
-                <label cFormLabel for="parkingId">
-                  Parqueo <span class="text-danger">*</span>
-                </label>
-                <select 
-                  cFormSelect 
-                  id="parkingId"
-                  formControlName="parkingId"
-                  [class.is-invalid]="isFieldInvalid('parkingId')">
-                  <option [ngValue]="null">Seleccione un parqueo</option>
-                  @for (parking of parkings; track parking.id) {
-                    <option [ngValue]="parking.id">{{ parking.name }}</option>
+
+          @if (parkings.length === 0) {
+            <c-alert color="warning">
+              <i class="fa-solid fa-user-clock me-2"></i>
+              No estás de turno en ningún parqueo en este momento. Para registrar entradas necesitas
+              una asignación vigente en el turno actual: pídela a quien administra los operadores.
+            </c-alert>
+          } @else {
+
+            <form cForm [formGroup]="entryForm" (ngSubmit)="onSubmit()">
+
+              <!-- ========================= UBICACIÓN ========================= -->
+              <h5 class="section-title">
+                <i class="fa-solid fa-map-location-dot me-2"></i>
+                Ubicación
+              </h5>
+
+              <c-row class="g-3 mb-2">
+                <c-col md="4">
+                  <label cLabel for="parkingId">Parqueo <span class="text-danger">*</span></label>
+                  <select cSelect id="parkingId" formControlName="parkingId"
+                          [class.is-invalid]="isFieldInvalid('parkingId')">
+                    <option [ngValue]="null">Selecciona un parqueo</option>
+                    @for (parking of parkings; track parking.id) {
+                      <option [ngValue]="parking.id">{{ parking.name }}</option>
+                    }
+                  </select>
+                  @if (!anyParking) {
+                    <small class="text-body-secondary">Solo los parqueos donde estás de turno ahora</small>
                   }
-                </select>
-                @if (isFieldInvalid('parkingId')) {
-                  <div class="invalid-feedback d-block">Parqueo requerido</div>
-                }
-              </c-col>
-              
-              <c-col md="4">
-                <label cFormLabel for="zoneId">
-                  Zona <span class="text-danger">*</span>
-                </label>
-                <select 
-                  cFormSelect 
-                  id="zoneId"
-                  formControlName="zoneId"
-                  [disabled]="!entryForm.get('parkingId')?.value || loadingZones"
-                  [class.is-invalid]="isFieldInvalid('zoneId')">
-                  <option [ngValue]="null">Seleccione una zona</option>
-                  @for (zone of zones; track zone.id) {
-                    <option [ngValue]="zone.id">{{ zone.name }}</option>
+                </c-col>
+
+                <c-col md="4">
+                  <label cLabel for="zoneId">Zona <span class="text-danger">*</span></label>
+                  <select cSelect id="zoneId" formControlName="zoneId"
+                          [class.is-invalid]="isFieldInvalid('zoneId')">
+                    <option [ngValue]="null">{{ loadingParking ? 'Cargando zonas...' : 'Selecciona una zona' }}</option>
+                    @for (zone of zones; track zone.id) {
+                      <option [ngValue]="zone.id">{{ zone.name }} ({{ zone.availableSpaces ?? 0 }} libres)</option>
+                    }
+                  </select>
+                  @if (entryForm.get('parkingId')?.value && !loadingParking && zones.length === 0) {
+                    <small class="text-danger">El parqueo no tiene zonas activas que puedas atender</small>
                   }
-                </select>
-                @if (loadingZones) {
-                  <small class="text-body-secondary">Cargando zonas...</small>
-                }
-                @if (isFieldInvalid('zoneId')) {
-                  <div class="invalid-feedback d-block">Zona requerida</div>
-                }
-              </c-col>
-              
-              <c-col md="4">
-                <label cFormLabel for="spaceId">
-                  Espacio <span class="text-danger">*</span>
-                </label>
-                <select 
-                  cFormSelect 
-                  id="spaceId"
-                  formControlName="spaceId"
-                  [disabled]="!entryForm.get('zoneId')?.value || loadingSpaces"
-                  [class.is-invalid]="isFieldInvalid('spaceId')">
-                  <option [ngValue]="null">Seleccione un espacio</option>
-                  @for (space of spaces; track space.id) {
-                    <option [ngValue]="space.id">{{ space.code }} ({{ space.type }})</option>
+                </c-col>
+
+                <c-col md="4">
+                  <label cLabel for="spaceId">Espacio</label>
+                  <select cSelect id="spaceId" formControlName="spaceId">
+                    <option [ngValue]="null">
+                      {{ loadingSpaces ? 'Cargando espacios...' : 'Automático (uno libre al azar)' }}
+                    </option>
+                    @for (space of spaces; track space.id) {
+                      <option [ngValue]="space.id">{{ space.code }}</option>
+                    }
+                  </select>
+                  @if (zoneFull) {
+                    <small class="text-danger">La zona está llena: no se pueden registrar entradas</small>
+                  } @else {
+                    <small class="text-body-secondary">
+                      El conductor estaciona donde quiera; se puede corregir después
+                    </small>
                   }
-                </select>
-                @if (loadingSpaces) {
-                  <small class="text-body-secondary">Cargando espacios...</small>
-                }
-                @if (spaces.length === 0 && entryForm.get('zoneId')?.value && !loadingSpaces) {
-                  <small class="text-danger">No hay espacios disponibles</small>
-                }
-                @if (isFieldInvalid('spaceId')) {
-                  <div class="invalid-feedback d-block">Espacio requerido</div>
-                }
-              </c-col>
-            </c-row>
-            
-            <hr class="my-4">
-            
-            <!-- ========================= VEHÍCULO ========================= -->
-            <h5 class="mb-3">
-              <i class="fa-solid fa-car me-2"></i>
-              Información del Vehículo
-            </h5>
-            
-            <c-row class="mb-3">
-              <c-col md="6">
-                <label cFormLabel for="plateNumber">
-                  Placa <span class="text-danger">*</span>
-                </label>
-                <input 
-                  cFormControl 
-                  type="text" 
-                  id="plateNumber"
-                  formControlName="plateNumber"
-                  placeholder="Ej: ABC-123"
-                  [class.is-invalid]="isFieldInvalid('plateNumber')"
-                  style="text-transform: uppercase;">
-                <small cFormText>Formato: ABC-123 o ABC123</small>
-                @if (isFieldInvalid('plateNumber')) {
-                  <div class="invalid-feedback d-block">
-                    Placa requerida (mínimo 6 caracteres)
+                </c-col>
+              </c-row>
+
+              <!-- Horario: sin turno vigente el parqueo no atiende -->
+              @if (entryForm.get('parkingId')?.value && !loadingParking) {
+                @if (isOpen && schedule?.current; as current) {
+                  <div class="schedule-box open mb-4">
+                    <i class="fa-solid fa-clock me-2"></i>
+                    Turno {{ current.shiftName }} ({{ current.startTime }} - {{ current.endTime }}),
+                    tarifa {{ current.rateName }}:
+                    <strong>S/ {{ current.rateAmount | number: '1.2-2' }}</strong> por hora
+                  </div>
+                } @else {
+                  <div class="schedule-box closed mb-4">
+                    <i class="fa-solid fa-ban me-2"></i>
+                    El parqueo no atiende a esta hora: no tiene un turno activo con tarifa.
                   </div>
                 }
-              </c-col>
-            </c-row>
-            
-            <hr class="my-4">
-            
-            <!-- ========================= CLIENTE ========================= -->
-            <h5 class="mb-3">
-              <i class="fa-solid fa-user me-2"></i>
-              Información del Cliente
-            </h5>
-            
-            <c-row class="mb-3">
-              <c-col md="3">
-                <label cFormLabel for="documentTypeId">
-                  Tipo Documento <span class="text-danger">*</span>
-                </label>
-                <select 
-                  cFormSelect 
-                  id="documentTypeId"
-                  formControlName="documentTypeId"
-                  [class.is-invalid]="isFieldInvalid('documentTypeId')">
-                  <option [ngValue]="null">Seleccione</option>
-                  @for (docType of documentTypes; track docType.id) {
-                    <option [ngValue]="docType.id">{{ docType.name }}</option>
+              }
+
+              <!-- ========================= VEHÍCULO ========================= -->
+              <h5 class="section-title">
+                <i class="fa-solid fa-car me-2"></i>
+                Vehículo
+              </h5>
+
+              <c-row class="g-3 mb-4">
+                <c-col md="4">
+                  <label cLabel for="plateNumber">Placa <span class="text-danger">*</span></label>
+                  <input cFormControl id="plateNumber" formControlName="plateNumber"
+                         class="plate-input" maxlength="10" autocomplete="off" placeholder="ABC-123"
+                         (input)="onPlateInput()"
+                         [class.is-invalid]="isFieldInvalid('plateNumber')" />
+                  @if (isFieldInvalid('plateNumber')) {
+                    <div class="invalid-feedback d-block">
+                      @if (entryForm.get('plateNumber')?.hasError('required')) {
+                        La placa es obligatoria
+                      } @else {
+                        Formato peruano: ABC-123 o A1B-234
+                      }
+                    </div>
+                  } @else if (platePreview && !entryForm.get('plateNumber')?.invalid) {
+                    <small class="text-body-secondary">Se registrará como <strong>{{ platePreview }}</strong></small>
                   }
-                </select>
-                @if (isFieldInvalid('documentTypeId')) {
-                  <div class="invalid-feedback d-block">Requerido</div>
-                }
-              </c-col>
-              
-              <c-col md="3">
-                <label cFormLabel for="documentNumber">
-                  Nº Documento <span class="text-danger">*</span>
-                </label>
-                <input 
-                  cFormControl 
-                  type="text" 
-                  id="documentNumber"
-                  formControlName="documentNumber"
-                  placeholder="12345678"
-                  [class.is-invalid]="isFieldInvalid('documentNumber')">
-                @if (isFieldInvalid('documentNumber')) {
-                  <div class="invalid-feedback d-block">
-                    Documento requerido (mínimo 8 caracteres)
-                  </div>
-                }
-              </c-col>
-              
-              <c-col md="3">
-                <label cFormLabel for="customerFirstName">
-                  Nombres <span class="text-danger">*</span>
-                </label>
-                <input 
-                  cFormControl 
-                  type="text" 
-                  id="customerFirstName"
-                  formControlName="customerFirstName"
-                  placeholder="Juan Carlos"
-                  [class.is-invalid]="isFieldInvalid('customerFirstName')">
-                @if (isFieldInvalid('customerFirstName')) {
-                  <div class="invalid-feedback d-block">Nombres requeridos</div>
-                }
-              </c-col>
-              
-              <c-col md="3">
-                <label cFormLabel for="customerLastName">
-                  Apellidos <span class="text-danger">*</span>
-                </label>
-                <input 
-                  cFormControl 
-                  type="text" 
-                  id="customerLastName"
-                  formControlName="customerLastName"
-                  placeholder="Pérez García"
-                  [class.is-invalid]="isFieldInvalid('customerLastName')">
-                @if (isFieldInvalid('customerLastName')) {
-                  <div class="invalid-feedback d-block">Apellidos requeridos</div>
-                }
-              </c-col>
-            </c-row>
-            
-            <c-row class="mb-3">
-              <c-col md="6">
-                <label cFormLabel for="customerPhone">
-                  Teléfono
-                </label>
-                <input 
-                  cFormControl 
-                  type="tel" 
-                  id="customerPhone"
-                  formControlName="customerPhone"
-                  placeholder="987654321"
-                  [class.is-invalid]="isFieldInvalid('customerPhone')">
-                <small cFormText>Opcional</small>
-                @if (isFieldInvalid('customerPhone')) {
-                  <div class="invalid-feedback d-block">Mínimo 9 dígitos</div>
-                }
-              </c-col>
-              
-              <c-col md="6">
-                <label cFormLabel for="customerEmail">
-                  Email
-                </label>
-                <input 
-                  cFormControl 
-                  type="email" 
-                  id="customerEmail"
-                  formControlName="customerEmail"
-                  placeholder="cliente@example.com"
-                  [class.is-invalid]="isFieldInvalid('customerEmail')">
-                <small cFormText>Opcional</small>
-                @if (isFieldInvalid('customerEmail')) {
-                  <div class="invalid-feedback d-block">Email inválido</div>
-                }
-              </c-col>
-            </c-row>
-            
-            <hr class="my-4">
-            
-            <!-- ========================= OBSERVACIONES ========================= -->
-            <c-row class="mb-3">
-              <c-col xs="12">
-                <label cFormLabel for="notes">
-                  Observaciones
-                </label>
-                <textarea 
-                  cFormControl 
-                  id="notes"
-                  formControlName="notes"
-                  rows="3"
-                  placeholder="Comentarios adicionales (opcional)">
-                </textarea>
-              </c-col>
-            </c-row>
-            
-            <!-- ========================= BOTONES ========================= -->
-            <c-row class="mt-4">
-              <c-col xs="12" class="d-flex justify-content-end gap-2">
-                <button 
-                  cButton 
-                  color="secondary" 
-                  type="button"
-                  (click)="cancel()"
-                  [disabled]="submitting">
-                  <i class="fa-solid fa-times me-1"></i>
-                  Cancelar
+                </c-col>
+              </c-row>
+
+              <!-- ========================= CONDUCTOR ========================= -->
+              <h5 class="section-title">
+                <i class="fa-solid fa-id-card me-2"></i>
+                Conductor
+                <small class="text-body-secondary fw-normal ms-2">
+                  {{ documentRequired ? 'obligatorio en este parqueo' : 'opcional' }}
+                </small>
+              </h5>
+
+              @if (documentRequired) {
+                <div class="schedule-box info mb-3">
+                  <i class="fa-solid fa-shield-halved me-2"></i>
+                  Este parqueo exige el documento del conductor: al salir deberá presentar el mismo.
+                </div>
+              } @else {
+                <c-form-check class="mb-3">
+                  <input cFormCheckInput type="checkbox" id="withDriver" formControlName="withDriver" />
+                  <label cFormCheckLabel for="withDriver">Registrar el documento del conductor</label>
+                </c-form-check>
+              }
+
+              @if (showDriver) {
+                <c-row class="g-3 mb-4">
+                  <c-col md="3">
+                    <label cLabel for="documentTypeId">Tipo de documento <span class="text-danger">*</span></label>
+                    <select cSelect id="documentTypeId" formControlName="documentTypeId"
+                            [class.is-invalid]="isFieldInvalid('documentTypeId')">
+                      <option [ngValue]="null">Selecciona</option>
+                      @for (type of documentTypes; track type.id) {
+                        <option [ngValue]="type.id">{{ type.code }} - {{ type.name }}</option>
+                      }
+                    </select>
+                  </c-col>
+
+                  <c-col md="3">
+                    <label cLabel for="documentNumber">Número <span class="text-danger">*</span></label>
+                    <input cFormControl id="documentNumber" formControlName="documentNumber" maxlength="20"
+                           autocomplete="off"
+                           [class.is-invalid]="(isFieldInvalid('documentNumber') || entryForm.get('documentNumber')?.dirty) && !!documentError" />
+                    @if ((isFieldInvalid('documentNumber') || entryForm.get('documentNumber')?.dirty) && documentError) {
+                      <div class="invalid-feedback d-block">{{ documentError }}</div>
+                    } @else {
+                      <small class="text-body-secondary">{{ documentHint }}</small>
+                    }
+                  </c-col>
+
+                  <c-col md="3">
+                    <label cLabel for="customerFirstName">Nombres</label>
+                    <input cFormControl id="customerFirstName" formControlName="customerFirstName" maxlength="100" />
+                  </c-col>
+
+                  <c-col md="3">
+                    <label cLabel for="customerLastName">Apellidos</label>
+                    <input cFormControl id="customerLastName" formControlName="customerLastName" maxlength="100" />
+                  </c-col>
+
+                  <c-col md="3">
+                    <label cLabel for="customerPhone">Celular</label>
+                    <input cFormControl id="customerPhone" formControlName="customerPhone" inputmode="numeric"
+                           maxlength="9" placeholder="987654321" (input)="onPhoneInput($event)"
+                           [class.is-invalid]="isFieldInvalid('customerPhone')" />
+                    @if (isFieldInvalid('customerPhone')) {
+                      <div class="invalid-feedback d-block">{{ phoneError }}</div>
+                    }
+                  </c-col>
+
+                  <c-col md="5">
+                    <label cLabel for="customerEmail">Correo</label>
+                    <input cFormControl id="customerEmail" type="email" formControlName="customerEmail" maxlength="100"
+                           [class.is-invalid]="isFieldInvalid('customerEmail')" />
+                    @if (isFieldInvalid('customerEmail')) {
+                      <div class="invalid-feedback d-block">El correo no es válido</div>
+                    }
+                  </c-col>
+                </c-row>
+              }
+
+              <!-- ========================= OBSERVACIONES ========================= -->
+              <c-row class="g-3 mb-4">
+                <c-col md="12">
+                  <label cLabel for="notes">Observaciones</label>
+                  <textarea cFormControl id="notes" rows="2" formControlName="notes" maxlength="500"
+                            placeholder="Opcional (ej.: la cámara no leyó la placa)"></textarea>
+                </c-col>
+              </c-row>
+
+              <div class="d-flex justify-content-end gap-2">
+                <button cButton color="secondary" variant="outline" type="button" (click)="cancel()">
+                  <i class="fa-solid fa-xmark me-1"></i>
+                  Volver
                 </button>
-                <button 
-                  cButton 
-                  color="success" 
-                  type="submit"
-                  [disabled]="entryForm.invalid || submitting || spaces.length === 0">
+                <button cButton color="success" type="submit" [disabled]="!canSubmit">
                   @if (submitting) {
                     <c-spinner size="sm" class="me-1"></c-spinner>
                   } @else {
-                    <i class="fa-solid fa-check me-1"></i>
+                    <i class="fa-solid fa-right-to-bracket me-1"></i>
                   }
-                  Registrar Entrada
+                  Registrar entrada
                 </button>
-              </c-col>
-            </c-row>
-            
-          </form>
+              </div>
+            </form>
+          }
         }
-        
       </c-card-body>
     </c-card>
   </c-col>

@@ -13,6 +13,7 @@ export function buildParkingForm(fb: FormBuilder, withCode: boolean): FormGroup 
     latitude:    [null, [Validators.min(-90), Validators.max(90)]],
     longitude:   [null, [Validators.min(-180), Validators.max(180)]],
     managerId:   [null],
+    requireDriverDocument: [false],
   };
   if (withCode) {
     group['code'] = ['', [Validators.required, Validators.pattern(PARKING_CODE_PATTERN)]];

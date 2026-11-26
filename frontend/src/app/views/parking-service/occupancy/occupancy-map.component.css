@@ -1,0 +1,352 @@
+/* src/app/views/parking-service/occupancy/occupancy-map.component.css */
+/* Todos los colores salen del tema (claro u oscuro): los fondos suaves se mezclan con el fondo */
+
+:host {
+  --st-available: var(--cui-success);
+  --st-occupied: var(--cui-danger);
+  --st-maintenance: var(--cui-warning);
+  --st-out: var(--cui-secondary-color);
+  display: block;
+}
+
+/* EN VIVO */
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cui-success);
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 999px;
+  background: var(--cui-body-bg);
+}
+
+.live.off {
+  color: var(--cui-danger);
+}
+
+.live-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* PARQUEOS */
+.parking-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.75rem;
+}
+
+.parking-card {
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.5rem;
+  background: var(--cui-body-bg);
+  color: var(--cui-body-color);
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.parking-card:hover {
+  border-color: var(--cui-primary);
+  transform: translateY(-1px);
+}
+
+.parking-card.selected {
+  border-color: var(--cui-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cui-primary) 35%, transparent);
+}
+
+.parking-card.closed {
+  opacity: 0.75;
+}
+
+.parking-name {
+  font-weight: 600;
+}
+
+.free-count {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: right;
+}
+
+.free-count small {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--cui-secondary-color);
+}
+
+.free-count.ok { color: var(--st-available); }
+.free-count.mid { color: var(--st-maintenance); }
+.free-count.full { color: var(--st-occupied); }
+
+/* BARRAS */
+.bar {
+  display: flex;
+  height: 0.5rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--cui-tertiary-bg);
+}
+
+.seg { height: 100%; transition: width 0.4s; }
+.seg.available { background: var(--st-available); }
+.seg.occupied { background: var(--st-occupied); }
+.seg.maintenance { background: var(--st-maintenance); }
+.seg.unavailable { background: var(--st-out); }
+
+/* INDICADORES */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.6rem;
+}
+
+.kpi {
+  border: 1px solid var(--cui-border-color);
+  border-left-width: 4px;
+  border-radius: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--cui-tertiary-bg);
+  color: var(--cui-body-color);
+  text-align: left;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+
+button.kpi { cursor: pointer; }
+.kpi.entry { border-left-color: var(--cui-primary); }
+.kpi.status-AVAILABLE { border-left-color: var(--st-available); }
+.kpi.status-OCCUPIED { border-left-color: var(--st-occupied); }
+.kpi.status-MAINTENANCE { border-left-color: var(--st-maintenance); }
+.kpi.status-OUT_OF_SERVICE { border-left-color: var(--st-out); }
+.kpi.active { box-shadow: 0 0 0 2px var(--cui-primary); }
+.kpi.dimmed { opacity: 0.5; }
+
+.kpi-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: var(--cui-secondary-color);
+}
+
+/* FILTROS */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.zone-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  border: 1px solid var(--cui-border-color);
+  border-radius: 999px;
+  background: var(--cui-body-bg);
+  color: var(--cui-body-color);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.chip.active {
+  background: var(--cui-primary);
+  border-color: var(--cui-primary);
+  color: #fff;
+}
+
+.chip.closed:not(.active) {
+  text-decoration: line-through;
+  color: var(--cui-secondary-color);
+}
+
+.chip-count {
+  margin-left: 0.35rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.search {
+  position: relative;
+}
+
+.search i {
+  position: absolute;
+  left: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--cui-secondary-color);
+  font-size: 0.8rem;
+}
+
+.search input {
+  padding-left: 1.8rem;
+  min-width: 190px;
+}
+
+/* ZONAS */
+.zone-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.zone-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.stat {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.stat.available { color: var(--st-available); border-color: var(--st-available); }
+.stat.occupied { color: var(--st-occupied); border-color: var(--st-occupied); }
+.stat.maintenance { color: var(--st-maintenance); border-color: var(--st-maintenance); }
+.stat.out { color: var(--st-out); border-color: var(--st-out); }
+
+/* Zona que no recibe vehículos: atenuada */
+.zone-card.closed .space-grid {
+  opacity: 0.55;
+  filter: grayscale(0.5);
+}
+
+/* ESPACIOS (CUADROS) */
+.space-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 0.5rem;
+}
+
+.tile {
+  --st: var(--st-available);
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  border: 2px solid color-mix(in srgb, var(--st) 55%, var(--cui-border-color));
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--st) 14%, var(--cui-body-bg));
+  color: var(--cui-body-color);
+  padding: 0.3rem;
+  overflow: hidden;
+  transition: transform 0.12s, box-shadow 0.12s, background-color 0.4s, border-color 0.4s;
+}
+
+.tile:hover {
+  transform: scale(1.04);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--st) 35%, transparent);
+}
+
+.tile.selected {
+  box-shadow: 0 0 0 3px var(--cui-primary);
+}
+
+.tile.status-OCCUPIED { --st: var(--st-occupied); background: color-mix(in srgb, var(--st) 22%, var(--cui-body-bg)); }
+.tile.status-MAINTENANCE { --st: var(--st-maintenance); }
+.tile.status-OUT_OF_SERVICE {
+  --st: var(--st-out);
+  /* Rayado: se distingue también sin color */
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--st) 14%, var(--cui-body-bg)) 0 6px,
+    var(--cui-body-bg) 6px 12px
+  );
+  border-style: dashed;
+}
+
+.tile-code {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.tile-icon {
+  font-size: 1.25rem;
+  color: var(--st);
+}
+
+.tile-plate {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-plate.muted {
+  font-weight: 500;
+  color: var(--cui-secondary-color);
+}
+
+.tile-sensor {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.35rem;
+  font-size: 0.6rem;
+  color: var(--cui-secondary-color);
+}
+
+/* DETALLE */
+.detail-status {
+  --st: var(--st-available);
+  display: inline-block;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  color: var(--st);
+  border: 1px solid var(--st);
+  background: color-mix(in srgb, var(--st) 12%, var(--cui-body-bg));
+}
+
+.detail-status.status-OCCUPIED { --st: var(--st-occupied); }
+.detail-status.status-MAINTENANCE { --st: var(--st-maintenance); }
+.detail-status.status-OUT_OF_SERVICE { --st: var(--st-out); }
+
+dt {
+  font-weight: 600;
+  color: var(--cui-secondary-color);
+}
+
+.plate {
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 576px) {
+  .space-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  }
+}

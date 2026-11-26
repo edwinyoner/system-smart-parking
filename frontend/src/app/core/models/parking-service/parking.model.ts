@@ -24,6 +24,7 @@ export interface Parking {
   occupancyPercentage?: number;
   status: ParkingStatus;
   operational?: boolean;         // activo y no eliminado: recibe vehículos
+  requireDriverDocument?: boolean; // exige documento del conductor al entrar y el mismo al salir
   createdAt?: string;
   createdBy?: number;
   updatedAt?: string;
@@ -41,6 +42,8 @@ export interface ParkingRequest {
   latitude?: number;
   longitude?: number;
   managerId?: number;
+  /** ausente = apagado al crear */
+  requireDriverDocument?: boolean;
 }
 
 /**
@@ -55,4 +58,6 @@ export interface ParkingUpdateRequest {
   longitude?: number;
   managerId?: number | null;
   status?: ParkingStatus;
+  /** ausente = no cambia */
+  requireDriverDocument?: boolean;
 }

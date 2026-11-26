@@ -1,0 +1,288 @@
+<!-- src/app/views/parking-service/occupancy/occupancy-map.component.html -->
+
+<!-- ========================= CABECERA ========================= -->
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h4 class="mb-0">
+      <i class="fa-solid fa-table-cells me-2"></i>
+      Mapa de ocupación
+    </h4>
+    <small class="text-body-secondary">Disponibilidad de cada espacio, calculada en el momento</small>
+  </div>
+  <div class="live" [class.off]="!liveOk">
+    <span class="live-dot"></span>
+    @if (liveOk) {
+      En vivo
+      @if (lastUpdate) {
+        <span class="text-body-secondary ms-1">· {{ lastUpdate | date: 'HH:mm:ss' }}</span>
+      }
+    } @else {
+      Sin conexión, reintentando...
+    }
+  </div>
+</div>
+
+@if (errorMessage) {
+  <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ errorMessage }}
+  </c-alert>
+}
+
+@if (loading) {
+  <div class="text-center py-5">
+    <c-spinner color="primary"></c-spinner>
+    <p class="mt-3 text-body-secondary">Cargando parqueos...</p>
+  </div>
+} @else if (parkings.length === 0) {
+  <c-card>
+    <c-card-body class="text-center py-5 text-body-secondary">
+      <i class="fa-solid fa-square-parking fa-3x mb-3"></i>
+      <p class="mb-0">
+        {{ viewAll ? 'Todavía no hay parqueos registrados.' : 'No tienes parqueos asignados hoy: pide una asignación a quien administra los operadores.' }}
+      </p>
+    </c-card-body>
+  </c-card>
+} @else {
+
+  <!-- ========================= PARQUEOS ========================= -->
+  <div class="parking-strip mb-4">
+    @for (p of parkings; track p.id) {
+      <button type="button" class="parking-card" [class.selected]="p.id === selectedParkingId"
+              [class.closed]="!p.operational" (click)="selectParking(p.id)">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div class="text-start">
+            <div class="parking-name">{{ p.name }}</div>
+            <small class="text-body-secondary">{{ p.code }} · {{ p.totalZones }} zonas</small>
+          </div>
+          <span class="free-count" [ngClass]="summaryLevel(p)">
+            {{ p.availableSpaces }}
+            <small>libres</small>
+          </span>
+        </div>
+        <div class="bar mt-2" [title]="p.occupancyPercentage + ' % ocupado'">
+          <span class="seg available" [style.width.%]="pct(p.availableSpaces, p.totalSpaces)"></span>
+          <span class="seg occupied" [style.width.%]="pct(p.occupiedSpaces, p.totalSpaces)"></span>
+          <span class="seg unavailable" [style.width.%]="pct(p.unavailableSpaces, p.totalSpaces)"></span>
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+          <small class="text-body-secondary">{{ p.occupiedSpaces }}/{{ p.totalSpaces }} ocupados</small>
+          @if (!p.operational) {
+            <small class="text-danger fw-semibold">{{ locationStatus(p.status).label }}</small>
+          } @else {
+            <small class="text-body-secondary">{{ p.occupancyPercentage }} %</small>
+          }
+        </div>
+      </button>
+    }
+  </div>
+
+  @if (loadingMap && !map) {
+    <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+  }
+
+  @if (map; as m) {
+
+    <!-- ========================= RESUMEN DEL PARQUEO ========================= -->
+    <c-card class="mb-3">
+      <c-card-body>
+        <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
+          <div>
+            <h5 class="mb-0">{{ m.name }}</h5>
+            <small class="text-body-secondary">
+              {{ m.code }}@if (m.address) { · {{ m.address }} }
+            </small>
+          </div>
+          <span class="badge align-self-start" [ngClass]="locationStatus(m.status).badge">
+            <i class="fa-solid {{ locationStatus(m.status).icon }} me-1"></i>{{ locationStatus(m.status).label }}
+          </span>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi entry">
+            <div class="kpi-value">{{ m.availableForEntry }}</div>
+            <div class="kpi-label">Reciben un vehículo ahora</div>
+          </div>
+          <!-- La leyenda también filtra: clic en un estado deja solo esos espacios -->
+          @for (s of statuses; track s.value) {
+            <button type="button" class="kpi status-{{ s.value }}" [class.active]="statusFilter === s.value"
+                    [class.dimmed]="statusFilter && statusFilter !== s.value" (click)="toggleStatus(s.value)"
+                    [title]="statusFilter === s.value ? 'Quitar filtro' : 'Ver solo: ' + s.label">
+              <div class="kpi-value"><i class="{{ s.icon }} me-2"></i>{{ countOf(s.value) }}</div>
+              <div class="kpi-label">{{ s.label }}</div>
+            </button>
+          }
+          <div class="kpi">
+            <div class="kpi-value">{{ m.counts.total > 0 ? ((m.counts.occupied * 100 / m.counts.total) | number: '1.0-0') : 0 }} %</div>
+            <div class="kpi-label">Ocupación ({{ m.counts.total }} espacios)</div>
+          </div>
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <!-- ========================= FILTROS ========================= -->
+    <div class="toolbar mb-3">
+      <div class="zone-chips">
+        <button type="button" class="chip" [class.active]="zoneFilter === null" (click)="toggleZone(null)">
+          Todas las zonas
+        </button>
+        @for (z of m.zones; track z.id) {
+          <button type="button" class="chip" [class.active]="zoneFilter === z.id" [class.closed]="!z.operational"
+                  (click)="toggleZone(z.id)">
+            {{ z.name }}
+            <span class="chip-count">{{ z.availableForEntry }}/{{ z.counts.total }}</span>
+          </button>
+        }
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <div class="search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input class="form-control form-control-sm" [(ngModel)]="search"
+                 [placeholder]="m.showsVehicles ? 'Espacio o placa' : 'Código de espacio'" />
+        </div>
+        @if (hasFilters) {
+          <button cButton size="sm" color="secondary" variant="outline" (click)="clearFilters()">
+            <i class="fa-solid fa-xmark me-1"></i>Limpiar
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- ========================= ZONAS Y ESPACIOS ========================= -->
+    @if (m.zones.length === 0) {
+      <c-card>
+        <c-card-body class="text-center py-5 text-body-secondary">
+          Este parqueo aún no tiene zonas.
+        </c-card-body>
+      </c-card>
+    }
+
+    @for (zone of visibleZones; track zone.id) {
+      @let spaces = visibleSpaces(zone);
+      <c-card class="mb-3 zone-card" [class.closed]="!zone.operational">
+        <c-card-body>
+          <div class="zone-head">
+            <div>
+              <h6 class="mb-0">
+                <i class="fa-solid fa-map-location-dot me-2"></i>{{ zone.name }}
+                <small class="text-body-secondary fw-normal ms-1">{{ zone.code }}</small>
+              </h6>
+              @if (!zone.operational) {
+                <small class="text-danger">
+                  <i class="fa-solid fa-ban me-1"></i>
+                  {{ m.operational ? 'Zona ' + locationStatus(zone.status).label.toLowerCase() : 'Parqueo ' + locationStatus(m.status).label.toLowerCase() }}:
+                  no recibe vehículos
+                </small>
+              }
+            </div>
+            <div class="zone-stats">
+              <span class="stat available">{{ zone.counts.available }} libres</span>
+              <span class="stat occupied">{{ zone.counts.occupied }} ocupados</span>
+              @if (zone.counts.maintenance) {
+                <span class="stat maintenance">{{ zone.counts.maintenance }} mant.</span>
+              }
+              @if (zone.counts.outOfService) {
+                <span class="stat out">{{ zone.counts.outOfService }} fuera</span>
+              }
+            </div>
+          </div>
+
+          <div class="bar mb-3">
+            <span class="seg available" [style.width.%]="pct(zone.counts.available, zone.counts.total)"></span>
+            <span class="seg occupied" [style.width.%]="pct(zone.counts.occupied, zone.counts.total)"></span>
+            <span class="seg maintenance" [style.width.%]="pct(zone.counts.maintenance, zone.counts.total)"></span>
+            <span class="seg unavailable" [style.width.%]="pct(zone.counts.outOfService, zone.counts.total)"></span>
+          </div>
+
+          @if (spaces.length === 0) {
+            <p class="text-body-secondary mb-0 small">
+              {{ zone.spaces.length === 0 ? 'La zona no tiene espacios.' : 'Ningún espacio coincide con el filtro.' }}
+            </p>
+          } @else {
+            <div class="space-grid">
+              @for (space of spaces; track space.id) {
+                <button type="button" class="tile status-{{ space.status }}"
+                        [class.selected]="selectedSpace?.id === space.id"
+                        [title]="tileTitle(space)" (click)="openSpace(space, zone)">
+                  <span class="tile-code">{{ space.code }}</span>
+                  <i class="tile-icon fa-solid"
+                     [ngClass]="{
+                       'fa-car-side': space.status === 'OCCUPIED',
+                       'fa-screwdriver-wrench': space.status === 'MAINTENANCE',
+                       'fa-ban': space.status === 'OUT_OF_SERVICE',
+                       'fa-square-parking': space.status === 'AVAILABLE'
+                     }"></i>
+                  @if (space.plateNumber) {
+                    <span class="tile-plate">{{ space.plateNumber }}</span>
+                  } @else {
+                    <span class="tile-plate muted">{{ spaceStatus(space.status).label }}</span>
+                  }
+                  @if (space.hasSensor) {
+                    <i class="fa-solid fa-tower-broadcast tile-sensor" title="Con sensor"></i>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+    }
+  }
+}
+
+<!-- ========================= DETALLE DEL ESPACIO ========================= -->
+<c-modal [visible]="!!selectedSpace" (visibleChange)="!$event && closeSpace()" alignment="center">
+  @if (selectedSpace; as s) {
+    <c-modal-header>
+      <h5 cModalTitle>
+        <i class="fa-solid fa-square-parking me-2"></i>Espacio {{ s.code }}
+      </h5>
+      <button cButtonClose (click)="closeSpace()"></button>
+    </c-modal-header>
+    <c-modal-body>
+      <div class="detail-status status-{{ s.status }} mb-3">
+        <i class="fa-solid {{ spaceStatus(s.status).icon }} me-2"></i>{{ spaceStatus(s.status).label }}
+      </div>
+      <dl class="row mb-0">
+        <dt class="col-5">Parqueo</dt>
+        <dd class="col-7">{{ map?.name }}</dd>
+        <dt class="col-5">Zona</dt>
+        <dd class="col-7">{{ selectedZone?.name }} ({{ selectedZone?.code }})</dd>
+        <dt class="col-5">Tipo</dt>
+        <dd class="col-7">{{ spaceTypeLabel(s.type) }}</dd>
+        <dt class="col-5">Sensor</dt>
+        <dd class="col-7">{{ s.hasSensor ? 'Sí' : 'No' }}</dd>
+        @if (s.status === 'OCCUPIED') {
+          @if (s.plateNumber) {
+            <dt class="col-5">Vehículo</dt>
+            <dd class="col-7"><strong class="plate">{{ s.plateNumber }}</strong></dd>
+            <dt class="col-5">Desde</dt>
+            <dd class="col-7">{{ s.occupiedSince | date: 'dd/MM HH:mm' }} ({{ elapsed(s.occupiedSince) }})</dd>
+          } @else if (map?.showsVehicles) {
+            <dt class="col-5">Vehículo</dt>
+            <dd class="col-7 text-body-secondary">Sin estadía registrada (lo marcó un sensor o la cámara)</dd>
+          }
+        }
+      </dl>
+      @if (s.status === 'OCCUPIED' && s.transactionId == null && !map?.showsVehicles) {
+        <small class="text-body-secondary">Para ver el vehículo necesitas el permiso de ver transacciones.</small>
+      }
+    </c-modal-body>
+    <c-modal-footer>
+      @if (canManageSpaces && selectedZone) {
+        <a cButton color="secondary" variant="outline" [routerLink]="['/zones', selectedZone.id]">
+          <i class="fa-solid fa-gear me-1"></i>Gestionar zona
+        </a>
+      }
+      @if (s.transactionId && canViewStay) {
+        <a cButton color="info" variant="outline" [routerLink]="['/transactions', s.transactionId]">
+          <i class="fa-solid fa-eye me-1"></i>Ver estadía
+        </a>
+      }
+      @if (s.transactionId && canExit) {
+        <a cButton color="success" [routerLink]="['/transactions/exit']" [queryParams]="{ transactionId: s.transactionId }">
+          <i class="fa-solid fa-right-from-bracket me-1"></i>Registrar salida
+        </a>
+      }
+    </c-modal-footer>
+  }
+</c-modal>

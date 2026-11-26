@@ -1,0 +1,133 @@
+/* src/app/views/parking-service/transactions/plate-reviews/plate-reviews.component.css */
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.review-card {
+  overflow: hidden;
+}
+
+.review-card.pending {
+  border-top: 3px solid var(--cui-warning);
+}
+
+/* Foto */
+.photo {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--cui-tertiary-bg);
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.no-photo {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cui-secondary-color);
+}
+
+.direction {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--cui-success);
+}
+
+.direction.exit {
+  background: var(--cui-primary);
+}
+
+/* Lectura */
+.reading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.read-plate {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.conf {
+  font-weight: 700;
+}
+
+.conf.ok { color: var(--cui-success); }
+.conf.mid { color: var(--cui-warning); }
+.conf.low { color: var(--cui-danger); }
+
+.conf-bar {
+  position: relative;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--cui-tertiary-bg);
+}
+
+.conf-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.conf-bar span.ok { background: var(--cui-success); }
+.conf-bar span.mid { background: var(--cui-warning); }
+.conf-bar span.low { background: var(--cui-danger); }
+
+/* Marca del 85 %: desde ahí la cámara registra sola */
+.conf-bar .threshold {
+  position: absolute;
+  top: -0.2rem;
+  width: 2px;
+  height: 0.8rem;
+  background: var(--cui-body-color);
+}
+
+.plate-input {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.resolved {
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.375rem;
+  border-left: 4px solid var(--cui-border-color);
+  background: var(--cui-tertiary-bg);
+  margin-bottom: 0.25rem;
+}
+
+.resolved.ok { border-left-color: var(--cui-success); }
+.resolved.discarded { border-left-color: var(--cui-danger); }
+
+.live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+  background: var(--cui-success);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

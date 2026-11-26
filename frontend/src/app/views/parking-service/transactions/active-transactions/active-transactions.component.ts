@@ -1,378 +1,195 @@
 // src/app/views/parking-service/transactions/active-transactions/active-transactions.component.ts
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, Subject, catchError, debounceTime, exhaustMap, merge, switchMap } from 'rxjs';
 import {
   CardComponent,
   CardBodyComponent,
   CardHeaderComponent,
-  ColComponent,
-  RowComponent,
-  ModalComponent,
-  ModalHeaderComponent,
-  ModalTitleDirective,
-  ModalBodyComponent,
-  ModalFooterComponent,
   ButtonDirective,
-  BadgeComponent,
-  SpinnerComponent
+  SpinnerComponent,
+  AlertComponent,
+  BadgeComponent
 } from '@coreui/angular';
 
+import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
 import { ParkingService } from '../../../../core/services/parking-service/parking.service';
 import { ZoneService } from '../../../../core/services/parking-service/zone.service';
-import { SpaceService } from '../../../../core/services/parking-service/space.service';
-import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
-
+import { PermissionService } from '../../../../core/services/auth-service/permission.service';
+import { ActiveTransactionDto } from '../../../../core/models/parking-service/transaction.model';
 import { Parking } from '../../../../core/models/parking-service/parking.model';
 import { Zone } from '../../../../core/models/parking-service/zone.model';
-import { Space } from '../../../../core/models/parking-service/space.model';
-import { TransactionDetailResponse, ActiveTransactionDto } from '../../../../core/models/parking-service/transaction.model';
+import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
+import { confidencePercent } from '../../../../core/utils/plate.util';
+import { apiError } from '../../../../core/utils/parking.util';
+import { StayAction, StayActionModalComponent, StayRef } from '../shared/stay-action-modal.component';
 
-interface SpaceWithTransaction extends Space {
-  transaction?: TransactionDetailResponse;
-  elapsedTime?: string;
-}
+const PAGE_SIZE = 20;
 
+/**
+ * Vehículos dentro: las estadías en curso, en vivo (cada 10 s, sin spinner).
+ * Filtros por parqueo, zona y placa (en parte, sin guion). Desde cada fila: ver la estadía,
+ * registrar la salida, cambiar de espacio o cancelar (según permisos).
+ * El estado de cada espacio en cuadros está en el Mapa de ocupación.
+ */
 @Component({
   selector: 'app-active-transactions',
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     CardComponent,
     CardBodyComponent,
     CardHeaderComponent,
-    ColComponent,
-    RowComponent,
-    ModalComponent,
-    ModalHeaderComponent,
-    ModalTitleDirective,
-    ModalBodyComponent,
-    ModalFooterComponent,
     ButtonDirective,
+    SpinnerComponent,
+    AlertComponent,
     BadgeComponent,
-    SpinnerComponent
+    StayActionModalComponent
   ],
   templateUrl: './active-transactions.component.html',
   styleUrls: ['./active-transactions.component.css']
 })
-export class ActiveTransactionsComponent implements OnInit, OnDestroy {
-  
-  // ========================= DATOS DE FILTROS =========================
+export class ActiveTransactionsComponent implements OnInit {
+
+  private readonly transactionService = inject(TransactionService);
+  private readonly parkingService = inject(ParkingService);
+  private readonly zoneService = inject(ZoneService);
+  private readonly permissions = inject(PermissionService);
+  private readonly destroyRef = inject(DestroyRef);
+
   parkings: Parking[] = [];
   zones: Zone[] = [];
-  
-  selectedParkingId: number | null = null;
-  selectedZoneId: number | null = null;
-  
-  // ========================= DATOS DE ESPACIOS =========================
-  spaces: SpaceWithTransaction[] = [];
-  
-  // ========================= ESTADÍSTICAS =========================
-  stats = {
-    total: 0,
-    available: 0,
-    occupied: 0,
-    maintenance: 0,
-    outOfService: 0,
-    occupancyPercentage: 0
-  };
-  
-  // ========================= MODAL =========================
-  selectedSpace: SpaceWithTransaction | null = null;
-  isModalVisible = false;
-  
-  // ========================= ESTADO DE CARGA =========================
-  loading = false;
-  loadingZones = false;
-  
-  // ========================= AUTO-REFRESH =========================
-  private refreshInterval: any;
-  
-  constructor(
-    private parkingService: ParkingService,
-    private zoneService: ZoneService,
-    private spaceService: SpaceService,
-    private transactionService: TransactionService,
-    private router: Router
-  ) {}
-  
+  parkingId: number | null = null;
+  zoneId: number | null = null;
+  plate = '';
+  page = 0;
+
+  result: ParkingPagedResponse<ActiveTransactionDto> | null = null;
+  loading = true;
+  errorMessage = '';
+  successMessage = '';
+  lastUpdate: Date | null = null;
+
+  // Modal de acciones
+  actionStay: StayRef | null = null;
+  action: StayAction | null = null;
+
+  readonly canExit = this.permissions.hasPermission('transactions.exit');
+  readonly canMove = this.permissions.hasPermission('transactions.entry');
+  readonly canCancel = this.permissions.hasPermission('transactions.cancel');
+  readonly canSeeMap = this.permissions.hasPermission('occupancy.view');
+  readonly confidencePercent = confidencePercent;
+
+  /** Un cambio de filtro o de página recarga con spinner; el refresco en vivo, en silencio */
+  private readonly reload$ = new Subject<boolean>();
+  private readonly plate$ = new Subject<void>();
+
   ngOnInit(): void {
-    this.loadParkings();
-    this.startAutoRefresh();
-  }
-  
-  ngOnDestroy(): void {
-    this.stopAutoRefresh();
-  }
-  
-  // ========================= CARGA INICIAL =========================
-  
-  loadParkings(): void {
-    this.parkingService.getActive().subscribe({
-      next: (parkings) => {
-        this.parkings = parkings;
-      },
-      error: (error) => {
-        console.error('Error loading parkings:', error);
+    this.parkingService.getActive()
+      .pipe(catchError(() => EMPTY), takeUntilDestroyed(this.destroyRef))
+      .subscribe(p => (this.parkings = p));
+
+    this.plate$.pipe(debounceTime(350), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.applyFilters());
+
+    merge(
+      this.reload$.pipe(switchMap(silent => this.fetch(silent))),
+      liveRefresh(10000).pipe(exhaustMap(() => this.fetch(true)))
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
+      this.result = result;
+      this.loading = false;
+      this.lastUpdate = new Date();
+      // Si la página quedó vacía (salieron vehículos), se vuelve a la anterior
+      if (result.content.length === 0 && this.page > 0) {
+        this.goTo(this.page - 1);
       }
     });
+
+    this.reload$.next(false);
   }
-  
-  // ========================= EVENTOS DE FILTROS =========================
-  
+
+  private fetch(silent: boolean) {
+    return this.transactionService.getActiveTransactions(this.page, PAGE_SIZE, silent,
+      { parkingId: this.parkingId, zoneId: this.zoneId, plate: this.plate })
+      .pipe(catchError(err => {
+        this.loading = false;
+        if (!silent) this.errorMessage = apiError(err, 'No se pudieron cargar los vehículos dentro');
+        return EMPTY;
+      }));
+  }
+
+  // ========================= FILTROS =========================
+
   onParkingChange(): void {
-    this.selectedZoneId = null;
+    this.zoneId = null;
     this.zones = [];
-    this.spaces = [];
-    this.resetStats();
-    
-    if (this.selectedParkingId) {
-      this.loadZones();
+    if (this.parkingId) {
+      this.zoneService.getActive(this.parkingId)
+        .pipe(catchError(() => EMPTY), takeUntilDestroyed(this.destroyRef))
+        .subscribe(z => (this.zones = z));
     }
+    this.applyFilters();
   }
-  
-  onZoneChange(): void {
-    if (this.selectedZoneId) {
-      this.loadSpaces();
-    } else {
-      this.spaces = [];
-      this.resetStats();
-    }
+
+  onPlateInput(): void {
+    this.plate = this.plate.toUpperCase();
+    this.plate$.next();
   }
-  
-  loadZones(): void {
-    if (!this.selectedParkingId) return;
-    
-    this.loadingZones = true;
-    this.zoneService.getByParkingId(this.selectedParkingId).subscribe({
-      next: (zones) => {
-        this.zones = zones.filter(z => z.status === 'ACTIVE');
-        this.loadingZones = false;
-      },
-      error: (error) => {
-        console.error('Error loading zones:', error);
-        this.loadingZones = false;
-      }
-    });
+
+  applyFilters(): void {
+    this.page = 0;
+    this.errorMessage = '';
+    this.reload$.next(false);
   }
-  
-  // ========================= CARGA DE ESPACIOS Y TRANSACCIONES =========================
-  
-  loadSpaces(): void {
-    if (!this.selectedZoneId) return;
-    
-    this.loading = true;
-    this.spaceService.getByZoneId(this.selectedZoneId).subscribe({
-      next: (spaces) => {
-        this.spaces = spaces;
-        this.loadActiveTransactions();
-      },
-      error: (error) => {
-        console.error('Error loading spaces:', error);
-        this.loading = false;
-      }
-    });
+
+  clearFilters(): void {
+    this.parkingId = null;
+    this.zoneId = null;
+    this.zones = [];
+    this.plate = '';
+    this.applyFilters();
   }
-  
-  loadActiveTransactions(): void {
-    if (!this.selectedZoneId) return;
-    
-    this.transactionService.getActiveByZone(this.selectedZoneId, 0, 500).subscribe({
-      next: (response) => {
-        const activeTransactions = response.content;
-        
-        // Mapear transacciones a espacios
-        this.spaces = this.spaces.map(space => {
-          const transaction = activeTransactions.find(t => t.spaceId === space.id);
-          
-          return {
-            ...space,
-            transaction: transaction ? this.convertToDetailResponse(transaction) : undefined,
-            elapsedTime: transaction ? transaction.elapsedFormatted : undefined
-          };
-        });
-        
-        this.calculateStats();
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading active transactions:', error);
-        this.calculateStats();
-        this.loading = false;
-      }
-    });
+
+  get hasFilters(): boolean {
+    return !!this.parkingId || !!this.zoneId || !!this.plate.trim();
   }
-  
-  // Convertir ActiveTransactionDto a TransactionDetailResponse
-  private convertToDetailResponse(activeTransaction: ActiveTransactionDto): TransactionDetailResponse {
-    return {
-      id: activeTransaction.id,
-      status: 'ACTIVE',
-      paymentStatus: 'PENDING',
-      vehicle: {
-        id: activeTransaction.vehicleId,
-        plateNumber: activeTransaction.plateNumber
-      },
-      customer: {
-        id: activeTransaction.customerId,
-        documentNumber: activeTransaction.documentNumber,
-        name: activeTransaction.customerName,
-        phone: activeTransaction.customerPhone,
-        email: activeTransaction.customerEmail
-      },
-      parking: {
-        id: activeTransaction.parkingId,
-        name: activeTransaction.parkingName,
-        code: ''
-      },
-      zone: {
-        id: activeTransaction.zoneId,
-        name: activeTransaction.zoneName,
-        code: ''
-      },
-      space: {
-        id: activeTransaction.spaceId,
-        code: activeTransaction.spaceCode
-      },
-      entryTime: activeTransaction.entryTime,
-      durationMinutes: activeTransaction.elapsedMinutes,
-      durationFormatted: activeTransaction.elapsedFormatted,
-      entryDocument: {
-        number: activeTransaction.documentNumber
-      },
-      rate: {
-        id: 0,
-        name: '',
-        hourlyRate: activeTransaction.hourlyRate
-      },
-      calculatedAmount: activeTransaction.currentAmount,
-      discountAmount: 0,
-      totalAmount: activeTransaction.currentAmount,
-      currency: activeTransaction.currency,
-      receiptSent: false,
-      createdAt: activeTransaction.createdAt,
-      updatedAt: activeTransaction.createdAt,
-      entryPhotoUrl: activeTransaction.entryPhotoUrl,
-      entryPlateConfidence: activeTransaction.plateConfidence,
-      notes: activeTransaction.notes
+
+  // ========================= PAGINACIÓN =========================
+
+  goTo(page: number): void {
+    if (!this.result || page < 0 || page >= this.result.totalPages) return;
+    this.page = page;
+    this.reload$.next(false);
+  }
+
+  get pages(): number[] {
+    const total = this.result?.totalPages ?? 0;
+    const from = Math.max(0, Math.min(this.page - 2, total - 5));
+    return Array.from({ length: Math.min(5, total) }, (_, i) => from + i);
+  }
+
+  // ========================= ACCIONES =========================
+
+  open(action: StayAction, t: ActiveTransactionDto): void {
+    this.actionStay = {
+      id: t.id, plateNumber: t.plateNumber, zoneId: t.zoneId, zoneName: t.zoneName, spaceCode: t.spaceCode
     };
+    this.action = action;
   }
-  
-  // ========================= CÁLCULO DE ESTADÍSTICAS =========================
-  
-  calculateStats(): void {
-    this.stats.total = this.spaces.length;
-    this.stats.available = this.spaces.filter(s => s.status === 'AVAILABLE').length;
-    this.stats.occupied = this.spaces.filter(s => s.status === 'OCCUPIED').length;
-    this.stats.maintenance = this.spaces.filter(s => s.status === 'MAINTENANCE').length;
-    this.stats.outOfService = this.spaces.filter(s => s.status === 'OUT_OF_SERVICE').length;
-    
-    this.stats.occupancyPercentage = this.stats.total > 0
-      ? Math.round((this.stats.occupied / this.stats.total) * 100)
-      : 0;
+
+  onActionDone(message: string): void {
+    this.successMessage = message;
+    this.reload$.next(true);
   }
-  
-  resetStats(): void {
-    this.stats = {
-      total: 0,
-      available: 0,
-      occupied: 0,
-      maintenance: 0,
-      outOfService: 0,
-      occupancyPercentage: 0
-    };
-  }
-  
-  // ========================= EVENTOS DE CLICK =========================
-  
-  onSpaceClick(space: SpaceWithTransaction): void {
-    this.selectedSpace = space;
-    this.isModalVisible = true;
-  }
-  
-  closeModal(): void {
-    this.isModalVisible = false;
-    this.selectedSpace = null;
-  }
-  
-  goToTransactionDetail(): void {
-    if (this.selectedSpace?.transaction?.id) {
-      this.router.navigate(['/transactions', this.selectedSpace.transaction.id]);
-      this.closeModal();
-    }
-  }
-  
-  goToProcessPayment(): void {
-    if (this.selectedSpace?.transaction?.id) {
-      this.router.navigate(['/transactions/payment'], {
-        queryParams: { transactionId: this.selectedSpace.transaction.id }
-      });
-      this.closeModal();
-    }
-  }
-  
-  goToRegisterExit(): void {
-    if (this.selectedSpace?.transaction?.vehicle.plateNumber) {
-      this.router.navigate(['/transactions/exit'], {
-        queryParams: { plateNumber: this.selectedSpace.transaction.vehicle.plateNumber }
-      });
-      this.closeModal();
-    }
-  }
-  
-  // ========================= HELPERS =========================
-  
-  getSpaceStatusBadge(status: string): string {
-    switch (status) {
-      case 'AVAILABLE': return 'success';
-      case 'OCCUPIED': return 'danger';
-      case 'MAINTENANCE': return 'warning';
-      case 'OUT_OF_SERVICE': return 'secondary';
-      default: return 'secondary';
-    }
-  }
-  
-  getSpaceStatusText(status: string): string {
-    switch (status) {
-      case 'AVAILABLE': return 'Disponible';
-      case 'OCCUPIED': return 'Ocupado';
-      case 'MAINTENANCE': return 'Mantenimiento';
-      case 'OUT_OF_SERVICE': return 'Fuera de Servicio';
-      default: return status;
-    }
-  }
-  
-  getSpaceTypeText(type: string): string {
-    switch (type) {
-      case 'PARALLEL': return 'Paralelo';
-      case 'DIAGONAL': return 'Diagonal';
-      case 'PERPENDICULAR': return 'Perpendicular';
-      default: return type;
-    }
-  }
-  
-  // ========================= AUTO-REFRESH =========================
-  
-  startAutoRefresh(): void {
-    // Refrescar cada 30 segundos
-    this.refreshInterval = setInterval(() => {
-      if (this.selectedZoneId && !this.loading) {
-        this.loadSpaces();
-      }
-    }, 30000);
-  }
-  
-  stopAutoRefresh(): void {
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-    }
-  }
-  
-  manualRefresh(): void {
-    if (this.selectedZoneId) {
-      this.loadSpaces();
-    }
+
+  closeAction(): void {
+    this.action = null;
+    this.actionStay = null;
   }
 }

@@ -85,6 +85,7 @@ export class Step1InfoComponent implements OnInit {
       latitude:    numberOrUndefined(v.latitude),
       longitude:   numberOrUndefined(v.longitude),
       managerId:   v.managerId ? Number(v.managerId) : undefined,
+      requireDriverDocument: !!v.requireDriverDocument,
     };
 
     this.parkingService.create(request).subscribe({
