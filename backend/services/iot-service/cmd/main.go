@@ -82,8 +82,18 @@ func main() {
 	iaClient := services.NewIaClient(cfg.Services.IaServiceURL)
 	logger.WithField("url", cfg.Services.IaServiceURL).Info("ia-service client configurado")
 
+	// Token de servicio de auth-service: con él iot-service llama a parking-service
+	serviceTokens := services.NewServiceTokenProvider(
+		cfg.Services.AuthServiceURL,
+		cfg.Services.ServiceClientID,
+		cfg.Services.ServiceClientSecret,
+	)
+	if cfg.Services.ServiceClientSecret == "" {
+		logger.Warn("IOT_SERVICE_CLIENT_SECRET vacío: las capturas no podrán registrarse en parking-service")
+	}
+
 	// Cliente parking-service
-	parkingClient := services.NewParkingClient(cfg.Services.ParkingServiceURL)
+	parkingClient := services.NewParkingClient(cfg.Services.ParkingServiceURL, serviceTokens)
 	logger.WithField("url", cfg.Services.ParkingServiceURL).Info("parking-service client configurado")
 
 	// Servicio S3/MinIO
@@ -116,6 +126,7 @@ func main() {
 		iaClient,
 		parkingClient,
 		s3Service,
+		time.Duration(cfg.Services.CaptureTimeoutSeconds)*time.Second,
 		logger,
 	)
 

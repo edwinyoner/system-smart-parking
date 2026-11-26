@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS devices (
     device_id VARCHAR(50) NOT NULL UNIQUE COMMENT 'ID único del dispositivo (ej: ESP32-CAM-001)',
     device_type ENUM('ESP32_CAM_FRONTAL', 'ESP32_CAM_AERIAL', 'ESP32_DISPLAY', 'SENSOR_HC_SR04') NOT NULL,
     parking_id BIGINT UNSIGNED COMMENT 'ID del parking asociado (referencia a parking-service)',
+    zone_id BIGINT UNSIGNED NULL COMMENT 'Zona que vigila la cámara de entrada (referencia a parking-service)',
     location VARCHAR(200) COMMENT 'Ubicación física del dispositivo',
     ip_address VARCHAR(45) COMMENT 'Dirección IP del dispositivo',
     status ENUM('ACTIVE', 'INACTIVE', 'MAINTENANCE') DEFAULT 'ACTIVE',
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS devices (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_device_type (device_type),
     INDEX idx_parking_id (parking_id),
+    INDEX idx_zone_id (zone_id),
     INDEX idx_status (status)
 ) ENGINE=InnoDB COMMENT='Dispositivos IoT registrados';
 
@@ -39,6 +41,7 @@ CREATE TABLE IF NOT EXISTS camera_captures (
     capture_id VARCHAR(50) NOT NULL UNIQUE COMMENT 'ID único de la captura',
     device_id VARCHAR(50) NOT NULL COMMENT 'ID del dispositivo ESP32-CAM',
     parking_id BIGINT UNSIGNED NOT NULL COMMENT 'ID del parking',
+    zone_id BIGINT UNSIGNED NULL COMMENT 'Zona de la cámara al momento de la captura',
     image_url VARCHAR(500) NOT NULL COMMENT 'URL de la imagen en S3/MinIO',
     capture_type ENUM('ENTRY', 'EXIT') NOT NULL COMMENT 'Tipo de captura',
     
@@ -48,6 +51,10 @@ CREATE TABLE IF NOT EXISTS camera_captures (
     
     -- Referencia a parking-service
     transaction_id BIGINT UNSIGNED COMMENT 'ID de la transacción creada en parking-service',
+    review_id BIGINT UNSIGNED NULL COMMENT 'ID de la lectura enviada a Por revisar en parking-service',
+    outcome VARCHAR(30) NULL COMMENT 'Decisión de parking-service (ENTRY_REGISTERED, PENDING_REVIEW...)',
+    open_gate BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Si se ordenó abrir la barrera',
+    result_message VARCHAR(255) NULL COMMENT 'Mensaje de parking-service para la cámara',
     
     -- Estado del procesamiento
     processing_status ENUM('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED') DEFAULT 'PENDING',
@@ -145,8 +152,8 @@ CREATE TABLE IF NOT EXISTS display_logs (
 -- ============================================
 
 -- Dispositivo ESP32-CAM frontal
-INSERT INTO devices (device_id, device_type, parking_id, location, ip_address, status) 
-VALUES ('ESP32-CAM-FRONTAL-001', 'ESP32_CAM_FRONTAL', 1, 'Entrada principal - Jr. San Martín', '192.168.1.100', 'ACTIVE');
+INSERT INTO devices (device_id, device_type, parking_id, zone_id, location, ip_address, status)
+VALUES ('ESP32-CAM-FRONTAL-001', 'ESP32_CAM_FRONTAL', 1, 1, 'Entrada principal - Jr. San Martín', '192.168.1.100', 'ACTIVE');
 
 -- Dispositivo ESP32-CAM aérea
 INSERT INTO devices (device_id, device_type, parking_id, location, ip_address, status) 

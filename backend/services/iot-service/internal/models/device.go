@@ -25,10 +25,12 @@ const (
 
 // Device representa un dispositivo IoT registrado en el sistema
 type Device struct {
-	ID            uint64       `gorm:"primaryKey;autoIncrement" json:"id"`
-	DeviceID      string       `gorm:"type:varchar(50);uniqueIndex;not null" json:"deviceId"`
-	DeviceType    DeviceType   `gorm:"type:enum('ESP32_CAM_FRONTAL','ESP32_CAM_AERIAL','ESP32_DISPLAY','SENSOR_HC_SR04');not null" json:"deviceType"`
-	ParkingID     *uint64      `gorm:"index" json:"parkingId,omitempty"`
+	ID         uint64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	DeviceID   string     `gorm:"type:varchar(50);uniqueIndex;not null" json:"deviceId"`
+	DeviceType DeviceType `gorm:"type:enum('ESP32_CAM_FRONTAL','ESP32_CAM_AERIAL','ESP32_DISPLAY','SENSOR_HC_SR04');not null" json:"deviceType"`
+	ParkingID  *uint64    `gorm:"index" json:"parkingId,omitempty"`
+	// Zona de parking-service que vigila la cámara de entrada (parking-service la exige para entrar)
+	ZoneID        *uint64      `gorm:"index" json:"zoneId,omitempty"`
 	Location      string       `gorm:"type:varchar(200)" json:"location,omitempty"`
 	IPAddress     string       `gorm:"type:varchar(45)" json:"ipAddress,omitempty"`
 	Status        DeviceStatus `gorm:"type:enum('ACTIVE','INACTIVE','MAINTENANCE');default:'ACTIVE'" json:"status"`

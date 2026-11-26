@@ -24,15 +24,21 @@ const (
 
 // CameraCapture representa una captura de ESP32-CAM frontal (entrada/salida)
 type CameraCapture struct {
-	ID               uint64           `gorm:"primaryKey;autoIncrement" json:"id"`
-	CaptureID        string           `gorm:"type:varchar(50);uniqueIndex;not null" json:"captureId"`
-	DeviceID         string           `gorm:"type:varchar(50);not null;index" json:"deviceId"`
-	ParkingID        uint64           `gorm:"not null;index" json:"parkingId"`
-	ImageURL         string           `gorm:"type:varchar(500);not null" json:"imageUrl"`
-	CaptureType      CaptureType      `gorm:"type:enum('ENTRY','EXIT');not null;index" json:"captureType"`
-	PlateNumber      *string          `gorm:"type:varchar(20)" json:"plateNumber,omitempty"`
-	PlateConfidence  *float64         `gorm:"type:decimal(5,3)" json:"plateConfidence,omitempty"`
-	TransactionID    *uint64          `json:"transactionId,omitempty"`
+	ID              uint64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	CaptureID       string      `gorm:"type:varchar(50);uniqueIndex;not null" json:"captureId"`
+	DeviceID        string      `gorm:"type:varchar(50);not null;index" json:"deviceId"`
+	ParkingID       uint64      `gorm:"not null;index" json:"parkingId"`
+	ImageURL        string      `gorm:"type:varchar(500);not null" json:"imageUrl"`
+	CaptureType     CaptureType `gorm:"type:enum('ENTRY','EXIT');not null;index" json:"captureType"`
+	PlateNumber     *string     `gorm:"type:varchar(20)" json:"plateNumber,omitempty"`
+	PlateConfidence *float64    `gorm:"type:decimal(5,3)" json:"plateConfidence,omitempty"`
+	TransactionID   *uint64     `json:"transactionId,omitempty"`
+	// Decisión de parking-service (ENTRY_REGISTERED, PENDING_REVIEW, PAYMENT_REQUIRED...)
+	ZoneID           *uint64          `json:"zoneId,omitempty"`
+	Outcome          *string          `gorm:"type:varchar(30)" json:"outcome,omitempty"`
+	OpenGate         bool             `gorm:"not null;default:false" json:"openGate"`
+	ReviewID         *uint64          `json:"reviewId,omitempty"`
+	ResultMessage    *string          `gorm:"type:varchar(255)" json:"resultMessage,omitempty"`
 	ProcessingStatus ProcessingStatus `gorm:"type:enum('PENDING','PROCESSING','COMPLETED','FAILED');default:'PENDING';index" json:"processingStatus"`
 	ErrorMessage     *string          `gorm:"type:text" json:"errorMessage,omitempty"`
 	CreatedAt        time.Time        `gorm:"autoCreateTime;index" json:"createdAt"`

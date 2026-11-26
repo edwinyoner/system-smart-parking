@@ -71,18 +71,37 @@ func (c *Client) Delete(ctx context.Context, path string, headers map[string]str
 	return c.doRequest(ctx, http.MethodDelete, path, nil, headers)
 }
 
+// PostRaw envía un cuerpo ya armado con su Content-Type (por ejemplo multipart/form-data
+// para subir una imagen). Usa los mismos reintentos que el resto.
+func (c *Client) PostRaw(ctx context.Context, path string, body []byte, contentType string, headers map[string]string) (*Response, error) {
+	all := map[string]string{"Content-Type": contentType}
+	for k, v := range headers {
+		all[k] = v
+	}
+	return c.send(ctx, http.MethodPost, path, body, all)
+}
+
 // doRequest realiza la petición HTTP con retry logic
 func (c *Client) doRequest(ctx context.Context, method, path string, body interface{}, headers map[string]string) (*Response, error) {
-	url := c.baseURL + path
-
-	var reqBody io.Reader
+	var payload []byte
 	if body != nil {
 		jsonData, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("error al serializar body: %w", err)
 		}
-		reqBody = bytes.NewBuffer(jsonData)
+		payload = jsonData
 	}
+	all := map[string]string{"Content-Type": "application/json"}
+	for k, v := range headers {
+		all[k] = v
+	}
+	return c.send(ctx, method, path, payload, all)
+}
+
+// send ejecuta la petición con reintentos. El cuerpo se vuelve a leer en cada intento
+// (antes se reutilizaba un buffer ya consumido y los reintentos salían vacíos).
+func (c *Client) send(ctx context.Context, method, path string, payload []byte, headers map[string]string) (*Response, error) {
+	url := c.baseURL + path
 
 	var lastErr error
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
@@ -97,13 +116,16 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 		}
 
 		// Crear request
+		var reqBody io.Reader
+		if payload != nil {
+			reqBody = bytes.NewReader(payload)
+		}
 		req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
 		if err != nil {
 			return nil, fmt.Errorf("error al crear request: %w", err)
 		}
 
 		// Agregar headers
-		req.Header.Set("Content-Type", "application/json")
 		for key, value := range headers {
 			req.Header.Set(key, value)
 		}

@@ -62,6 +62,12 @@ type EurekaConfig struct {
 type ServicesConfig struct {
 	IaServiceURL      string
 	ParkingServiceURL string
+	// auth-service emite el token de servicio con el que iot-service llama a parking-service
+	AuthServiceURL      string
+	ServiceClientID     string
+	ServiceClientSecret string
+	// Tiempo máximo que el ESP32 espera el resultado de una captura (IA + parking)
+	CaptureTimeoutSeconds int
 }
 
 type RabbitMQConfig struct {
@@ -122,6 +128,11 @@ func LoadConfig() *Config {
 		Services: ServicesConfig{
 			IaServiceURL:      getEnv("IA_SERVICE_URL", "http://localhost:8084"),
 			ParkingServiceURL: getEnv("PARKING_SERVICE_URL", "http://localhost:8082"),
+			AuthServiceURL:    getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),
+			ServiceClientID:   getEnv("IOT_SERVICE_CLIENT_ID", "iot-service"),
+			// Mismo valor que IOT_SERVICE_CLIENT_SECRET de backend/.env (lo valida auth-service)
+			ServiceClientSecret:   getEnv("IOT_SERVICE_CLIENT_SECRET", ""),
+			CaptureTimeoutSeconds: getEnvAsInt("CAPTURE_TIMEOUT_SECONDS", 15),
 		},
 		RabbitMQ: RabbitMQConfig{
 			URL:      getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),

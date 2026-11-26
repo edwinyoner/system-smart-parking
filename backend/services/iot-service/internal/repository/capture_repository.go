@@ -97,18 +97,46 @@ func (r *CaptureRepository) MarkAsProcessing(captureID string) error {
 	return r.UpdateStatus(captureID, models.ProcessingStatusProcessing)
 }
 
-// MarkAsCompleted marca una captura como completada
-func (r *CaptureRepository) MarkAsCompleted(captureID string, plateNumber string, confidence float64, transactionID uint64) error {
+// CaptureResult lo que se guarda al terminar: la lectura de la IA y la decisión de parking-service
+type CaptureResult struct {
+	PlateNumber   string
+	Confidence    float64
+	Outcome       string
+	OpenGate      bool
+	Message       string
+	TransactionID *uint64
+	ReviewID      *uint64
+}
+
+// MarkAsCompleted guarda el resultado de una captura procesada (registrada, en revisión,
+// por pagar o rechazada por parking-service: en todos los casos el procesamiento terminó)
+func (r *CaptureRepository) MarkAsCompleted(captureID string, result CaptureResult) error {
 	now := time.Now()
+	values := map[string]interface{}{
+		"processing_status": models.ProcessingStatusCompleted,
+		"plate_confidence":  result.Confidence,
+		"outcome":           result.Outcome,
+		"open_gate":         result.OpenGate,
+		"result_message":    truncate(result.Message, 255),
+		"transaction_id":    result.TransactionID,
+		"review_id":         result.ReviewID,
+		"processed_at":      now,
+	}
+	if result.PlateNumber != "" {
+		values["plate_number"] = truncate(result.PlateNumber, 20)
+	}
 	return r.db.Model(&models.CameraCapture{}).
 		Where("capture_id = ?", captureID).
-		Updates(map[string]interface{}{
-			"processing_status": models.ProcessingStatusCompleted,
-			"plate_number":      plateNumber,
-			"plate_confidence":  confidence,
-			"transaction_id":    transactionID,
-			"processed_at":      now,
-		}).Error
+		Updates(values).Error
+}
+
+// truncate recorta un texto al tamaño de su columna
+func truncate(value string, max int) string {
+	runes := []rune(value)
+	if len(runes) <= max {
+		return value
+	}
+	return string(runes[:max])
 }
 
 // MarkAsFailed marca una captura como fallida
