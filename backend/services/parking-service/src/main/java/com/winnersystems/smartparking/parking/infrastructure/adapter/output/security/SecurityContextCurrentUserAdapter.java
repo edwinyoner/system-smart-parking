@@ -22,4 +22,11 @@ public class SecurityContextCurrentUserAdapter implements CurrentUserPort {
       }
       return Optional.empty();
    }
+
+   @Override
+   public boolean hasAuthority(String authority) {
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+      return authentication != null && authority != null && authentication.getAuthorities().stream()
+            .anyMatch(granted -> authority.equals(granted.getAuthority()));
+   }
 }

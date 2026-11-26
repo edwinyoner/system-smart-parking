@@ -37,6 +37,8 @@ public class TransactionPersistenceMapper {
             .exitOperatorId(transaction.getExitOperatorId())
             .entryMethod(transaction.getEntryMethod())
             .exitMethod(transaction.getExitMethod())
+            .entryCaptureId(transaction.getEntryCaptureId())
+            .exitCaptureId(transaction.getExitCaptureId())
             .entryPhotoUrl(transaction.getEntryPhotoUrl())
             .exitPhotoUrl(transaction.getExitPhotoUrl())
             .entryPlateConfidence(transaction.getEntryPlateConfidence())
@@ -87,6 +89,8 @@ public class TransactionPersistenceMapper {
       transaction.setExitOperatorId(entity.getExitOperatorId());
       transaction.setEntryMethod(entity.getEntryMethod());
       transaction.setExitMethod(entity.getExitMethod());
+      transaction.setEntryCaptureId(entity.getEntryCaptureId());
+      transaction.setExitCaptureId(entity.getExitCaptureId());
       transaction.setEntryPhotoUrl(entity.getEntryPhotoUrl());
       transaction.setExitPhotoUrl(entity.getExitPhotoUrl());
       transaction.setEntryPlateConfidence(entity.getEntryPlateConfidence());

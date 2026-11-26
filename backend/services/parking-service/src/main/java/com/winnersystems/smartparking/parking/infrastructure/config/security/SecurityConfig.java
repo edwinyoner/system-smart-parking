@@ -44,10 +44,7 @@ public class SecurityConfig {
                         "/actuator/**",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
-                        "/error",
-                        // TEMPORAL: módulos aún sin revisar. Al revisar cada uno se quita de aquí
-                        // y sus endpoints se protegen con @PreAuthorize por permiso.
-                        "/transactions/**"
+                        "/error"
                   ).permitAll()
 
                   // Todos los demás endpoints requieren autenticación

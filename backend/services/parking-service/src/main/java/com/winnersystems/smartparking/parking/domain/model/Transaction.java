@@ -1,5 +1,8 @@
 package com.winnersystems.smartparking.parking.domain.model;
 
+import com.winnersystems.smartparking.parking.domain.exception.DocumentMismatchException;
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -28,9 +31,14 @@ import java.util.Objects;
  * - Operadores (quién registró entrada/salida)
  * - Pago: cuánto se pagó y cuándo (el detalle está en payment-service)
  *
- * Seguridad anti-robo:
- * - Guarda documento de entrada y salida
- * - Sistema valida que coincidan
+ * Dos formas de entrar (las dos usan las mismas reglas, ver registerEntry):
+ * - MANUAL: la registra un operador desde el panel; el operador es obligatorio.
+ * - CAMERA_AI: la registra iot-service tras leer la placa con IA; no hay operador, pero sí
+ *   captura (captureId), foto y confianza de la lectura.
+ *
+ * Documento del conductor: opcional. Sin documento la estadía queda ligada solo a la placa
+ * (sin Customer). Seguridad anti-robo: si el parqueo exige documento (Parking.requireDriverDocument)
+ * y se entró con documento, la salida debe presentar el mismo.
  *
  * @author Edwin Yoner - Winner Systems - Smart Parking Platform
  * @version 1.0
@@ -44,14 +52,14 @@ public class Transaction {
    // ========================= RELACIONES (FKs) =========================
 
    private Long vehicleId;                                // FK a Vehicle (NOT NULL)
-   private Long customerId;                               // FK a Customer (NOT NULL)
+   private Long customerId;                               // FK a Customer (nullable: sin documento no hay cliente)
 
    // ========================= JERARQUÍA DE UBICACIÓN =========================
    // Parking > Zone > Space (jerarquía completa para referencia y reportes)
 
    private Long parkingId;                                // FK a Parking (NOT NULL)
    private Long zoneId;                                   // FK a Zone (NOT NULL)
-   private Long spaceId;                                  // FK a Space (NOT NULL)
+   private Long spaceId;                                  // FK a Space (NOT NULL): el que se descuenta de la disponibilidad
 
    // ========================= TARIFA =========================
 
@@ -60,8 +68,8 @@ public class Transaction {
 
    // ========================= SEGURIDAD - DOCUMENTOS DUPLICADOS =========================
 
-   private Long entryDocumentTypeId;                      // FK a DocumentType (NOT NULL)
-   private String entryDocumentNumber;                    // Documento usado en ENTRADA (NOT NULL)
+   private Long entryDocumentTypeId;                      // FK a DocumentType (nullable: documento opcional)
+   private String entryDocumentNumber;                    // Documento usado en ENTRADA (nullable)
 
    private Long exitDocumentTypeId;                       // FK a DocumentType (nullable)
    private String exitDocumentNumber;                     // Documento usado en SALIDA (nullable)
@@ -75,7 +83,7 @@ public class Transaction {
 
    // ========================= OPERADORES Y MÉTODOS =========================
 
-   private Long entryOperatorId;                          // FK a User/auth (NOT NULL)
+   private Long entryOperatorId;                          // FK a User/auth (nullable si entró por cámara)
    private Long exitOperatorId;                           // FK a User/auth (nullable)
 
    private String entryMethod;                            // MANUAL, CAMERA_AI, SENSOR
@@ -88,6 +96,9 @@ public class Transaction {
 
    private Double entryPlateConfidence;                   // Confianza IA placa entrada (0.0-1.0)
    private Double exitPlateConfidence;                    // Confianza IA placa salida (0.0-1.0)
+
+   private String entryCaptureId;                         // Captura de iot-service que originó la entrada (única)
+   private String exitCaptureId;                          // Captura de iot-service de la salida
 
    // ========================= MONTOS =========================
 
@@ -144,6 +155,53 @@ public class Transaction {
    public static final String METHOD_CAMERA_AI = "CAMERA_AI";
    public static final String METHOD_SENSOR = "SENSOR";
 
+   /** Métodos válidos para registrar entrada o salida (SENSOR solo marca ocupación, no estadías) */
+   public static final java.util.Set<String> REGISTRATION_METHODS = java.util.Set.of(METHOD_MANUAL, METHOD_CAMERA_AI);
+
+   // ========================= DATOS DE ENTRADA Y SALIDA =========================
+
+   /**
+    * Datos para registrar una entrada.
+    *
+    * @param vehicleId       vehículo (obligatorio)
+    * @param customerId      cliente: solo si se dio documento
+    * @param parkingId       parqueo (obligatorio)
+    * @param zoneId          zona (obligatoria)
+    * @param spaceId         espacio que se descuenta (obligatorio)
+    * @param rateId          tarifa del turno vigente (obligatoria)
+    * @param documentTypeId  tipo de documento del conductor (opcional, va junto con el número)
+    * @param documentNumber  número de documento ya normalizado (opcional)
+    * @param method          MANUAL o CAMERA_AI
+    * @param operatorId      operador (obligatorio si es MANUAL)
+    * @param captureId       captura de iot-service (obligatoria si es CAMERA_AI)
+    * @param photoUrl        foto de la entrada (opcional)
+    * @param plateConfidence confianza de la IA 0.0-1.0 (obligatoria si es CAMERA_AI)
+    */
+   public record EntryData(Long vehicleId, Long customerId, Long parkingId, Long zoneId, Long spaceId,
+                           Long rateId, Long documentTypeId, String documentNumber, String method,
+                           Long operatorId, String captureId, String photoUrl, Double plateConfidence) {
+   }
+
+   /**
+    * Datos para registrar una salida.
+    *
+    * @param documentTypeId  tipo de documento presentado (opcional, junto con el número)
+    * @param documentNumber  número ya normalizado (opcional)
+    * @param method          MANUAL o CAMERA_AI
+    * @param operatorId      operador (obligatorio si es MANUAL)
+    * @param captureId       captura de iot-service (obligatoria si es CAMERA_AI)
+    * @param photoUrl        foto de la salida (opcional)
+    * @param plateConfidence confianza de la IA (obligatoria si es CAMERA_AI)
+    */
+   public record ExitData(Long documentTypeId, String documentNumber, String method, Long operatorId,
+                          String captureId, String photoUrl, Double plateConfidence) {
+
+      /** Salida manual sin foto */
+      public static ExitData manual(Long documentTypeId, String documentNumber, Long operatorId) {
+         return new ExitData(documentTypeId, documentNumber, METHOD_MANUAL, operatorId, null, null, null);
+      }
+   }
+
    // ========================= CONSTRUCTORES =========================
 
    /**
@@ -160,34 +218,88 @@ public class Transaction {
       this.updatedAt = LocalDateTime.now();
    }
 
-   /**
-    * Constructor para ENTRADA de vehículo.
-    *
-    * @param vehicleId ID del vehículo
-    * @param customerId ID del cliente
-    * @param parkingId ID del parking
-    * @param zoneId ID de la zona
-    * @param spaceId ID del espacio específico
-    * @param rateId ID de la tarifa
-    * @param entryDocumentTypeId tipo de documento entrada
-    * @param entryDocumentNumber número de documento entrada
-    */
-   public Transaction(Long vehicleId, Long customerId, Long parkingId, Long zoneId, Long spaceId,
-                      Long rateId, Long entryDocumentTypeId, String entryDocumentNumber) {
-      this();
-      this.vehicleId = vehicleId;
-      this.customerId = customerId;
-      this.parkingId = parkingId;
-      this.zoneId = zoneId;
-      this.spaceId = spaceId;
-      this.rateId = rateId;
-      this.entryDocumentTypeId = entryDocumentTypeId;
-      this.entryDocumentNumber = entryDocumentNumber;
-      this.entryTime = LocalDateTime.now();
-      this.entryMethod = METHOD_MANUAL;
-   }
 
    // ========================= MÉTODOS DE NEGOCIO - ENTRADA =========================
+
+   /**
+    * Registra la entrada de un vehículo, manual o por cámara, con las mismas reglas:
+    * - vehículo, parqueo, zona, espacio y tarifa son obligatorios;
+    * - el documento es opcional, pero tipo y número van juntos, y con documento hay cliente;
+    * - MANUAL exige operador; CAMERA_AI exige captura y confianza (0.0 a 1.0).
+    *
+    * @param data datos de la entrada
+    * @param now  hora de la entrada
+    * @return la transacción ACTIVE con el pago PENDING
+    */
+   public static Transaction registerEntry(EntryData data, LocalDateTime now) {
+      if (data == null) {
+         throw new ParkingDomainException("Faltan los datos de la entrada");
+      }
+      requireId(data.vehicleId(), "vehículo");
+      requireId(data.parkingId(), "parqueo");
+      requireId(data.zoneId(), "zona");
+      requireId(data.spaceId(), "espacio");
+      requireId(data.rateId(), "tarifa");
+
+      boolean hasDocument = validateDocumentPair(data.documentTypeId(), data.documentNumber());
+      if (hasDocument && data.customerId() == null) {
+         throw new ParkingDomainException("Con documento del conductor debe indicarse el cliente");
+      }
+      if (!hasDocument && data.customerId() != null) {
+         throw new ParkingDomainException("Sin documento del conductor no se asocia un cliente");
+      }
+
+      String method = validateMethod(data.method(), data.operatorId(), data.captureId(), data.plateConfidence());
+
+      Transaction t = new Transaction();
+      t.vehicleId = data.vehicleId();
+      t.customerId = data.customerId();
+      t.parkingId = data.parkingId();
+      t.zoneId = data.zoneId();
+      t.spaceId = data.spaceId();
+      t.rateId = data.rateId();
+      t.entryDocumentTypeId = hasDocument ? data.documentTypeId() : null;
+      t.entryDocumentNumber = hasDocument ? data.documentNumber().trim() : null;
+      t.entryMethod = method;
+      t.entryOperatorId = data.operatorId();
+      t.entryCaptureId = blankToNull(data.captureId());
+      t.entryPhotoUrl = blankToNull(data.photoUrl());
+      t.entryPlateConfidence = data.plateConfidence();
+      t.entryTime = now;
+      t.createdAt = now;
+      t.updatedAt = now;
+      t.createdBy = data.operatorId();
+      t.updatedBy = data.operatorId();
+      return t;
+   }
+
+   /** true si se registró el documento del conductor al entrar */
+   public boolean hasDriverDocument() {
+      return entryDocumentTypeId != null && entryDocumentNumber != null;
+   }
+
+   /**
+    * Cambia el espacio que ocupa la estadía (el conductor eligió otro, o lo corrige el operador,
+    * un sensor o la cámara aérea). El servicio libera el anterior y ocupa el nuevo.
+    *
+    * @param newSpaceId espacio nuevo, de la misma zona (lo valida el servicio)
+    * @param userId     quién hizo el cambio (null si fue un dispositivo)
+    * @return el espacio anterior, para liberarlo
+    */
+   public Long reassignSpace(Long newSpaceId, Long userId) {
+      if (!isActive()) {
+         throw new ParkingDomainException("Solo se cambia el espacio de una estadía en curso");
+      }
+      requireId(newSpaceId, "espacio");
+      if (newSpaceId.equals(spaceId)) {
+         throw new ParkingDomainException("El vehículo ya está en ese espacio");
+      }
+      Long previous = this.spaceId;
+      this.spaceId = newSpaceId;
+      this.updatedBy = userId;
+      this.updatedAt = LocalDateTime.now();
+      return previous;
+   }
 
    /**
     * Registra la entrada del vehículo con operador.
@@ -215,26 +327,62 @@ public class Transaction {
 
    // ========================= MÉTODOS DE NEGOCIO - SALIDA =========================
 
+
    /**
-    * Registra la salida. Exige que no se deba nada: si falta pagar lanza PaymentRequiredException
-    * y la transacción no cambia (el servicio revierte la operación).
+    * Registra la salida (manual o por cámara).
     *
-    * El monto final es el costo hasta la hora del pago si sale dentro de la ventana; si no, hasta ahora.
+    * Orden de las comprobaciones (si una falla, la transacción no cambia):
+    * 1. Que siga dentro y los datos de salida sean coherentes con el método.
+    * 2. Anti-robo: si el parqueo exige documento y se entró con documento, debe presentarse el mismo.
+    *    Si se entró sin documento (el interruptor estaba apagado), sale por placa.
+    * 3. Que no se deba nada (se paga antes de salir).
     *
+    * @param exit                  datos de la salida
+    * @param rate                  tarifa de la estadía
+    * @param now                   hora de la salida
+    * @param exitWindowMinutes     minutos para salir tras pagar sin que suba el monto
+    * @param requireDriverDocument interruptor del parqueo (Parking.isDriverDocumentRequired)
+    * @throws DocumentMismatchException si falta el documento o no coincide
     * @throws com.winnersystems.smartparking.parking.domain.exception.PaymentRequiredException si falta pagar
     */
-   public void completeExit(Long exitDocumentTypeId, String exitDocumentNumber, Long operatorId,
-                            Rate rate, LocalDateTime now, int exitWindowMinutes) {
+   public void completeExit(ExitData exit, Rate rate, LocalDateTime now, int exitWindowMinutes,
+                            boolean requireDriverDocument) {
+      if (!isActive()) {
+         throw new ParkingDomainException("La estadía ya no está en curso");
+      }
+      if (exit == null) {
+         throw new ParkingDomainException("Faltan los datos de la salida");
+      }
+      boolean hasExitDocument = validateDocumentPair(exit.documentTypeId(), exit.documentNumber());
+      String method = validateMethod(exit.method(), exit.operatorId(), exit.captureId(), exit.plateConfidence());
+
+      if (requireDriverDocument && hasDriverDocument()) {
+         boolean matches = hasExitDocument
+               && entryDocumentTypeId.equals(exit.documentTypeId())
+               && entryDocumentNumber.equals(exit.documentNumber().trim());
+         if (!matches) {
+            throw new DocumentMismatchException(entryDocumentNumber,
+                  hasExitDocument ? exit.documentNumber().trim() : null, id);
+         }
+      }
+
       BigDecimal due = amountDueAt(now, rate, exitWindowMinutes);
       if (due.signum() > 0) {
          throw new com.winnersystems.smartparking.parking.domain.exception.PaymentRequiredException(id, due);
       }
+      this.exitMethod = method;
+      this.exitCaptureId = blankToNull(exit.captureId());
+      if (exit.photoUrl() != null || exit.plateConfidence() != null) {
+         this.exitPhotoUrl = blankToNull(exit.photoUrl());
+         this.exitPlateConfidence = exit.plateConfidence();
+      }
+      this.updatedBy = exit.operatorId();
       // Costo bruto de la tarifa; calculateTotal resta el descuento
       this.calculatedAmount = rate.calculateCost(minutesUntil(billingCutoff(now, exitWindowMinutes)));
       this.calculateTotal();
-      this.exitDocumentTypeId = exitDocumentTypeId;
-      this.exitDocumentNumber = exitDocumentNumber;
-      this.exitOperatorId = operatorId;
+      this.exitDocumentTypeId = hasExitDocument ? exit.documentTypeId() : null;
+      this.exitDocumentNumber = hasExitDocument ? exit.documentNumber().trim() : null;
+      this.exitOperatorId = exit.operatorId();
       this.exitTime = now;
       this.status = STATUS_COMPLETED;
       this.calculateDuration();
@@ -416,14 +564,25 @@ public class Transaction {
    // ========================= MÉTODOS DE NEGOCIO - CANCELACIÓN =========================
 
    /**
-    * Cancela la transacción.
+    * Cancela una estadía registrada por error (placa equivocada, vehículo que no llegó a entrar).
+    * Solo si sigue en curso y no tiene pagos. El servicio libera el espacio.
     *
     * @param reason razón de la cancelación
     * @param userId usuario que cancela
     */
    public void cancel(String reason, Long userId) {
+      if (!isActive()) {
+         throw new ParkingDomainException("Solo se cancela una estadía en curso");
+      }
+      if (reason == null || reason.isBlank()) {
+         throw new ParkingDomainException("Indica el motivo de la cancelación");
+      }
+      // Lo cobrado está en payment-service: primero se devuelve allí y luego se cancela
+      if (getPaidAmount().signum() > 0) {
+         throw new ParkingDomainException("La estadía tiene pagos: devuélvelos antes de cancelarla");
+      }
       this.status = STATUS_CANCELLED;
-      this.cancellationReason = reason;
+      this.cancellationReason = reason.trim();
       this.updatedBy = userId;
       this.updatedAt = LocalDateTime.now();
    }
@@ -543,9 +702,8 @@ public class Transaction {
     * @return true si tiene datos completos de entrada
     */
    public boolean hasCompleteEntryData() {
-      return vehicleId != null && customerId != null && parkingId != null &&
-            zoneId != null && spaceId != null && rateId != null && entryTime != null &&
-            entryDocumentTypeId != null && entryDocumentNumber != null;
+      return vehicleId != null && parkingId != null && zoneId != null && spaceId != null
+            && rateId != null && entryTime != null && entryMethod != null;
    }
 
    /**
@@ -554,8 +712,7 @@ public class Transaction {
     * @return true si tiene datos completos de salida
     */
    public boolean hasCompleteExitData() {
-      return exitTime != null && exitDocumentTypeId != null &&
-            exitDocumentNumber != null && durationMinutes != null;
+      return exitTime != null && exitMethod != null && durationMinutes != null;
    }
 
    /**
@@ -745,6 +902,22 @@ public class Transaction {
       this.exitPlateConfidence = exitPlateConfidence;
    }
 
+   public String getEntryCaptureId() {
+      return entryCaptureId;
+   }
+
+   public void setEntryCaptureId(String entryCaptureId) {
+      this.entryCaptureId = entryCaptureId;
+   }
+
+   public String getExitCaptureId() {
+      return exitCaptureId;
+   }
+
+   public void setExitCaptureId(String exitCaptureId) {
+      this.exitCaptureId = exitCaptureId;
+   }
+
    public BigDecimal getCalculatedAmount() {
       return calculatedAmount;
    }
@@ -884,6 +1057,57 @@ public class Transaction {
    /**
     * Dos transacciones son iguales si tienen el mismo ID.
     */
+   // ========================= VALIDACIONES INTERNAS =========================
+
+   private static void requireId(Long value, String field) {
+      if (value == null) {
+         throw new ParkingDomainException("Falta el " + field + " de la estadía");
+      }
+   }
+
+   /**
+    * Tipo y número de documento van juntos o ninguno.
+    * @return true si se indicó documento
+    */
+   private static boolean validateDocumentPair(Long typeId, String number) {
+      boolean hasType = typeId != null;
+      boolean hasNumber = number != null && !number.isBlank();
+      if (hasType != hasNumber) {
+         throw new ParkingDomainException("El tipo y el número de documento se indican juntos");
+      }
+      return hasType;
+   }
+
+   /**
+    * MANUAL exige operador; CAMERA_AI exige captura y una confianza entre 0 y 1.
+    * @return el método normalizado
+    */
+   private static String validateMethod(String rawMethod, Long operatorId, String captureId, Double confidence) {
+      String method = rawMethod == null ? METHOD_MANUAL : rawMethod.trim().toUpperCase();
+      if (!REGISTRATION_METHODS.contains(method)) {
+         throw new ParkingDomainException("Método de registro no válido: " + rawMethod);
+      }
+      if (confidence != null && (confidence < 0.0 || confidence > 1.0)) {
+         throw new ParkingDomainException("La confianza de la lectura debe estar entre 0 y 1");
+      }
+      if (METHOD_MANUAL.equals(method) && operatorId == null) {
+         throw new ParkingDomainException("El registro manual exige el operador");
+      }
+      if (METHOD_CAMERA_AI.equals(method)) {
+         if (captureId == null || captureId.isBlank()) {
+            throw new ParkingDomainException("El registro por cámara exige la captura");
+         }
+         if (confidence == null) {
+            throw new ParkingDomainException("El registro por cámara exige la confianza de la lectura");
+         }
+      }
+      return method;
+   }
+
+   private static String blankToNull(String value) {
+      return value == null || value.isBlank() ? null : value.trim();
+   }
+
    @Override
    public boolean equals(Object o) {
       if (this == o) return true;

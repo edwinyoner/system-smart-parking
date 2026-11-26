@@ -4,25 +4,15 @@ import com.winnersystems.smartparking.parking.application.dto.command.RecordEntr
 import com.winnersystems.smartparking.parking.application.dto.query.TransactionDetailDto;
 
 /**
- * Puerto de entrada para registrar la ENTRADA de un vehículo al estacionamiento.
+ * Puerto de entrada: entrada MANUAL de un vehículo, registrada por un operador desde el panel.
  *
- * Responsabilidades:
- * - Validar disponibilidad del espacio
- * - Buscar o crear vehículo por placa
- * - Buscar o crear cliente por documento
- * - Verificar que el vehículo no esté ya dentro
- * - Crear Transaction en estado ACTIVE
- * - Actualizar estado del espacio a OCCUPIED
- * - Registrar evidencia fotográfica (si existe)
- *
- * Reglas de negocio:
- * - El espacio debe estar AVAILABLE
- * - La zona debe estar operativa (horario, status)
- * - El vehículo NO debe tener otra transacción ACTIVE
- * - Debe existir una tarifa configurada para zona+turno
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Reglas (las mismas que la entrada por cámara):
+ * - Parqueo y zona operativos; la zona es del parqueo.
+ * - El operador está de turno en ese parqueo o zona (o tiene transactions.any-parking).
+ * - Un turno con tarifa vigente a esta hora (si no, el parqueo no atiende).
+ * - El vehículo no tiene otra estadía en curso.
+ * - Espacio: el indicado (libre y de la zona) o uno libre al azar; zona llena: 409.
+ * - Documento opcional, salvo que el parqueo lo exija.
  */
 public interface RecordEntryUseCase {
 

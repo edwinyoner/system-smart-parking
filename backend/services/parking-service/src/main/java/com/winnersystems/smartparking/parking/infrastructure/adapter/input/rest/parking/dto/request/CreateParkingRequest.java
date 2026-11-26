@@ -33,6 +33,9 @@ public record CreateParkingRequest(
 
       /** Responsable opcional (ID de usuario de auth-service) */
       @Positive(message = "Responsable inválido")
-      Long managerId
+      Long managerId,
+
+      // Exigir el documento del conductor al entrar y salir (anti-robo); null = apagado
+      Boolean requireDriverDocument
 ) {
 }

@@ -25,7 +25,8 @@ class TransactionPaymentTest {
 
    @BeforeEach
    void setUp() {
-      t = new Transaction(1L, 2L, 3L, 4L, 5L, 6L, 7L, "12345678");
+      t = Transaction.registerEntry(new Transaction.EntryData(1L, 2L, 3L, 4L, 5L, 6L, 7L, "12345678",
+            Transaction.METHOD_MANUAL, 9L, null, null, null), ENTRY);
       t.setId(15L);
       t.setEntryTime(ENTRY);
    }
@@ -35,7 +36,7 @@ class TransactionPaymentTest {
    void exitRequiresPayment() {
       LocalDateTime now = ENTRY.plusMinutes(30);
       assertThat(t.amountDueAt(now, rate, WINDOW)).isEqualByComparingTo("2.50");
-      assertThatThrownBy(() -> t.completeExit(7L, "12345678", 9L, rate, now, WINDOW))
+      assertThatThrownBy(() -> t.completeExit(Transaction.ExitData.manual(7L, "12345678", 9L), rate, now, WINDOW, false))
             .isInstanceOf(PaymentRequiredException.class)
             .hasMessageContaining("2.50");
       assertThat(t.isActive()).isTrue();
@@ -45,7 +46,7 @@ class TransactionPaymentTest {
    @Test
    @DisplayName("dentro del tiempo de gracia sale sin pagar (NOT_REQUIRED)")
    void graceExit() {
-      t.completeExit(7L, "12345678", 9L, rate, ENTRY.plusMinutes(3), WINDOW);
+      t.completeExit(Transaction.ExitData.manual(7L, "12345678", 9L), rate, ENTRY.plusMinutes(3), WINDOW, false);
       assertThat(t.isCompleted()).isTrue();
       assertThat(t.getTotalAmount()).isEqualByComparingTo("0");
       assertThat(t.getPaymentStatus()).isEqualTo(Transaction.PAYMENT_STATUS_NOT_REQUIRED);
@@ -61,7 +62,7 @@ class TransactionPaymentTest {
       // A las 08:70 ya serían 2 horas, pero está dentro de los 15 minutos tras pagar
       LocalDateTime exit = paidAt.plusMinutes(12);
       assertThat(t.amountDueAt(exit, rate, WINDOW)).isEqualByComparingTo("0");
-      t.completeExit(7L, "12345678", 9L, rate, exit, WINDOW);
+      t.completeExit(Transaction.ExitData.manual(7L, "12345678", 9L), rate, exit, WINDOW, false);
       assertThat(t.getTotalAmount()).isEqualByComparingTo("2.50");
       assertThat(t.getPaymentStatus()).isEqualTo(Transaction.PAYMENT_STATUS_PAID);
       assertThat(t.getDurationMinutes()).isEqualTo(70);
@@ -74,11 +75,11 @@ class TransactionPaymentTest {
       t.applySettlement(new BigDecimal("2.50"), paidAt, rate);
       LocalDateTime late = paidAt.plusMinutes(22);            // 80 minutos: 2 horas
       assertThat(t.amountDueAt(late, rate, WINDOW)).isEqualByComparingTo("2.50");
-      assertThatThrownBy(() -> t.completeExit(7L, "12345678", 9L, rate, late, WINDOW))
+      assertThatThrownBy(() -> t.completeExit(Transaction.ExitData.manual(7L, "12345678", 9L), rate, late, WINDOW, false))
             .isInstanceOf(PaymentRequiredException.class);
 
       t.applySettlement(new BigDecimal("5.00"), late, rate);
-      t.completeExit(7L, "12345678", 9L, rate, late.plusMinutes(2), WINDOW);
+      t.completeExit(Transaction.ExitData.manual(7L, "12345678", 9L), rate, late.plusMinutes(2), WINDOW, false);
       assertThat(t.getTotalAmount()).isEqualByComparingTo("5.00");
    }
 
@@ -90,7 +91,7 @@ class TransactionPaymentTest {
       assertThat(t.amountDueAt(ENTRY.plusMinutes(31), rate, WINDOW)).isEqualByComparingTo("1.50");
 
       t.applySettlement(new BigDecimal("2.50"), ENTRY.plusMinutes(32), rate);
-      t.completeExit(7L, "12345678", 9L, rate, ENTRY.plusMinutes(35), WINDOW);
+      t.completeExit(Transaction.ExitData.manual(7L, "12345678", 9L), rate, ENTRY.plusMinutes(35), WINDOW, false);
       t.applySettlement(BigDecimal.ZERO, null, rate);
       assertThat(t.getPaymentStatus()).isEqualTo(Transaction.PAYMENT_STATUS_REFUNDED);
       assertThat(t.getPaidAt()).isNull();

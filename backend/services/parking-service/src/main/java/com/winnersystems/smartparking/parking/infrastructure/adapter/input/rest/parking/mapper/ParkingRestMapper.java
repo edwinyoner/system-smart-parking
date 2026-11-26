@@ -16,12 +16,12 @@ public class ParkingRestMapper {
 
    public CreateParkingCommand toCommand(CreateParkingRequest r) {
       return new CreateParkingCommand(r.name(), r.code(), r.description(), r.address(),
-            r.latitude(), r.longitude(), r.managerId());
+            r.latitude(), r.longitude(), r.managerId(), r.requireDriverDocument());
    }
 
    public UpdateParkingCommand toCommand(UpdateParkingRequest r) {
       return new UpdateParkingCommand(r.name(), r.description(), r.address(),
-            r.latitude(), r.longitude(), r.managerId(), r.status());
+            r.latitude(), r.longitude(), r.managerId(), r.status(), r.requireDriverDocument());
    }
 
    public ParkingResponse toResponse(ParkingDto d) {
@@ -30,7 +30,7 @@ public class ParkingRestMapper {
             d.latitude(), d.longitude(), d.managerId(), d.managerName(),
             d.totalZones(), d.totalSpaces(), d.availableSpaces(), d.occupiedSpaces(),
             d.unavailableSpaces(), d.occupancyPercentage(),
-            d.status(), d.operational(),
+            d.status(), d.operational(), d.requireDriverDocument(),
             d.createdAt(), d.createdBy(), d.updatedAt(), d.updatedBy(),
             d.deletedAt(), d.deletedBy()
       );

@@ -24,6 +24,8 @@ import java.util.regex.Pattern;
  * - Solo un parqueo ACTIVE y no eliminado recibe vehículos (isOperational). Los que ya
  *   están dentro pueden salir aunque el parqueo pase a inactivo o mantenimiento.
  * - Eliminar es lógico y se puede restaurar.
+ * - requireDriverDocument (apagado por defecto): si está encendido, la entrada pide el documento
+ *   del conductor y la salida exige el mismo (anti-robo). Apagado, se entra y sale solo con la placa.
  */
 public class Parking {
 
@@ -57,6 +59,8 @@ public class Parking {
 
    private String status;
 
+   private boolean requireDriverDocument;      // Anti-robo: exigir documento al entrar y el mismo al salir
+
    private LocalDateTime createdAt;
    private Long createdBy;
    private LocalDateTime updatedAt;
@@ -89,6 +93,27 @@ public class Parking {
    public void update(String name, String description, String address, Double latitude, Double longitude) {
       applyInfo(name, description, address, latitude, longitude);
       touch();
+   }
+
+   /**
+    * Enciende o apaga la exigencia del documento del conductor. Solo afecta a las entradas
+    * nuevas: quien entró sin documento sale por placa aunque luego se encienda.
+    */
+   public void changeDriverDocumentPolicy(boolean required) {
+      this.requireDriverDocument = required;
+      touch();
+   }
+
+   /**
+    * Comprueba que una entrada nueva cumple la política de documento del parqueo.
+    *
+    * @param hasDriverDocument si la entrada trae documento del conductor
+    * @throws ParkingDomainException si el parqueo lo exige y no se indicó
+    */
+   public void ensureEntryDocument(boolean hasDriverDocument) {
+      if (requireDriverDocument && !hasDriverDocument) {
+         throw new ParkingDomainException("Este parqueo exige el documento del conductor para entrar");
+      }
    }
 
    /** Asigna el responsable. El nombre lo da auth-service, no el cliente */
@@ -286,6 +311,9 @@ public class Parking {
 
    public String getManagerName() { return managerName; }
    public void setManagerName(String managerName) { this.managerName = managerName; }
+
+   public boolean isDriverDocumentRequired() { return requireDriverDocument; }
+   public void setRequireDriverDocument(boolean requireDriverDocument) { this.requireDriverDocument = requireDriverDocument; }
 
    public String getStatus() { return status; }
    public void setStatus(String status) { this.status = status; }

@@ -68,8 +68,11 @@ public record TransactionDetailDto(
 
       // ========================= AUDITORÍA =========================
       LocalDateTime createdAt,
-      LocalDateTime updatedAt
+      LocalDateTime updatedAt,
 
+      // ========================= MÉTODO DE REGISTRO =========================
+      String entryMethod,                 // MANUAL (operador) o CAMERA_AI (cámara)
+      String exitMethod
 ) {
 
    // ========================= RECORDS INTERNOS =========================

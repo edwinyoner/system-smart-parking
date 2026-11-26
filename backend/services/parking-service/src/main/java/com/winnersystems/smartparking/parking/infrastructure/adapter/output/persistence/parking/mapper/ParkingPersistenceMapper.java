@@ -25,6 +25,7 @@ public class ParkingPersistenceMapper {
       parking.setManagerId(entity.getManagerId());
       parking.setManagerName(entity.getManagerName());
       parking.setStatus(entity.getStatus());
+      parking.setRequireDriverDocument(entity.isRequireDriverDocument());
       parking.setCreatedAt(entity.getCreatedAt());
       parking.setCreatedBy(entity.getCreatedBy());
       parking.setUpdatedAt(entity.getUpdatedAt());
@@ -48,6 +49,7 @@ public class ParkingPersistenceMapper {
             .managerId(parking.getManagerId())
             .managerName(parking.getManagerName())
             .status(parking.getStatus())
+            .requireDriverDocument(parking.isDriverDocumentRequired())
             .createdAt(parking.getCreatedAt())
             .createdBy(parking.getCreatedBy())
             .updatedAt(parking.getUpdatedAt())
@@ -69,6 +71,7 @@ public class ParkingPersistenceMapper {
       entity.setManagerId(parking.getManagerId());
       entity.setManagerName(parking.getManagerName());
       entity.setStatus(parking.getStatus());
+      entity.setRequireDriverDocument(parking.isDriverDocumentRequired());
       entity.setUpdatedAt(parking.getUpdatedAt());
       entity.setUpdatedBy(parking.getUpdatedBy());
       entity.setDeletedAt(parking.getDeletedAt());

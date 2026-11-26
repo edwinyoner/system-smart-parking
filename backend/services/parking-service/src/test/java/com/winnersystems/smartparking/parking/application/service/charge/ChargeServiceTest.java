@@ -42,7 +42,8 @@ class ChargeServiceTest {
       RatePersistencePort rates = mock(RatePersistencePort.class);
       ChargeSettlementPersistencePort settlementPort = mock(ChargeSettlementPersistencePort.class);
 
-      stay = new Transaction(1L, 2L, 3L, 4L, 5L, 6L, 7L, "12345678");
+      stay = Transaction.registerEntry(new Transaction.EntryData(1L, 2L, 3L, 4L, 5L, 6L, 7L, "12345678",
+            Transaction.METHOD_MANUAL, 9L, null, null, null), ENTRY);
       stay.setId(15L);
       stay.setEntryTime(ENTRY);
       when(transactions.findById(15L)).thenReturn(Optional.of(stay));

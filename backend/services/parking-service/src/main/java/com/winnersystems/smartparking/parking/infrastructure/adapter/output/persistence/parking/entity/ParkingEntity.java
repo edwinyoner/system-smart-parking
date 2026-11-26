@@ -59,6 +59,11 @@ public class ParkingEntity {
    @Column(name = "STATUS", nullable = false, length = 20)
    private String status;
 
+   // Exigir el documento del conductor al entrar y el mismo al salir (anti-robo); apagado por defecto
+   @Builder.Default
+   @Column(name = "REQUIRE_DRIVER_DOCUMENT", nullable = false, columnDefinition = "NUMBER(1) DEFAULT 0")
+   private boolean requireDriverDocument = false;
+
    @CreatedDate
    @Column(name = "CREATED_AT", nullable = false, updatable = false)
    private LocalDateTime createdAt;

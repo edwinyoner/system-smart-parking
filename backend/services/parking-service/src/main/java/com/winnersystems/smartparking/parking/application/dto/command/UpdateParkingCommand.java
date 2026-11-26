@@ -14,6 +14,7 @@ public record UpdateParkingCommand(
       Double latitude,
       Double longitude,
       Long managerId,
-      String status
+      String status,
+      Boolean requireDriverDocument   // null = no cambia
 ) {
 }

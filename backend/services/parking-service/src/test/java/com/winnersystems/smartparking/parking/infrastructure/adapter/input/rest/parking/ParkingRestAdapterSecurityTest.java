@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 class ParkingRestAdapterSecurityTest {
 
    private static final ParkingDto DTO = new ParkingDto(1L, "P", "PSM", null, "Dir", null, null, null, null,
-         0, 0, 0, 0, 0, 0.0, "ACTIVE", true, null, null, null, null, null, null);
+         0, 0, 0, 0, 0, 0.0, "ACTIVE", true, false, null, null, null, null, null, null);
 
    @Configuration
    @EnableMethodSecurity

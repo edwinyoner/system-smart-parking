@@ -66,10 +66,17 @@ public class TransactionPersistenceAdapter implements TransactionPersistencePort
     */
    @Override
    public Optional<Transaction> findActiveByPlateNumber(String plateNumber) {
-      // Implementado en TransactionService
-      throw new UnsupportedOperationException(
-            "findActiveByPlateNumber debe implementarse en TransactionService"
-      );
+      return transactionRepository.findActiveByPlate(plateNumber).map(transactionMapper::toDomain);
+   }
+
+   @Override
+   public Optional<Transaction> findByEntryCaptureId(String captureId) {
+      return transactionRepository.findByEntryCaptureId(captureId).map(transactionMapper::toDomain);
+   }
+
+   @Override
+   public Optional<Transaction> findByExitCaptureId(String captureId) {
+      return transactionRepository.findByExitCaptureId(captureId).map(transactionMapper::toDomain);
    }
 
    // ========================= EXISTS / COUNT =========================
@@ -115,9 +122,8 @@ public class TransactionPersistenceAdapter implements TransactionPersistencePort
     */
    @Override
    public PageResult<Transaction> searchActiveByPlate(String plateNumber, PageRequest pageRequest) {
-      throw new UnsupportedOperationException(
-            "searchActiveByPlate debe implementarse en TransactionService"
-      );
+      return toPageResult(transactionRepository.searchByPlate(plateTerm(plateNumber), "ACTIVE",
+            toPageable(pageRequest)));
    }
 
    @Override
@@ -170,9 +176,13 @@ public class TransactionPersistenceAdapter implements TransactionPersistencePort
     */
    @Override
    public PageResult<Transaction> searchByPlate(String plateNumber, PageRequest pageRequest) {
-      throw new UnsupportedOperationException(
-            "searchByPlate debe implementarse en TransactionService"
-      );
+      return toPageResult(transactionRepository.searchByPlate(plateTerm(plateNumber), null,
+            toPageable(pageRequest)));
+   }
+
+   /** Solo letras y números en mayúsculas: "abc-1" y "ABC 1" buscan lo mismo */
+   private static String plateTerm(String raw) {
+      return raw == null ? "" : raw.toUpperCase().replaceAll("[^A-Z0-9]", "");
    }
 
    // ========================= CONVERSIÓN PRIVADA =========================

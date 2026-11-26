@@ -69,6 +69,39 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
    @Query("SELECT COUNT(t) FROM TransactionEntity t WHERE t.parkingId = :parkingId AND t.status = 'ACTIVE'")
    long countActiveByParkingId(@Param("parkingId") Long parkingId);
 
+   // ========================= POR PLACA Y POR CAPTURA =========================
+
+   /** Estadía en curso de una placa (ya normalizada: ABC-123) */
+   @Query("""
+         SELECT t FROM TransactionEntity t, VehicleEntity v
+         WHERE v.id = t.vehicleId AND v.licensePlate = :plate AND t.status = 'ACTIVE'
+         """)
+   Optional<TransactionEntity> findActiveByPlate(@Param("plate") String plate);
+
+   /**
+    * Búsqueda parcial por placa sin el guion: "abc1" encuentra ABC-123. El término llega solo con
+    * letras y números, así que no hace falta escapar comodines.
+    * @param status null = cualquier estado
+    */
+   @Query(value = """
+         SELECT t FROM TransactionEntity t, VehicleEntity v
+         WHERE v.id = t.vehicleId
+           AND REPLACE(v.licensePlate, '-', '') LIKE CONCAT('%', :term, '%')
+           AND (:status IS NULL OR t.status = :status)
+         """,
+         countQuery = """
+         SELECT COUNT(t) FROM TransactionEntity t, VehicleEntity v
+         WHERE v.id = t.vehicleId
+           AND REPLACE(v.licensePlate, '-', '') LIKE CONCAT('%', :term, '%')
+           AND (:status IS NULL OR t.status = :status)
+         """)
+   Page<TransactionEntity> searchByPlate(@Param("term") String term, @Param("status") String status,
+                                         Pageable pageable);
+
+   Optional<TransactionEntity> findByEntryCaptureId(String entryCaptureId);
+
+   Optional<TransactionEntity> findByExitCaptureId(String exitCaptureId);
+
    // ========================= HISTORIAL COMPLETO =========================
 
    @Query("SELECT t FROM TransactionEntity t " +

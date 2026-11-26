@@ -23,6 +23,7 @@ public record ParkingDto(
       double occupancyPercentage,
       String status,
       boolean operational,
+      boolean requireDriverDocument,
       LocalDateTime createdAt,
       Long createdBy,
       LocalDateTime updatedAt,

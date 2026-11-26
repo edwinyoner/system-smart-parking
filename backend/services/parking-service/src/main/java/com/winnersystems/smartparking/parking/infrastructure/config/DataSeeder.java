@@ -22,7 +22,7 @@ import java.util.List;
  * Datos basados en la Ordenanza Municipal N° 011-MPH de Huaraz.
  *
  * Carga:
- * - Tipos de documento (DNI, CE, Pasaporte, RUC)
+ * - Tipos de documento (DNI, CE, Pasaporte). Sin RUC: no se emiten facturas (comprobante interno)
  * (Los tipos de pago se cargan en payment-service)
  * - Turnos (Mañana, Tarde, Noche)
  * - Tarifas (Estándar, Nocturna, Preferencial)
@@ -87,10 +87,7 @@ public class DataSeeder implements CommandLineRunner {
       documentTypeRepository.save(documentType("PASSPORT", "Pasaporte",
             "Documento de viaje internacional", "7", 6, 12, false));
 
-      documentTypeRepository.save(documentType("RUC", "Registro Único de Contribuyentes",
-            "Identificación tributaria: necesaria para emitir factura", "6", 11, 11, true));
-
-      log.info("4 tipos de documento cargados");
+      log.info("3 tipos de documento cargados");
    }
 
    private static DocumentTypeEntity documentType(String code, String name, String description, String sunatCode,
@@ -117,31 +114,34 @@ public class DataSeeder implements CommandLineRunner {
 
       log.info("→ Cargando turnos...");
 
+      // El minuto final se incluye en el turno: terminan en :59 para que turnos seguidos
+      // no compartan un minuto (06:00-12:00 y 12:00-18:00 se solaparían a las 12:00)
+
       shiftRepository.save(ShiftEntity.builder()
             .code("MORNING")
             .name("Mañana")
             .startTime(LocalTime.of(6, 0))
-            .endTime(LocalTime.of(12, 0))
+            .endTime(LocalTime.of(11, 59))
             .status(true)
-            .description("Turno matutino - 6:00 AM a 12:00 PM")
+            .description("Turno matutino - 06:00 a 11:59")
             .build());
 
       shiftRepository.save(ShiftEntity.builder()
             .code("AFTERNOON")
             .name("Tarde")
             .startTime(LocalTime.of(12, 0))
-            .endTime(LocalTime.of(18, 0))
+            .endTime(LocalTime.of(17, 59))
             .status(true)
-            .description("Turno vespertino - 12:00 PM a 6:00 PM")
+            .description("Turno vespertino - 12:00 a 17:59")
             .build());
 
       shiftRepository.save(ShiftEntity.builder()
             .code("NIGHT")
             .name("Noche")
             .startTime(LocalTime.of(18, 0))
-            .endTime(LocalTime.of(6, 0))
+            .endTime(LocalTime.of(5, 59))
             .status(true)
-            .description("Turno nocturno - 6:00 PM a 6:00 AM")
+            .description("Turno nocturno - 18:00 a 05:59 (cruza la medianoche)")
             .build());
 
       log.info("3 turnos cargados");

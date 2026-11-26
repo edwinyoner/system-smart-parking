@@ -19,7 +19,16 @@ import java.time.LocalDateTime;
  * @version 1.0
  */
 @Entity
-@Table(name = "TRANSACTIONS")
+// Una captura de cámara crea o cierra a lo sumo una estadía (Oracle admite varios NULL en un UNIQUE)
+@Table(name = "TRANSACTIONS",
+      uniqueConstraints = {
+            @UniqueConstraint(name = "UK_TRANSACTIONS_ENTRY_CAPTURE", columnNames = "ENTRY_CAPTURE_ID"),
+            @UniqueConstraint(name = "UK_TRANSACTIONS_EXIT_CAPTURE", columnNames = "EXIT_CAPTURE_ID")
+      },
+      indexes = {
+            @Index(name = "IX_TRANSACTIONS_STATUS", columnList = "STATUS"),
+            @Index(name = "IX_TRANSACTIONS_VEHICLE", columnList = "VEHICLE_ID, STATUS")
+      })
 @Data
 @Builder
 @NoArgsConstructor
@@ -41,7 +50,7 @@ public class TransactionEntity {
    @Column(name = "VEHICLE_ID", nullable = false)
    private Long vehicleId;
 
-   @Column(name = "CUSTOMER_ID", nullable = false)
+   @Column(name = "CUSTOMER_ID")                       // null: entró solo con la placa
    private Long customerId;
 
    @Column(name = "PARKING_ID", nullable = false)
@@ -58,10 +67,10 @@ public class TransactionEntity {
 
    // ========================= SEGURIDAD - DOCUMENTOS =========================
 
-   @Column(name = "ENTRY_DOCUMENT_TYPE_ID", nullable = false)
+   @Column(name = "ENTRY_DOCUMENT_TYPE_ID")
    private Long entryDocumentTypeId;
 
-   @Column(name = "ENTRY_DOCUMENT_NUMBER", nullable = false, length = 20)
+   @Column(name = "ENTRY_DOCUMENT_NUMBER", length = 20)
    private String entryDocumentNumber;
 
    @Column(name = "EXIT_DOCUMENT_TYPE_ID")
@@ -83,7 +92,7 @@ public class TransactionEntity {
 
    // ========================= OPERADORES Y MÉTODOS =========================
 
-   @Column(name = "ENTRY_OPERATOR_ID", nullable = false)
+   @Column(name = "ENTRY_OPERATOR_ID")                 // null: la cámara registró sola
    private Long entryOperatorId;
 
    @Column(name = "EXIT_OPERATOR_ID")
@@ -96,6 +105,12 @@ public class TransactionEntity {
    private String exitMethod;
 
    // ========================= EVIDENCIA =========================
+
+   @Column(name = "ENTRY_CAPTURE_ID", length = 64)
+   private String entryCaptureId;
+
+   @Column(name = "EXIT_CAPTURE_ID", length = 64)
+   private String exitCaptureId;
 
    @Column(name = "ENTRY_PHOTO_URL", length = 500)
    private String entryPhotoUrl;

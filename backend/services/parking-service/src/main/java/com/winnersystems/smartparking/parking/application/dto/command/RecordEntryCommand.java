@@ -1,81 +1,48 @@
 package com.winnersystems.smartparking.parking.application.dto.command;
 
 /**
- * Comando para registrar la ENTRADA de un vehículo al estacionamiento.
+ * Entrada MANUAL registrada por un operador desde el panel.
  *
- * Este comando captura toda la información necesaria para crear una Transaction
- * en estado ACTIVE.
+ * El operador y el método no vienen aquí: el servicio toma al usuario del token y el método
+ * es siempre MANUAL (así nadie registra a nombre de otro ni hace pasar una entrada manual
+ * por una de cámara). La entrada por cámara usa CameraCaptureCommand.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * @param plateNumber       placa (se normaliza a ABC-123)
+ * @param parkingId         parqueo
+ * @param zoneId            zona
+ * @param spaceId           espacio (opcional: si falta, se toma uno libre al azar de la zona)
+ * @param documentTypeId    tipo de documento del conductor (opcional, va con el número)
+ * @param documentNumber    número de documento (opcional)
+ * @param customerFirstName nombre del conductor (opcional, solo con documento)
+ * @param customerLastName  apellido (opcional)
+ * @param customerPhone     teléfono (opcional)
+ * @param customerEmail     correo (opcional)
+ * @param notes             observaciones (opcional)
  */
 public record RecordEntryCommand(
-      // ========================= IDENTIFICACIÓN =========================
-      String plateNumber,              // Placa del vehículo (NOT NULL)
-
-      // ========================= UBICACIÓN =========================
-      Long parkingId,                  // ID del parking (NOT NULL)
-      Long zoneId,                     // ID de la zona (NOT NULL)
-      Long spaceId,                    // ID del espacio específico (NOT NULL)
-
-      // ========================= CONDUCTOR =========================
-      Long documentTypeId,             // Tipo de documento (NOT NULL)
-      String documentNumber,           // Número de documento (NOT NULL)
-      String customerFirstName,        // Nombre del conductor (opcional)
-      String customerLastName,         // Apellido del conductor (opcional)
-      String customerPhone,            // Teléfono (opcional)
-      String customerEmail,            // Email (opcional)
-
-      // ========================= REGISTRO =========================
-      Long operatorId,                 // Operador que registra (NOT NULL)
-      String entryMethod,              // MANUAL, CAMERA_AI, SENSOR
-
-      // ========================= EVIDENCIA (OPCIONAL) =========================
-      String photoUrl,                 // URL foto entrada (opcional)
-      Double plateConfidence,          // Confianza IA (0.0-1.0)
-
-      // ========================= OBSERVACIONES =========================
-      String notes                     // Notas adicionales (opcional)
+      String plateNumber,
+      Long parkingId,
+      Long zoneId,
+      Long spaceId,
+      Long documentTypeId,
+      String documentNumber,
+      String customerFirstName,
+      String customerLastName,
+      String customerPhone,
+      String customerEmail,
+      String notes
 ) {
-   // Validaciones en constructor compacto
    public RecordEntryCommand {
-      if (plateNumber == null || plateNumber.isBlank()) {
-         throw new IllegalArgumentException("plateNumber es requerido");
-      }
       if (parkingId == null) {
-         throw new IllegalArgumentException("parkingId es requerido");
+         throw new IllegalArgumentException("Indica el parqueo");
       }
       if (zoneId == null) {
-         throw new IllegalArgumentException("zoneId es requerido");
+         throw new IllegalArgumentException("Indica la zona");
       }
-      if (spaceId == null) {
-         throw new IllegalArgumentException("spaceId es requerido");
-      }
-      if (documentTypeId == null) {
-         throw new IllegalArgumentException("documentTypeId es requerido");
-      }
-      if (documentNumber == null || documentNumber.isBlank()) {
-         throw new IllegalArgumentException("documentNumber es requerido");
-      }
-      if (operatorId == null) {
-         throw new IllegalArgumentException("operatorId es requerido");
-      }
+   }
 
-      // Normalizar placa a mayúsculas
-      plateNumber = plateNumber != null ? plateNumber.toUpperCase().trim() : null;
-      documentNumber = documentNumber != null ? documentNumber.toUpperCase().trim() : null;
-
-      // Validar entryMethod si está presente
-      if (entryMethod != null &&
-            !entryMethod.equals("MANUAL") &&
-            !entryMethod.equals("CAMERA_AI") &&
-            !entryMethod.equals("SENSOR")) {
-         throw new IllegalArgumentException("entryMethod debe ser MANUAL, CAMERA_AI o SENSOR");
-      }
-
-      // Validar plateConfidence si está presente
-      if (plateConfidence != null && (plateConfidence < 0.0 || plateConfidence > 1.0)) {
-         throw new IllegalArgumentException("plateConfidence debe estar entre 0.0 y 1.0");
-      }
+   /** true si se indicó documento (tipo o número): el dominio exige que vengan juntos */
+   public boolean hasDocument() {
+      return documentTypeId != null || (documentNumber != null && !documentNumber.isBlank());
    }
 }

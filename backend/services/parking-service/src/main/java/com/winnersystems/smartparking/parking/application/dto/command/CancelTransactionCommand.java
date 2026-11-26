@@ -10,7 +10,7 @@ public record CancelTransactionCommand(
 ) {
    public CancelTransactionCommand {
       if (reason == null || reason.isBlank()) {
-         throw new IllegalArgumentException("reason es requerido");
+         throw new IllegalArgumentException("Indica el motivo de la cancelación");
       }
    }
 }

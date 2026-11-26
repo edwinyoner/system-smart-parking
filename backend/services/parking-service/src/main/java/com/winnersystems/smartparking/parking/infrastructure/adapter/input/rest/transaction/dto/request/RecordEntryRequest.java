@@ -1,81 +1,49 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request;
 
-import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 /**
- * Request DTO para registrar entrada de vehículo.
- *
- * IMPORTANTE: Solo se registra la PLACA del vehículo.
- * Información adicional (marca, modelo, color) se obtendría de SUNARP en futuras versiones.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Entrada manual desde el panel. El operador sale del token (no se envía) y el método es MANUAL.
+ * Placa en cualquier forma ("abc 123", "ABC123"): el dominio la normaliza a ABC-123.
+ * Documento y datos del conductor son opcionales (salvo que el parqueo exija documento).
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class RecordEntryRequest {
+public record RecordEntryRequest(
+      @NotBlank(message = "La placa es obligatoria")
+      @Size(max = 10, message = "La placa no puede superar 10 caracteres")
+      String plateNumber,
 
-   // ========================= UBICACIÓN =========================
+      @NotNull(message = "El parqueo es obligatorio")
+      Long parkingId,
 
-   @NotNull(message = "El parking es obligatorio")
-   private Long parkingId;
+      @NotNull(message = "La zona es obligatoria")
+      Long zoneId,
 
-   @NotNull(message = "La zona es obligatoria")
-   private Long zoneId;
+      // Opcional: si falta, se descuenta un espacio libre al azar de la zona
+      Long spaceId,
 
-   @NotNull(message = "El espacio es obligatorio")
-   private Long spaceId;
+      Long documentTypeId,
 
-   // ========================= VEHÍCULO - SOLO PLACA =========================
+      @Size(max = 20, message = "El documento no puede superar 20 caracteres")
+      String documentNumber,
 
-   @NotBlank(message = "La placa es obligatoria")
-   @Size(min = 5, max = 20, message = "La placa debe tener entre 5 y 20 caracteres")
-   @Pattern(regexp = "^[A-Z0-9-]+$", message = "La placa solo puede contener letras mayúsculas, números y guiones")
-   private String plateNumber;
+      @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
+      String customerFirstName,
 
-   // ========================= DOCUMENTO =========================
+      @Size(max = 100, message = "El apellido no puede superar 100 caracteres")
+      String customerLastName,
 
-   @NotNull(message = "El tipo de documento es obligatorio")
-   private Long documentTypeId;
+      @Pattern(regexp = "^$|^9\\d{8}$", message = "El celular debe tener 9 dígitos y empezar con 9")
+      String customerPhone,
 
-   @NotBlank(message = "El número de documento es obligatorio")
-   @Size(min = 8, max = 20, message = "El documento debe tener entre 8 y 20 caracteres")
-   private String documentNumber;
+      @Email(message = "El correo no es válido")
+      @Size(max = 100, message = "El correo no puede superar 100 caracteres")
+      String customerEmail,
 
-   // ========================= CLIENTE =========================
-
-   @NotBlank(message = "El nombre del cliente es obligatorio")
-   @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
-   private String customerFirstName;
-
-   @NotBlank(message = "El apellido del cliente es obligatorio")
-   @Size(min = 2, max = 100, message = "El apellido debe tener entre 2 y 100 caracteres")
-   private String customerLastName;
-
-   @Email(message = "El email debe ser válido")
-   private String customerEmail;
-
-   @Pattern(regexp = "^[0-9+\\-\\s()]+$", message = "El teléfono solo puede contener números, espacios y símbolos +-()")
-   private String customerPhone;
-
-   // ========================= OPERADOR =========================
-
-   @NotNull(message = "El operador es obligatorio")
-   private Long operatorId;
-
-   // ========================= EVIDENCIA =========================
-
-   private String entryMethod;      // MANUAL, CAMERA_AI, SENSOR
-   private String photoUrl;
-   private Double plateConfidence;
-
-   // ========================= OBSERVACIONES =========================
-
-   private String notes;
+      @Size(max = 500, message = "Las observaciones no pueden superar 500 caracteres")
+      String notes
+) {
 }

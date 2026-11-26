@@ -31,12 +31,11 @@ public class DocumentMismatchException extends ParkingDomainException {
    public DocumentMismatchException(String entryDocumentNumber,
                                     String exitDocumentNumber,
                                     Long transactionId) {
-      super(String.format(
-            "ALERTA DE SEGURIDAD: El documento de salida '%s' NO coincide con el " +
-                  "documento de entrada '%s' (Transaction ID: %d). " +
-                  "Posible intento de robo. Se ha bloqueado la operación.",
-            exitDocumentNumber, entryDocumentNumber, transactionId
-      ));
+      // El mensaje llega a quien intenta salir: nunca debe mostrar el documento de entrada
+      // (sería entregarle el DNI del dueño del vehículo). Los números quedan en los getters
+      // para el registro interno.
+      super("El documento no coincide con el que se registró al entrar. "
+            + "Por seguridad, la salida queda bloqueada: acuda al operador.");
       this.entryDocumentNumber = entryDocumentNumber;
       this.exitDocumentNumber = exitDocumentNumber;
       this.transactionId = transactionId;

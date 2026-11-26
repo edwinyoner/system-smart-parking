@@ -32,6 +32,12 @@ public interface TransactionPersistencePort {
 
    Optional<Transaction> findActiveByPlateNumber(String plateNumber);
 
+   /** Estadía creada por esa captura de cámara (idempotencia de la entrada) */
+   Optional<Transaction> findByEntryCaptureId(String captureId);
+
+   /** Estadía cerrada por esa captura de cámara (idempotencia de la salida) */
+   Optional<Transaction> findByExitCaptureId(String captureId);
+
    // ========================= EXISTS / COUNT =========================
 
    boolean existsActiveByVehicleId(Long vehicleId);

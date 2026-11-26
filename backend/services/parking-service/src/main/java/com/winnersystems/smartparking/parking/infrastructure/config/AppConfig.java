@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.TimeZone;
+import java.util.random.RandomGenerator;
 
 /**
  * Configuración general de la aplicación Parking Service.
@@ -46,5 +47,14 @@ public class AppConfig {
    @Bean
    public Clock clock() {
       return Clock.system(ZoneId.of(PERU_TIMEZONE));
+   }
+
+   /**
+    * Generador aleatorio para elegir el espacio que se descuenta al entrar (SpaceAllocator).
+    * Es un bean para que las pruebas usen uno con semilla fija.
+    */
+   @Bean
+   public RandomGenerator spaceRandomGenerator() {
+      return RandomGenerator.getDefault();
    }
 }

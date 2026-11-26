@@ -57,7 +57,7 @@ class ParkingServiceTest {
    }
 
    private static CreateParkingCommand create(Long managerId) {
-      return new CreateParkingCommand("Parqueo San Martín", "psm", null, "Jr. San Martín", null, null, managerId);
+      return new CreateParkingCommand("Parqueo San Martín", "psm", null, "Jr. San Martín", null, null, managerId, null);
    }
 
    @Test
@@ -106,13 +106,14 @@ class ParkingServiceTest {
       p.assignManager(5L, "Ana Ríos");
       when(parkings.findById(1L)).thenReturn(Optional.of(p));
 
-      service.updateParking(1L, new UpdateParkingCommand("Nuevo", null, "Dir", null, null, 5L, "MAINTENANCE"));
+      service.updateParking(1L, new UpdateParkingCommand("Nuevo", null, "Dir", null, null, 5L, "MAINTENANCE", true));
       verifyNoInteractions(users);
       assertThat(p.getName()).isEqualTo("Nuevo");
       assertThat(p.getStatus()).isEqualTo(Parking.STATUS_MAINTENANCE);
       assertThat(p.getUpdatedBy()).isEqualTo(9L);
+      assertThat(p.isDriverDocumentRequired()).isTrue();
 
-      service.updateParking(1L, new UpdateParkingCommand("Nuevo", null, "Dir", null, null, null, null));
+      service.updateParking(1L, new UpdateParkingCommand("Nuevo", null, "Dir", null, null, null, null, null));
       assertThat(p.hasManager()).isFalse();
       assertThat(p.getStatus()).isEqualTo(Parking.STATUS_MAINTENANCE);
    }

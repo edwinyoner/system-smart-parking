@@ -177,6 +177,7 @@ public class DataSeeder implements CommandLineRunner {
             {"transactions.exit", "Registrar salida de vehículos"},
             {"transactions.view", "Ver transacciones del sistema"},
             {"transactions.cancel", "Cancelar transacciones"},
+            {"transactions.any-parking", "Registrar entradas y salidas en cualquier parqueo sin estar de turno"},
 
             // Tipos de Pago
             {"payment-types.create", "Crear nuevos tipos de pago"},

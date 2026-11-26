@@ -31,6 +31,7 @@ public class ActiveTransactionResponse {
    private String customerName;
    private String customerPhone;
    private String customerEmail;
+   private String documentType;
    private String documentNumber;
 
    // Ubicación

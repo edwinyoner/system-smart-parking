@@ -90,6 +90,10 @@ service-clients:
       permissions:
         - internal.charges.read     # consultar cuánto se debe (estadía o multa)
         - internal.charges.settle   # avisar que se pagó o se devolvió
+    iot-service:
+      secret: ${IOT_SERVICE_CLIENT_SECRET:}
+      permissions:
+        - internal.captures.process # enviar lecturas de las cámaras de entrada y salida
 
 # ========== EMAIL TEMPLATES ==========
 email:

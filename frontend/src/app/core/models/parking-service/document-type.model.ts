@@ -1,5 +1,5 @@
 /**
- * Tipo de documento de identidad del cliente (DNI, CE, RUC, pasaporte...).
+ * Tipo de documento de identidad del cliente (DNI, CE, pasaporte...).
  * Sus reglas validan el número en la entrada, la salida y al registrar clientes.
  */
 export interface DocumentType {

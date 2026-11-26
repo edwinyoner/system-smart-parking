@@ -27,6 +27,7 @@ public record ParkingResponse(
       double occupancyPercentage,
       String status,
       boolean operational,
+      boolean requireDriverDocument,
       LocalDateTime createdAt,
       Long createdBy,
       LocalDateTime updatedAt,

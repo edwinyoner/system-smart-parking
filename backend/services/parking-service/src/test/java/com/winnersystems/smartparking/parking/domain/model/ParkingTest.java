@@ -104,4 +104,17 @@ class ParkingTest {
       b.setId(1L);
       assertThat(a).isEqualTo(b).hasSameHashCodeAs(b);
    }
+
+   @Test
+   @DisplayName("documento del conductor: apagado por defecto; encendido, la entrada lo exige")
+   void driverDocumentPolicy() {
+      Parking p = sample();
+      assertThat(p.isDriverDocumentRequired()).isFalse();
+      p.ensureEntryDocument(false);
+
+      p.changeDriverDocumentPolicy(true);
+      assertThat(p.isDriverDocumentRequired()).isTrue();
+      p.ensureEntryDocument(true);
+      assertThatThrownBy(() -> p.ensureEntryDocument(false)).hasMessageContaining("exige el documento");
+   }
 }

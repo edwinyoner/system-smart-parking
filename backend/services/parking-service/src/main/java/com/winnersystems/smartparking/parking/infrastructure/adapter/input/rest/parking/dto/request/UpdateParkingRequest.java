@@ -31,6 +31,9 @@ public record UpdateParkingRequest(
 
       /** Opcional: ACTIVE, INACTIVE, MAINTENANCE u OUT_OF_SERVICE (vacío = no cambia) */
       @Pattern(regexp = "^(ACTIVE|INACTIVE|MAINTENANCE|OUT_OF_SERVICE)?$", message = "Estado inválido")
-      String status
+      String status,
+
+      // null = no cambia
+      Boolean requireDriverDocument
 ) {
 }

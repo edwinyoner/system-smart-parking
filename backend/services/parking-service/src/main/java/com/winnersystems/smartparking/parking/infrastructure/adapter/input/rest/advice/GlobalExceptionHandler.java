@@ -103,6 +103,25 @@ public class GlobalExceptionHandler {
    }
 
    /**
+    * Acción no permitida para este usuario: no está de turno en ese parqueo, o le falta el
+    * permiso de la operación concreta (403). Va antes que el manejador general de dominio.
+    */
+   @ExceptionHandler(ActionNotAllowedException.class)
+   public ResponseEntity<ErrorResponse> handleActionNotAllowed(
+         ActionNotAllowedException ex, WebRequest request) {
+
+      ErrorResponse error = ErrorResponse.builder()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.FORBIDDEN.value())
+            .error("Forbidden")
+            .message(ex.getMessage())
+            .path(request.getDescription(false).replace("uri=", ""))
+            .build();
+
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+   }
+
+   /**
     * Maneja excepción cuando una transacción está en un estado inválido.
     */
    @ExceptionHandler(InvalidTransactionStateException.class)

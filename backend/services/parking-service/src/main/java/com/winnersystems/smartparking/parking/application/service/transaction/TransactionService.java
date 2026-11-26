@@ -1,10 +1,14 @@
 package com.winnersystems.smartparking.parking.application.service.transaction;
 
+import com.winnersystems.smartparking.parking.application.dto.command.CancelTransactionCommand;
+import com.winnersystems.smartparking.parking.application.dto.command.ReassignSpaceCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.RecordEntryCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.RecordExitCommand;
+import com.winnersystems.smartparking.parking.application.dto.command.UpdateTransactionCommand;
 import com.winnersystems.smartparking.parking.application.dto.query.*;
 import com.winnersystems.smartparking.parking.application.port.input.transaction.*;
 import com.winnersystems.smartparking.parking.application.port.output.*;
+import com.winnersystems.smartparking.parking.application.service.parkingshiftrate.ParkingScheduleResolver;
 import com.winnersystems.smartparking.parking.domain.exception.*;
 import com.winnersystems.smartparking.parking.domain.model.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,30 +16,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import com.winnersystems.smartparking.parking.application.service.parkingshiftrate.ParkingScheduleResolver;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.random.RandomGenerator;
 
 /**
- * Servicio de aplicación para gestión de transacciones de estacionamiento.
+ * Servicio de aplicación de las estadías: entrada, salida, cambio de espacio, cancelación y consultas.
  *
- * Implementa los casos de uso del ciclo completo: Entrada → Pago → Salida.
+ * Hay tres formas de entrar o salir y todas pasan por enterVehicle / exitVehicle, para que las
+ * reglas se escriban una sola vez:
+ * - el operador desde el panel (recordEntry / recordExit, método MANUAL);
+ * - la cámara, vía iot-service (CameraCaptureService, método CAMERA_AI);
+ * - la confirmación de una lectura dudosa (PlateReviewService).
  *
- * El pago lo cobra payment-service (QR o efectivo) y lo avisa por /internal/charges (ChargeService).
+ * El pago lo cobra payment-service y lo avisa por /internal/charges (ChargeService).
  * La salida exige que no se deba nada: tras pagar hay parking.payment.exit-window-minutes para salir.
- *
- * Responsabilidades:
- * - Orquestar operaciones entre múltiples agregados (Vehicle, Customer, Space, etc.)
- * - Validar reglas de negocio complejas
- * - Coordinar persistencia de múltiples entidades
- * - Calcular montos y tiempos
- * - Construir DTOs con datos relacionados
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
  */
 @Service
 @Transactional
@@ -44,7 +41,10 @@ public class TransactionService implements
       RecordExitUseCase,
       GetTransactionUseCase,
       ListActiveTransactionsUseCase,
-      ListTransactionsUseCase {
+      ListTransactionsUseCase,
+      CancelTransactionUseCase,
+      UpdateTransactionUseCase,
+      ReassignSpaceUseCase {
 
    // ========================= PUERTOS DE SALIDA =========================
 
@@ -58,6 +58,9 @@ public class TransactionService implements
    private final RatePersistencePort ratePersistencePort;
    private final ParkingScheduleResolver scheduleResolver;
    private final DocumentTypePersistencePort documentTypePersistencePort;
+   private final CurrentUserPort currentUserPort;
+   private final OperatorDutyChecker dutyChecker;
+   private final RandomGenerator random;
    private final Clock clock;
    private final int exitWindowMinutes;
 
@@ -78,6 +81,9 @@ public class TransactionService implements
          RatePersistencePort ratePersistencePort,
          ParkingScheduleResolver scheduleResolver,
          DocumentTypePersistencePort documentTypePersistencePort,
+         CurrentUserPort currentUserPort,
+         OperatorDutyChecker dutyChecker,
+         RandomGenerator random,
          Clock clock,
          @Value("${parking.payment.exit-window-minutes:15}") int exitWindowMinutes) {
       this.transactionPersistencePort = transactionPersistencePort;
@@ -90,95 +96,238 @@ public class TransactionService implements
       this.ratePersistencePort = ratePersistencePort;
       this.scheduleResolver = scheduleResolver;
       this.documentTypePersistencePort = documentTypePersistencePort;
+      this.currentUserPort = currentUserPort;
+      this.dutyChecker = dutyChecker;
+      this.random = random;
       this.clock = clock;
       this.exitWindowMinutes = exitWindowMinutes;
    }
 
-   // ========================= RecordEntryUseCase =========================
+   // ========================= ENTRADA Y SALIDA MANUAL =========================
 
+   /** Entrada desde el panel: el operador sale del token y el método es MANUAL */
    @Override
    public TransactionDetailDto recordEntry(RecordEntryCommand command) {
-      // 1. Validar y cargar parking
-      Parking parking = loadParking(command.parkingId());
-      validateParkingOperational(parking);
+      return enterVehicle(new EntryRequest(
+            command.plateNumber(), command.parkingId(), command.zoneId(), command.spaceId(),
+            command.documentTypeId(), command.documentNumber(),
+            command.customerFirstName(), command.customerLastName(),
+            command.customerPhone(), command.customerEmail(),
+            Transaction.METHOD_MANUAL, currentUserPort.requireCurrentUserId(),
+            null, null, null, command.notes()));
+   }
 
-      // 2. Validar y cargar zona
-      Zone zone = loadZone(command.zoneId());
+   /** Salida desde el panel: el operador sale del token y el método es MANUAL */
+   @Override
+   public TransactionDetailDto recordExit(RecordExitCommand command) {
+      return exitVehicle(new ExitRequest(
+            command.transactionId(), command.plateNumber(), null,
+            command.exitDocumentTypeId(), command.exitDocumentNumber(),
+            Transaction.METHOD_MANUAL, currentUserPort.requireCurrentUserId(),
+            null, null, null, command.notes()));
+   }
+
+   // ========================= NÚCLEO DE ENTRADA =========================
+
+   /**
+    * Registra una entrada (manual, por cámara o al confirmar una revisión).
+    *
+    * Orden: primero todo lo que puede fallar sin escribir nada (parqueo, zona, turno, tarifa,
+    * vehículo dentro, espacio), después se guarda.
+    */
+   public TransactionDetailDto enterVehicle(EntryRequest request) {
+      LocalDateTime now = LocalDateTime.now(clock);
+      String plate = PlateNumber.normalize(request.plateNumber());
+
+      // 1. Parqueo operativo y su política de documento
+      Parking parking = loadParking(request.parkingId());
+      validateParkingOperational(parking);
+      boolean hasDocument = request.documentTypeId() != null
+            || (request.documentNumber() != null && !request.documentNumber().isBlank());
+      parking.ensureEntryDocument(hasDocument);
+
+      // 2. Zona operativa y del parqueo
+      Zone zone = loadZone(request.zoneId());
       validateZoneOperational(zone);
       if (!zone.belongsTo(parking.getId())) {
          throw new ParkingDomainException("La zona " + zone.getName() + " no pertenece al parqueo " + parking.getName());
       }
 
-      // 3. Validar y cargar espacio
-      Space space = loadSpace(command.spaceId());
-      validateSpaceAvailable(space);
-      if (!space.belongsTo(zone.getId())) {
-         throw new ParkingDomainException("El espacio " + space.getCode() + " no pertenece a la zona " + zone.getName());
+      // 3. Quien registra está de turno allí (regla 8)
+      if (request.operatorId() != null) {
+         dutyChecker.ensureOnDuty(request.operatorId(), parking, zone.getId(), now);
       }
 
-      // 4. Buscar o crear vehículo
-      Vehicle vehicle = findOrCreateVehicle(command);
+      // 4. El parqueo atiende a esta hora: tarifa del turno vigente (regla 1)
+      Rate rate = findApplicableRate(parking, now);
 
-      // 5. Verificar que el vehículo no esté ya dentro
-      validateVehicleNotInside(vehicle);
+      // 5. El vehículo no está dentro
+      Vehicle vehicle = vehiclePersistencePort.findByPlateNumber(plate).orElse(null);
+      if (vehicle != null) {
+         validateVehicleNotInside(vehicle);
+      }
 
-      // 6. Buscar o crear cliente
-      Customer customer = findOrCreateCustomer(command);
+      // 6. Espacio: el indicado o uno libre al azar (libre elección del conductor)
+      Space space = resolveEntrySpace(request.spaceId(), zone);
 
-      // 7. Registrar o actualizar relación Cliente-Vehículo
-      registerCustomerVehicleRelation(customer.getId(), vehicle.getId());
+      // 7. Documento normalizado (si se dio) antes de crear nada
+      String document = hasDocument ? validDocumentNumber(request.documentTypeId(), request.documentNumber()) : null;
 
-      // 8. Obtener tarifa aplicable
-      Rate rate = findApplicableRate(parking, LocalDateTime.now(clock));
+      // 8. Guardar: vehículo, cliente (solo con documento), estadía y espacio ocupado
+      if (vehicle == null) {
+         vehicle = new Vehicle(plate);
+         vehicle.setCreatedBy(request.operatorId());
+         vehicle = vehiclePersistencePort.save(vehicle);
+      }
+      Customer customer = null;
+      if (hasDocument) {
+         customer = findOrCreateCustomer(request, document);
+         registerCustomerVehicleRelation(customer.getId(), vehicle.getId());
+      }
 
-      // 9. Crear y guardar transacción
-      Transaction transaction = buildEntryTransaction(command, vehicle, customer, zone, space, rate);
+      Transaction transaction = Transaction.registerEntry(new Transaction.EntryData(
+            vehicle.getId(), customer != null ? customer.getId() : null,
+            parking.getId(), zone.getId(), space.getId(), rate.getId(),
+            hasDocument ? request.documentTypeId() : null, document,
+            request.method(), request.operatorId(),
+            request.captureId(), request.photoUrl(), request.plateConfidence()), now);
+      if (request.notes() != null && !request.notes().isBlank()) {
+         transaction.setNotes(request.notes().trim());
+      }
       Transaction saved = transactionPersistencePort.save(transaction);
 
-      // 10. Marcar espacio como ocupado
       space.occupy();
       spacePersistencePort.save(space);
 
-      // 11. Actualizar contadores de vehículo y cliente
       vehicle.recordVisit();
       vehiclePersistencePort.save(vehicle);
-      customer.recordVisit();
-      customerPersistencePort.save(customer);
+      if (customer != null) {
+         customer.recordVisit();
+         customerPersistencePort.save(customer);
+      }
 
       return buildTransactionDetailDto(saved, vehicle, customer, parking, zone, space, rate);
    }
 
-   // ========================= RecordExitUseCase =========================
+   // ========================= NÚCLEO DE SALIDA =========================
 
-   @Override
-   public TransactionDetailDto recordExit(RecordExitCommand command) {
-      // 1. Buscar transacción activa
-      Transaction transaction = findActiveTransaction(command);
+   /**
+    * Registra una salida (manual, por cámara o al confirmar una revisión).
+    *
+    * @throws PaymentRequiredException  si falta pagar (409): la estadía no cambia
+    * @throws DocumentMismatchException si el parqueo exige documento y no coincide (403)
+    */
+   public TransactionDetailDto exitVehicle(ExitRequest request) {
+      LocalDateTime now = LocalDateTime.now(clock);
+      Transaction transaction = findActiveTransaction(request.transactionId(), request.plateNumber());
 
-      // 2. Validar estado
-      validateTransactionActive(transaction);
+      if (request.expectedParkingId() != null && !request.expectedParkingId().equals(transaction.getParkingId())) {
+         throw new ResourceConflictException("La estadía de esta placa es de otro parqueo");
+      }
 
-      // 3. Cargar entidades relacionadas
-      Vehicle vehicle = loadVehicle(transaction.getVehicleId());
-      Customer customer = loadCustomer(transaction.getCustomerId());
       Parking parking = loadParking(transaction.getParkingId());
       Zone zone = loadZone(transaction.getZoneId());
       Space space = loadSpace(transaction.getSpaceId());
       Rate rate = loadRate(transaction.getRateId());
 
-      // 4. Registrar salida: exige el pago y valida el documento (anti-robo)
-      processExit(transaction, command, rate);
-      validateDocumentMatch(transaction);
+      if (request.operatorId() != null) {
+         dutyChecker.ensureOnDuty(request.operatorId(), parking, zone.getId(), now);
+      }
 
-      // 5. Guardar transacción actualizada
-      transaction.setUpdatedBy(command.operatorId());
+      boolean hasDocument = request.documentTypeId() != null
+            || (request.documentNumber() != null && !request.documentNumber().isBlank());
+      String document = hasDocument ? validDocumentNumber(request.documentTypeId(), request.documentNumber()) : null;
+
+      transaction.completeExit(new Transaction.ExitData(
+                  hasDocument ? request.documentTypeId() : null, document,
+                  request.method(), request.operatorId(),
+                  request.captureId(), request.photoUrl(), request.plateConfidence()),
+            rate, now, exitWindowMinutes, parking.isDriverDocumentRequired());
+      appendNotes(transaction, request.notes());
+
       Transaction saved = transactionPersistencePort.save(transaction);
 
-      // 6. Liberar espacio
       space.release();
       spacePersistencePort.save(space);
 
-      return buildTransactionDetailDto(saved, vehicle, customer, parking, zone, space, rate);
+      return buildTransactionDetailDto(saved, loadVehicle(saved.getVehicleId()), loadCustomerOrNull(saved),
+            parking, zone, space, rate);
+   }
+
+   /** Lo que falta pagar para salir ahora (lo usa la cámara de salida para mostrar el monto) */
+   @Transactional(readOnly = true)
+   public BigDecimal amountDueNow(Long transactionId) {
+      Transaction transaction = loadTransaction(transactionId);
+      if (!transaction.isActive()) {
+         return BigDecimal.ZERO;
+      }
+      return transaction.amountDueAt(LocalDateTime.now(clock), loadRate(transaction.getRateId()), exitWindowMinutes);
+   }
+
+   // ========================= CAMBIO DE ESPACIO =========================
+
+   @Override
+   public TransactionDetailDto reassignSpace(Long transactionId, ReassignSpaceCommand command) {
+      if (command == null || command.spaceId() == null) {
+         throw new IllegalArgumentException("Indica el espacio nuevo");
+      }
+      Transaction transaction = loadTransaction(transactionId);
+      Space newSpace = spacePersistencePort.findById(command.spaceId())
+            .orElseThrow(() -> new ResourceNotFoundException("Espacio no encontrado: " + command.spaceId()));
+      if (!newSpace.belongsTo(transaction.getZoneId())) {
+         throw new ResourceConflictException("El espacio " + newSpace.getCode() + " es de otra zona");
+      }
+      validateSpaceAvailable(newSpace);
+
+      Long userId = currentUserPort.requireCurrentUserId();
+      Long previousId = transaction.reassignSpace(newSpace.getId(), userId);
+      Transaction saved = transactionPersistencePort.save(transaction);
+
+      spacePersistencePort.findByIdIncludingDeleted(previousId).ifPresent(previous -> {
+         if (previous.isOccupied()) {
+            previous.release();
+            spacePersistencePort.save(previous);
+         }
+      });
+      newSpace.occupy();
+      spacePersistencePort.save(newSpace);
+
+      return loadTransactionDetailDto(saved);
+   }
+
+   // ========================= CANCELACIÓN =========================
+
+   /** Estadía registrada por error: solo en curso y sin pagos; libera el espacio */
+   @Override
+   public TransactionDto cancelTransaction(Long transactionId, CancelTransactionCommand command) {
+      Transaction transaction = loadTransaction(transactionId);
+      transaction.cancel(command.reason(), currentUserPort.requireCurrentUserId());
+      Transaction saved = transactionPersistencePort.save(transaction);
+
+      spacePersistencePort.findByIdIncludingDeleted(saved.getSpaceId()).ifPresent(space -> {
+         if (space.isOccupied()) {
+            space.release();
+            spacePersistencePort.save(space);
+         }
+      });
+      return buildTransactionDto(saved);
+   }
+
+   // ========================= OBSERVACIONES =========================
+
+   /** Cambia las observaciones (se permite también en estadías cerradas: es una nota) */
+   @Override
+   public TransactionDto updateTransaction(Long transactionId, UpdateTransactionCommand command) {
+      Transaction transaction = loadTransaction(transactionId);
+      String notes = command == null || command.notes() == null || command.notes().isBlank()
+            ? null : command.notes().trim();
+      if (notes != null && notes.length() > 500) {
+         throw new ParkingDomainException("Las observaciones no pueden superar 500 caracteres");
+      }
+      transaction.setNotes(notes);
+      transaction.setUpdatedBy(currentUserPort.requireCurrentUserId());
+      transaction.setUpdatedAt(LocalDateTime.now(clock));
+      return buildTransactionDto(transactionPersistencePort.save(transaction));
    }
 
    // ========================= GetTransactionUseCase =========================
@@ -193,7 +342,10 @@ public class TransactionService implements
    @Override
    @Transactional(readOnly = true)
    public TransactionDetailDto getActiveTransactionByPlate(String plateNumber) {
-      return transactionPersistencePort.findActiveByPlateNumber(plateNumber)
+      if (!PlateNumber.isValid(plateNumber)) {
+         return null;
+      }
+      return transactionPersistencePort.findActiveByPlateNumber(PlateNumber.normalize(plateNumber))
             .map(this::loadTransactionDetailDto)
             .orElse(null);
    }
@@ -291,43 +443,41 @@ public class TransactionService implements
     */
    private Parking loadParking(Long parkingId) {
       return parkingPersistencePort.findByIdIncludingDeleted(parkingId)
-            .orElseThrow(() -> new IllegalArgumentException("Parking no encontrado: " + parkingId));
+            .orElseThrow(() -> new ResourceNotFoundException("Parqueo no encontrado: " + parkingId));
    }
 
    private Transaction loadTransaction(Long transactionId) {
       return transactionPersistencePort.findById(transactionId)
-            .orElseThrow(() -> new IllegalArgumentException("Transacción no encontrada: " + transactionId));
+            .orElseThrow(() -> new ResourceNotFoundException("Estadía no encontrada: " + transactionId));
    }
 
-   /**
-    * Incluye eliminadas para mostrar el historial. Una entrada nueva igual se rechaza:
-    * validateZoneOperational exige una zona activa y no eliminada.
-    */
+   /** Incluye eliminadas para el historial; una entrada nueva exige una zona operativa */
    private Zone loadZone(Long zoneId) {
       return zonePersistencePort.findByIdIncludingDeleted(zoneId)
-            .orElseThrow(() -> new IllegalArgumentException("Zona no encontrada: " + zoneId));
+            .orElseThrow(() -> new ResourceNotFoundException("Zona no encontrada: " + zoneId));
    }
 
-   /** Incluye eliminados para el historial; una entrada nueva igual exige un espacio libre y vigente */
+   /** Incluye eliminados para el historial; una entrada nueva exige un espacio libre y vigente */
    private Space loadSpace(Long spaceId) {
       return spacePersistencePort.findByIdIncludingDeleted(spaceId)
-            .orElseThrow(() -> new IllegalArgumentException("Espacio no encontrado: " + spaceId));
+            .orElseThrow(() -> new ResourceNotFoundException("Espacio no encontrado: " + spaceId));
    }
 
    private Vehicle loadVehicle(Long vehicleId) {
       return vehiclePersistencePort.findById(vehicleId)
-            .orElseThrow(() -> new IllegalArgumentException("Vehículo no encontrado: " + vehicleId));
+            .orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado: " + vehicleId));
    }
 
-   private Customer loadCustomer(Long customerId) {
-      return customerPersistencePort.findById(customerId)
-            .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado: " + customerId));
+   /** Sin documento no hay cliente: la estadía queda ligada solo a la placa */
+   private Customer loadCustomerOrNull(Transaction transaction) {
+      return transaction.getCustomerId() == null ? null
+            : customerPersistencePort.findById(transaction.getCustomerId()).orElse(null);
    }
 
    /** Incluye eliminadas: una transacción conserva su tarifa aunque luego se elimine */
    private Rate loadRate(Long rateId) {
       return ratePersistencePort.findByIdIncludingDeleted(rateId)
-            .orElseThrow(() -> new IllegalArgumentException("Tarifa no encontrada: " + rateId));
+            .orElseThrow(() -> new ResourceNotFoundException("Tarifa no encontrada: " + rateId));
    }
 
    // ========================= HELPERS - VALIDACIONES =========================
@@ -351,118 +501,28 @@ public class TransactionService implements
    }
 
    private void validateVehicleNotInside(Vehicle vehicle) {
-      if (transactionPersistencePort.existsActiveByVehicleId(vehicle.getId())) {
-         Transaction activeTransaction = transactionPersistencePort
-               .findActiveByVehicleId(vehicle.getId())
-               .orElseThrow();
-         throw new VehicleAlreadyInsideException(vehicle.getLicensePlate(), activeTransaction.getId());
-      }
+      transactionPersistencePort.findActiveByVehicleId(vehicle.getId()).ifPresent(active -> {
+         throw new VehicleAlreadyInsideException(vehicle.getLicensePlate(), active.getId());
+      });
    }
 
-   private void validateTransactionActive(Transaction transaction) {
-      if (!transaction.isActive()) {
-         throw new InvalidTransactionStateException(
-               transaction.getId(),
-               transaction.getStatus(),
-               Transaction.STATUS_ACTIVE,
-               "registrar salida"
-         );
+   /**
+    * El espacio indicado (libre y de la zona) o uno libre al azar. El conductor estaciona donde
+    * quiera: este espacio solo hace que la disponibilidad sea exacta desde la entrada.
+    */
+   private Space resolveEntrySpace(Long spaceId, Zone zone) {
+      if (spaceId != null) {
+         Space space = spacePersistencePort.findById(spaceId)
+               .orElseThrow(() -> new ResourceNotFoundException("Espacio no encontrado: " + spaceId));
+         if (!space.belongsTo(zone.getId())) {
+            throw new ParkingDomainException("El espacio " + space.getCode() + " no pertenece a la zona " + zone.getName());
+         }
+         validateSpaceAvailable(space);
+         return space;
       }
-   }
-
-   private void validateDocumentMatch(Transaction transaction) {
-      if (!transaction.verifyDocumentMatch()) {
-         throw new DocumentMismatchException(
-               transaction.getEntryDocumentNumber(),
-               transaction.getExitDocumentNumber(),
-               transaction.getId()
-         );
-      }
-   }
-
-   // ========================= HELPERS - BUSCAR O CREAR =========================
-
-   private Vehicle findOrCreateVehicle(RecordEntryCommand command) {
-      String normalizedPlate = command.plateNumber().trim().toUpperCase();
-
-      return vehiclePersistencePort.findByPlateNumber(normalizedPlate)
-            .orElseGet(() -> {
-               Vehicle vehicle = new Vehicle(normalizedPlate);
-               vehicle.setCreatedBy(command.operatorId());
-               return vehiclePersistencePort.save(vehicle);
-            });
-   }
-
-   private Customer findOrCreateCustomer(RecordEntryCommand command) {
-      String normalizedDocument = validDocumentNumber(command.documentTypeId(), command.documentNumber());
-
-      return customerPersistencePort.findByDocument(command.documentTypeId(), normalizedDocument)
-            .orElseGet(() -> {
-               Customer customer = new Customer(
-                     command.documentTypeId(),
-                     normalizedDocument,
-                     command.customerFirstName(),
-                     command.customerLastName()
-               );
-
-               if (command.customerPhone() != null) {
-                  customer.setPhone(command.customerPhone().trim());
-               }
-               if (command.customerEmail() != null) {
-                  customer.setEmail(command.customerEmail().trim().toLowerCase());
-               }
-
-               customer.setCreatedBy(command.operatorId());
-               return customerPersistencePort.save(customer);
-            });
-   }
-
-   // ========================= HELPERS - TRANSACCIONES =========================
-
-   private Transaction findActiveTransaction(RecordExitCommand command) {
-      if (command.transactionId() != null) {
-         return loadTransaction(command.transactionId());
-      }
-
-      if (command.plateNumber() != null) {
-         return transactionPersistencePort.findActiveByPlateNumber(command.plateNumber())
-               .orElseThrow(() -> new IllegalArgumentException(
-                     "No hay transacción activa para la placa: " + command.plateNumber()
-               ));
-      }
-
-      throw new IllegalArgumentException("Debe proporcionar ID de transacción o placa");
-   }
-
-   private Transaction buildEntryTransaction(RecordEntryCommand command, Vehicle vehicle,
-                                             Customer customer, Zone zone, Space space, Rate rate) {
-      Transaction transaction = new Transaction(
-            vehicle.getId(),
-            customer.getId(),
-            command.parkingId(),
-            zone.getId(),
-            space.getId(),
-            rate.getId(),
-            command.documentTypeId(),
-            customer.getDocumentNumber()
-      );
-
-      transaction.recordEntry(command.operatorId());
-      transaction.setEntryMethod(
-            command.entryMethod() != null ? command.entryMethod() : Transaction.METHOD_MANUAL
-      );
-
-      if (command.photoUrl() != null) {
-         transaction.recordEntryPhoto(command.photoUrl(), command.plateConfidence());
-      }
-
-      if (command.notes() != null) {
-         transaction.setNotes(command.notes());
-      }
-
-      transaction.setCreatedBy(command.operatorId());
-
-      return transaction;
+      return SpaceAllocator.pickRandomAvailable(spacePersistencePort.findAvailableByZoneId(zone.getId()),
+                  zone.getId(), random)
+            .orElseThrow(() -> new ResourceConflictException("La zona " + zone.getName() + " está llena"));
    }
 
    /**
@@ -470,48 +530,81 @@ public class TransactionService implements
     * @return el número normalizado (sin espacios ni guiones, en mayúsculas)
     */
    private String validDocumentNumber(Long documentTypeId, String documentNumber) {
+      if (documentTypeId == null || documentNumber == null || documentNumber.isBlank()) {
+         throw new ParkingDomainException("El tipo y el número de documento se indican juntos");
+      }
       DocumentType type = documentTypePersistencePort.findById(documentTypeId)
             .filter(DocumentType::isUsable)
             .orElseThrow(() -> new ParkingDomainException("Tipo de documento no disponible"));
       return type.normalizeNumber(documentNumber);
    }
 
-   /** Falta pagar: PaymentRequiredException (409) y la operación se revierte */
-   private void processExit(Transaction transaction, RecordExitCommand command, Rate rate) {
-      transaction.completeExit(
-            command.exitDocumentTypeId(),
-            validDocumentNumber(command.exitDocumentTypeId(), command.exitDocumentNumber()),
-            command.operatorId(),
-            rate,
-            LocalDateTime.now(clock),
-            exitWindowMinutes
-      );
+   // ========================= HELPERS - BUSCAR O CREAR =========================
 
-      transaction.setExitMethod(
-            command.exitMethod() != null ? command.exitMethod() : Transaction.METHOD_MANUAL
-      );
+   private Customer findOrCreateCustomer(EntryRequest request, String normalizedDocument) {
+      return customerPersistencePort.findByDocument(request.documentTypeId(), normalizedDocument)
+            .orElseGet(() -> {
+               Customer customer = new Customer(
+                     request.documentTypeId(),
+                     normalizedDocument,
+                     request.customerFirstName(),
+                     request.customerLastName()
+               );
+               if (request.customerPhone() != null && !request.customerPhone().isBlank()) {
+                  customer.setPhone(request.customerPhone().trim());
+               }
+               if (request.customerEmail() != null && !request.customerEmail().isBlank()) {
+                  customer.setEmail(request.customerEmail().trim().toLowerCase());
+               }
+               customer.setCreatedBy(request.operatorId());
+               return customerPersistencePort.save(customer);
+            });
+   }
 
-      if (command.photoUrl() != null) {
-         transaction.recordExitPhoto(command.photoUrl(), command.plateConfidence());
+   private void registerCustomerVehicleRelation(Long customerId, Long vehicleId) {
+      customerVehiclePersistencePort.findByCustomerAndVehicle(customerId, vehicleId)
+            .ifPresentOrElse(
+                  relation -> {
+                     relation.incrementUsage();
+                     customerVehiclePersistencePort.save(relation);
+                  },
+                  () -> {
+                     CustomerVehicle relation = new CustomerVehicle(customerId, vehicleId);
+                     relation.incrementUsage(); // Inicializa en 1
+                     customerVehiclePersistencePort.save(relation);
+                  }
+            );
+   }
+
+   // ========================= HELPERS - TRANSACCIONES =========================
+
+   private Transaction findActiveTransaction(Long transactionId, String plateNumber) {
+      if (transactionId != null) {
+         Transaction transaction = loadTransaction(transactionId);
+         if (!transaction.isActive()) {
+            throw new InvalidTransactionStateException(transaction.getId(), transaction.getStatus(),
+                  Transaction.STATUS_ACTIVE, "registrar salida");
+         }
+         return transaction;
       }
-
-      if (command.notes() != null) {
-         String existingNotes = transaction.getNotes();
-         String newNotes = existingNotes != null
-               ? existingNotes + " | " + command.notes()
-               : command.notes();
-         transaction.setNotes(newNotes);
+      if (plateNumber == null || plateNumber.isBlank()) {
+         throw new IllegalArgumentException("Indica la estadía o la placa");
       }
+      String plate = PlateNumber.normalize(plateNumber);
+      return transactionPersistencePort.findActiveByPlateNumber(plate)
+            .orElseThrow(() -> new ResourceNotFoundException("No hay una estadía en curso para la placa " + plate));
+   }
+
+   private void appendNotes(Transaction transaction, String notes) {
+      if (notes == null || notes.isBlank()) {
+         return;
+      }
+      String existing = transaction.getNotes();
+      transaction.setNotes(existing != null ? existing + " | " + notes.trim() : notes.trim());
    }
 
    // ========================= HELPERS - TARIFAS =========================
 
-   /**
-    * Obtiene la tarifa aplicable para un parking y zona.
-    *
-    * FASE 1: Usa la primera tarifa activa del sistema.
-    * FASE 2: Usará ParkingShiftRate basado en turno actual.
-    */
    /**
     * Tarifa del turno vigente del parqueo (ParkingShiftRate). Si a esta hora no hay un turno
     * activo con tarifa activa, el parqueo no atiende (regla de negocio 1): 409.
@@ -524,32 +617,18 @@ public class TransactionService implements
                   + at.toLocalTime().withSecond(0).withNano(0) + ". Revisa sus horarios y tarifas."));
    }
 
-   // ========================= HELPERS - CUSTOMER-VEHICLE =========================
-
-   private void registerCustomerVehicleRelation(Long customerId, Long vehicleId) {
-      customerVehiclePersistencePort.findByCustomerAndVehicle(customerId, vehicleId)
-            .ifPresentOrElse(
-                  // Si existe, incrementar usageCount
-                  relation -> {
-                     relation.incrementUsage();
-                     customerVehiclePersistencePort.save(relation);
-                  },
-                  // Si no existe, crear nueva relación
-                  () -> {
-                     CustomerVehicle relation = new CustomerVehicle(customerId, vehicleId);
-                     relation.incrementUsage(); // Inicializa en 1
-                     customerVehiclePersistencePort.save(relation);
-                  }
-            );
-   }
-
    // ========================= BUILDERS - DTOs =========================
 
-   /**
-    * Construye TransactionDetailDto con todos los datos relacionados.
-    *
-    * IMPORTANTE: Incluye ParkingInfo completo.
-    */
+   private String documentTypeCode(Long documentTypeId) {
+      if (documentTypeId == null) {
+         return null;
+      }
+      return documentTypePersistencePort.findByIdIncludingDeleted(documentTypeId)
+            .map(DocumentType::getCode)
+            .orElse(null);
+   }
+
+   /** Detalle completo de una estadía. El cliente puede ser null (entró solo con la placa) */
    private TransactionDetailDto buildTransactionDetailDto(Transaction t, Vehicle v, Customer c,
                                                           Parking p, Zone z, Space sp, Rate r) {
       return new TransactionDetailDto(
@@ -557,42 +636,20 @@ public class TransactionService implements
             t.getStatus(),
             t.getPaymentStatus(),
 
-            // VehicleInfo - SOLO placa
-            new TransactionDetailDto.VehicleInfo(
-                  v.getId(),
-                  v.getLicensePlate()
-            ),
+            new TransactionDetailDto.VehicleInfo(v.getId(), v.getLicensePlate()),
 
-            // CustomerInfo
-            new TransactionDetailDto.CustomerInfo(
+            c == null ? null : new TransactionDetailDto.CustomerInfo(
                   c.getId(),
-                  null,                                     // documentType - nullable
+                  documentTypeCode(c.getDocumentTypeId()),
                   c.getDocumentNumber(),
                   c.getFullName(),
                   c.getPhone(),
                   c.getEmail()
             ),
 
-            // ParkingInfo
-            new TransactionDetailDto.ParkingInfo(
-                  p.getId(),
-                  p.getName(),
-                  p.getCode()
-            ),
-
-            // ZoneInfo
-            new TransactionDetailDto.ZoneInfo(
-                  z.getId(),
-                  z.getName(),
-                  z.getCode()
-            ),
-
-            // SpaceInfo
-            new TransactionDetailDto.SpaceInfo(
-                  sp.getId(),
-                  sp.getCode(),
-                  sp.getType()
-            ),
+            new TransactionDetailDto.ParkingInfo(p.getId(), p.getName(), p.getCode()),
+            new TransactionDetailDto.ZoneInfo(z.getId(), z.getName(), z.getCode()),
+            new TransactionDetailDto.SpaceInfo(sp.getId(), sp.getCode(), sp.getType()),
 
             // Tiempos
             t.getEntryTime(),
@@ -600,18 +657,15 @@ public class TransactionService implements
             t.getDurationMinutes(),
             t.getFormattedDuration(),
 
-            // Documentos
-            new TransactionDetailDto.DocumentInfo(null, t.getEntryDocumentNumber()),
+            // Documentos (opcionales)
+            t.getEntryDocumentNumber() != null
+                  ? new TransactionDetailDto.DocumentInfo(documentTypeCode(t.getEntryDocumentTypeId()), t.getEntryDocumentNumber())
+                  : null,
             t.getExitDocumentNumber() != null
-                  ? new TransactionDetailDto.DocumentInfo(null, t.getExitDocumentNumber())
+                  ? new TransactionDetailDto.DocumentInfo(documentTypeCode(t.getExitDocumentTypeId()), t.getExitDocumentNumber())
                   : null,
 
-            // RateInfo
-            new TransactionDetailDto.RateInfo(
-                  r.getId(),
-                  r.getName(),
-                  r.getAmount()
-            ),
+            new TransactionDetailDto.RateInfo(r.getId(), r.getName(), r.getAmount()),
 
             // Montos
             t.getCalculatedAmount(),
@@ -622,11 +676,9 @@ public class TransactionService implements
             // Pago: lo cobra payment-service; aquí, cuánto se pagó y cuánto falta para salir
             buildPaymentInfo(t, r),
 
-            // OperatorInfo - nullable (auth-service en futuro)
-            new TransactionDetailDto.OperatorInfo(t.getEntryOperatorId(), null, null),
-            t.getExitOperatorId() != null
-                  ? new TransactionDetailDto.OperatorInfo(t.getExitOperatorId(), null, null)
-                  : null,
+            // Operadores (null si la cámara registró sola)
+            t.getEntryOperatorId() != null ? new TransactionDetailDto.OperatorInfo(t.getEntryOperatorId(), null, null) : null,
+            t.getExitOperatorId() != null ? new TransactionDetailDto.OperatorInfo(t.getExitOperatorId(), null, null) : null,
 
             // Evidencia
             t.getEntryPhotoUrl(),
@@ -646,22 +698,21 @@ public class TransactionService implements
 
             // Auditoría
             t.getCreatedAt(),
-            t.getUpdatedAt()
+            t.getUpdatedAt(),
+
+            t.getEntryMethod(),
+            t.getExitMethod()
       );
    }
 
-   /**
-    * Carga todos los datos relacionados y construye TransactionDetailDto.
-    */
    private TransactionDetailDto loadTransactionDetailDto(Transaction t) {
-      Vehicle vehicle = loadVehicle(t.getVehicleId());
-      Customer customer = loadCustomer(t.getCustomerId());
-      Parking parking = loadParking(t.getParkingId());
-      Zone zone = loadZone(t.getZoneId());
-      Space space = loadSpace(t.getSpaceId());
-      Rate rate = loadRate(t.getRateId());
-
-      return buildTransactionDetailDto(t, vehicle, customer, parking, zone, space, rate);
+      return buildTransactionDetailDto(t,
+            loadVehicle(t.getVehicleId()),
+            loadCustomerOrNull(t),
+            loadParking(t.getParkingId()),
+            loadZone(t.getZoneId()),
+            loadSpace(t.getSpaceId()),
+            loadRate(t.getRateId()));
    }
 
    /** Pagado, pendiente y hasta cuándo puede salir sin pagar más */
@@ -675,29 +726,29 @@ public class TransactionService implements
       return new TransactionDetailDto.PaymentInfo(t.getPaidAmount(), t.getPaidAt(), due, exitDeadline);
    }
 
-   /**
-    * Construye ActiveTransactionDto para monitoreo en tiempo real.
-    */
+   /** Estadía en curso para el monitoreo en vivo */
    private ActiveTransactionDto buildActiveTransactionDto(Transaction t) {
       Vehicle vehicle = loadVehicle(t.getVehicleId());
-      Customer customer = loadCustomer(t.getCustomerId());
+      Customer customer = loadCustomerOrNull(t);
       Parking parking = loadParking(t.getParkingId());
       Zone zone = loadZone(t.getZoneId());
       Space space = loadSpace(t.getSpaceId());
       Rate rate = loadRate(t.getRateId());
 
-      // Calcular tiempo transcurrido y monto actual
-      int elapsedMinutes = (int) Duration.between(t.getEntryTime(), LocalDateTime.now(clock)).toMinutes();
+      LocalDateTime now = LocalDateTime.now(clock);
+      int elapsedMinutes = (int) Duration.between(t.getEntryTime(), now).toMinutes();
       // Lo que falta pagar si saliera ahora (descuenta lo ya pagado y respeta el tiempo para salir)
-      BigDecimal currentAmount = t.amountDueAt(LocalDateTime.now(clock), rate, exitWindowMinutes);
-
+      BigDecimal currentAmount = t.amountDueAt(now, rate, exitWindowMinutes);
       boolean isOverdue = elapsedMinutes > MAX_RECOMMENDED_MINUTES;
 
       return ActiveTransactionDto.of(
             t.getId(),
             vehicle.getId(), vehicle.getLicensePlate(),
-            customer.getId(), customer.getFullName(), customer.getPhone(), customer.getEmail(),
-            null, customer.getDocumentNumber(),
+            customer != null ? customer.getId() : null,
+            customer != null ? customer.getFullName() : null,
+            customer != null ? customer.getPhone() : null,
+            customer != null ? customer.getEmail() : null,
+            documentTypeCode(t.getEntryDocumentTypeId()), t.getEntryDocumentNumber(),
             parking.getId(), parking.getName(),
             zone.getId(), zone.getName(),
             space.getId(), space.getCode(),
@@ -710,12 +761,10 @@ public class TransactionService implements
       );
    }
 
-   /**
-    * Construye TransactionDto simplificado para listados.
-    */
+   /** Estadía resumida para listados */
    private TransactionDto buildTransactionDto(Transaction t) {
       Vehicle vehicle = loadVehicle(t.getVehicleId());
-      Customer customer = loadCustomer(t.getCustomerId());
+      Customer customer = loadCustomerOrNull(t);
       Parking parking = loadParking(t.getParkingId());
       Zone zone = loadZone(t.getZoneId());
       Space space = loadSpace(t.getSpaceId());
@@ -723,7 +772,7 @@ public class TransactionService implements
       return new TransactionDto(
             t.getId(),
             vehicle.getLicensePlate(),
-            customer.getFullName(),
+            customer != null ? customer.getFullName() : null,
             parking.getName(),
             zone.getName(),
             space.getCode(),
@@ -756,7 +805,7 @@ public class TransactionService implements
    // ========================= HELPERS - FORMATO =========================
 
    private String formatDuration(int minutes) {
-      if (minutes == 0) return "0min";
+      if (minutes <= 0) return "0min";
       int hours = minutes / 60;
       int mins = minutes % 60;
 

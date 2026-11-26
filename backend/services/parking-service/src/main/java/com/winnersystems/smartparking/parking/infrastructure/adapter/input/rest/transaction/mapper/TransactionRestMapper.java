@@ -27,38 +27,18 @@ public class TransactionRestMapper {
       if (request == null) return null;
 
       return new RecordEntryCommand(
-            request.getPlateNumber(),
-            request.getParkingId(),
-            request.getZoneId(),
-            request.getSpaceId(),
-            request.getDocumentTypeId(),
-            request.getDocumentNumber(),
-            request.getCustomerFirstName(),
-            request.getCustomerLastName(),
-            request.getCustomerPhone(),
-            request.getCustomerEmail(),
-            request.getOperatorId(),
-            request.getEntryMethod(),
-            request.getPhotoUrl(),
-            request.getPlateConfidence(),
-            request.getNotes()
-      );
+            request.plateNumber(), request.parkingId(), request.zoneId(), request.spaceId(),
+            request.documentTypeId(), request.documentNumber(),
+            request.customerFirstName(), request.customerLastName(),
+            request.customerPhone(), request.customerEmail(), request.notes());
    }
 
    public RecordExitCommand toCommand(RecordExitRequest request) {
       if (request == null) return null;
 
       return new RecordExitCommand(
-            request.getTransactionId(),
-            request.getPlateNumber(),
-            request.getExitDocumentTypeId(),
-            request.getExitDocumentNumber(),
-            request.getOperatorId(),
-            request.getExitMethod(),
-            request.getPhotoUrl(),
-            request.getPlateConfidence(),
-            request.getNotes()
-      );
+            request.transactionId(), request.plateNumber(),
+            request.exitDocumentTypeId(), request.exitDocumentNumber(), request.notes());
    }
 
    // ========================= DTO → RESPONSE =========================
@@ -110,6 +90,10 @@ public class TransactionRestMapper {
             .cancellationReason(dto.cancellationReason())
             .createdAt(dto.createdAt())
             .updatedAt(dto.updatedAt())
+            .entryMethod(dto.entryMethod())
+            .exitMethod(dto.exitMethod())
+            .entryOperatorId(dto.entryOperator() != null ? dto.entryOperator().id() : null)
+            .exitOperatorId(dto.exitOperator() != null ? dto.exitOperator().id() : null)
             .build();
 
       // Vehículo
@@ -124,6 +108,7 @@ public class TransactionRestMapper {
       if (dto.customer() != null) {
          response.setCustomer(TransactionDetailResponse.CustomerInfo.builder()
                .id(dto.customer().id())
+               .documentType(dto.customer().documentType())
                .documentNumber(dto.customer().documentNumber())
                .name(dto.customer().name())
                .phone(dto.customer().phone())
@@ -159,6 +144,7 @@ public class TransactionRestMapper {
       // Documento entrada
       if (dto.entryDocument() != null) {
          response.setEntryDocument(TransactionDetailResponse.DocumentInfo.builder()
+               .type(dto.entryDocument().type())
                .number(dto.entryDocument().number())
                .build());
       }
@@ -166,6 +152,7 @@ public class TransactionRestMapper {
       // Documento salida
       if (dto.exitDocument() != null) {
          response.setExitDocument(TransactionDetailResponse.DocumentInfo.builder()
+               .type(dto.exitDocument().type())
                .number(dto.exitDocument().number())
                .build());
       }
@@ -203,6 +190,7 @@ public class TransactionRestMapper {
             .customerName(dto.customerName())
             .customerPhone(dto.customerPhone())
             .customerEmail(dto.customerEmail())
+            .documentType(dto.documentType())
             .documentNumber(dto.documentNumber())
             .parkingId(dto.parkingId())
             .parkingName(dto.parkingName())

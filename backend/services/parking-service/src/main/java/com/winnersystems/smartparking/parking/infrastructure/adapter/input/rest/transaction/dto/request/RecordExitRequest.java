@@ -1,44 +1,23 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request;
 
-import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Size;
 
 /**
- * Request DTO para registrar salida de vehículo.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Salida manual desde el panel: por estadía o por placa. El operador sale del token.
+ * El documento solo se pide si el parqueo lo exige y se entró con documento.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class RecordExitRequest {
+public record RecordExitRequest(
+      Long transactionId,
 
-   // Identificar transacción por ID o por placa (uno u otro)
-   private Long transactionId;
+      @Size(max = 10, message = "La placa no puede superar 10 caracteres")
+      String plateNumber,
 
-   @Size(min = 5, max = 20, message = "La placa debe tener entre 5 y 20 caracteres")
-   @Pattern(regexp = "^[A-Z0-9-]+$", message = "La placa solo puede contener letras mayúsculas, números y guiones")
-   private String plateNumber;
+      Long exitDocumentTypeId,
 
-   @NotNull(message = "El tipo de documento de salida es obligatorio")
-   private Long exitDocumentTypeId;
+      @Size(max = 20, message = "El documento no puede superar 20 caracteres")
+      String exitDocumentNumber,
 
-   @NotBlank(message = "El número de documento de salida es obligatorio")
-   @Size(min = 8, max = 20, message = "El documento debe tener entre 8 y 20 caracteres")
-   private String exitDocumentNumber;
-
-   @NotNull(message = "El operador es obligatorio")
-   private Long operatorId;
-
-   // Campos opcionales de evidencia
-   private String exitMethod;       // MANUAL, CAMERA_AI, SENSOR
-   private String photoUrl;
-   private Double plateConfidence;
-
-   private String notes;
+      @Size(max = 500, message = "Las observaciones no pueden superar 500 caracteres")
+      String notes
+) {
 }

@@ -1,299 +1,234 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction;
 
-import com.winnersystems.smartparking.parking.application.dto.query.ActiveTransactionDto;
+import com.winnersystems.smartparking.parking.application.dto.command.CancelTransactionCommand;
+import com.winnersystems.smartparking.parking.application.dto.command.ReassignSpaceCommand;
+import com.winnersystems.smartparking.parking.application.dto.command.UpdateTransactionCommand;
 import com.winnersystems.smartparking.parking.application.dto.query.PagedResponse;
 import com.winnersystems.smartparking.parking.application.dto.query.TransactionDetailDto;
-import com.winnersystems.smartparking.parking.application.dto.query.TransactionDto;
 import com.winnersystems.smartparking.parking.application.port.input.transaction.*;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.RecordEntryRequest;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.RecordExitRequest;
+import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.*;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.response.ActiveTransactionResponse;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.response.TransactionDetailResponse;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.response.TransactionResponse;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.mapper.TransactionRestMapper;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 /**
- * REST Controller para operaciones de transacciones.
+ * Estadías (entradas y salidas) desde el panel.
  *
- * Endpoints:
- * - POST   /api/v1/transactions/entry          - Registrar entrada
- * - POST   /api/v1/transactions/exit           - Registrar salida
- * (El pago lo cobra payment-service; la salida exige que no se deba nada)
- * - GET    /api/v1/transactions/{id}           - Consultar por ID
- * - GET    /api/v1/transactions/active         - Listar activas
- * - GET    /api/v1/transactions                - Listar todas
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Permisos: transactions.entry (entrar, cambiar espacio), transactions.exit (salir),
+ * transactions.view (consultas), transactions.cancel (cancelar). Además, entrar y salir exige
+ * estar de turno en ese parqueo (lo comprueba el servicio, 403 si no).
+ * La cámara no usa estos endpoints: entra por /internal/captures con token de servicio.
  */
 @RestController
 @RequestMapping("/transactions")
-@RequiredArgsConstructor
 public class TransactionRestAdapter {
+
+   /** Campos por los que se puede ordenar el historial (otro campo daría 500 en la consulta) */
+   private static final Set<String> SORTABLE = Set.of("entryTime", "exitTime", "createdAt", "totalAmount");
 
    private final RecordEntryUseCase recordEntryUseCase;
    private final RecordExitUseCase recordExitUseCase;
    private final GetTransactionUseCase getTransactionUseCase;
    private final ListActiveTransactionsUseCase listActiveTransactionsUseCase;
    private final ListTransactionsUseCase listTransactionsUseCase;
+   private final CancelTransactionUseCase cancelTransactionUseCase;
+   private final UpdateTransactionUseCase updateTransactionUseCase;
+   private final ReassignSpaceUseCase reassignSpaceUseCase;
    private final TransactionRestMapper mapper;
 
-   // ========================= OPERACIONES DE TRANSACCIÓN =========================
+   public TransactionRestAdapter(RecordEntryUseCase recordEntryUseCase,
+                                 RecordExitUseCase recordExitUseCase,
+                                 GetTransactionUseCase getTransactionUseCase,
+                                 ListActiveTransactionsUseCase listActiveTransactionsUseCase,
+                                 ListTransactionsUseCase listTransactionsUseCase,
+                                 CancelTransactionUseCase cancelTransactionUseCase,
+                                 UpdateTransactionUseCase updateTransactionUseCase,
+                                 ReassignSpaceUseCase reassignSpaceUseCase,
+                                 TransactionRestMapper mapper) {
+      this.recordEntryUseCase = recordEntryUseCase;
+      this.recordExitUseCase = recordExitUseCase;
+      this.getTransactionUseCase = getTransactionUseCase;
+      this.listActiveTransactionsUseCase = listActiveTransactionsUseCase;
+      this.listTransactionsUseCase = listTransactionsUseCase;
+      this.cancelTransactionUseCase = cancelTransactionUseCase;
+      this.updateTransactionUseCase = updateTransactionUseCase;
+      this.reassignSpaceUseCase = reassignSpaceUseCase;
+      this.mapper = mapper;
+   }
 
-   /**
-    * Registra la entrada de un vehículo al estacionamiento.
-    *
-    * POST /api/v1/transactions/entry
-    */
+   // ========================= ENTRADA, SALIDA Y CAMBIOS =========================
+
    @PostMapping("/entry")
-   public ResponseEntity<TransactionDetailResponse> recordEntry(
-         @Valid @RequestBody RecordEntryRequest request) {
-
+   @PreAuthorize("hasAuthority('transactions.entry')")
+   public ResponseEntity<TransactionDetailResponse> recordEntry(@Valid @RequestBody RecordEntryRequest request) {
       TransactionDetailDto dto = recordEntryUseCase.recordEntry(mapper.toCommand(request));
       return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDetailResponse(dto));
    }
 
-   /**
-    * Registra la salida de un vehículo del estacionamiento.
-    *
-    * POST /api/v1/transactions/exit
-    */
+   /** 409 si falta pagar: el panel cobra y vuelve a intentar */
    @PostMapping("/exit")
-   public ResponseEntity<TransactionDetailResponse> recordExit(
-         @Valid @RequestBody RecordExitRequest request) {
-
+   @PreAuthorize("hasAuthority('transactions.exit')")
+   public ResponseEntity<TransactionDetailResponse> recordExit(@Valid @RequestBody RecordExitRequest request) {
       TransactionDetailDto dto = recordExitUseCase.recordExit(mapper.toCommand(request));
       return ResponseEntity.ok(mapper.toDetailResponse(dto));
    }
 
+   /** El vehículo estacionó en otro espacio de la misma zona */
+   @PatchMapping("/{id}/space")
+   @PreAuthorize("hasAuthority('transactions.entry')")
+   public ResponseEntity<TransactionDetailResponse> reassignSpace(@PathVariable Long id,
+                                                                  @Valid @RequestBody ReassignSpaceRequest request) {
+      TransactionDetailDto dto = reassignSpaceUseCase.reassignSpace(id, new ReassignSpaceCommand(request.spaceId()));
+      return ResponseEntity.ok(mapper.toDetailResponse(dto));
+   }
+
+   @PatchMapping("/{id}/notes")
+   @PreAuthorize("hasAnyAuthority('transactions.entry', 'transactions.exit')")
+   public ResponseEntity<TransactionResponse> updateNotes(@PathVariable Long id,
+                                                          @Valid @RequestBody UpdateTransactionNotesRequest request) {
+      return ResponseEntity.ok(mapper.toResponse(
+            updateTransactionUseCase.updateTransaction(id, new UpdateTransactionCommand(request.notes()))));
+   }
+
+   /** Solo una estadía en curso y sin pagos; libera el espacio */
+   @PostMapping("/{id}/cancel")
+   @PreAuthorize("hasAuthority('transactions.cancel')")
+   public ResponseEntity<TransactionResponse> cancel(@PathVariable Long id,
+                                                     @Valid @RequestBody CancelTransactionRequest request) {
+      return ResponseEntity.ok(mapper.toResponse(
+            cancelTransactionUseCase.cancelTransaction(id, new CancelTransactionCommand(request.reason()))));
+   }
+
    // ========================= CONSULTAS =========================
 
-   /**
-    * Obtiene el detalle de una transacción por ID.
-    *
-    * GET /api/v1/transactions/{id}
-    */
    @GetMapping("/{id}")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<TransactionDetailResponse> getById(@PathVariable Long id) {
-      TransactionDetailDto dto = getTransactionUseCase.getTransactionById(id);
-      return ResponseEntity.ok(mapper.toDetailResponse(dto));
+      return ResponseEntity.ok(mapper.toDetailResponse(getTransactionUseCase.getTransactionById(id)));
    }
 
-   /**
-    * Busca transacción activa por placa.
-    *
-    * GET /api/v1/transactions/active/plate/{plateNumber}
-    */
    @GetMapping("/active/plate/{plateNumber}")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<TransactionDetailResponse> getActiveByPlate(@PathVariable String plateNumber) {
       TransactionDetailDto dto = getTransactionUseCase.getActiveTransactionByPlate(plateNumber);
-
-      if (dto == null) {
-         return ResponseEntity.notFound().build();
-      }
-
-      return ResponseEntity.ok(mapper.toDetailResponse(dto));
+      return dto == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(mapper.toDetailResponse(dto));
    }
 
-   // ========================= LISTADOS - TRANSACCIONES ACTIVAS =========================
+   // ========================= EN CURSO =========================
 
-   /**
-    * Lista todas las transacciones activas (vehículos dentro).
-    *
-    * GET /api/v1/transactions/active
-    */
    @GetMapping("/active")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<ActiveTransactionResponse>> listActive(
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<ActiveTransactionDto> dtoPage =
-            listActiveTransactionsUseCase.listAllActiveTransactions(page, size);
-
-      PagedResponse<ActiveTransactionResponse> responsePage = dtoPage.map(mapper::toActiveResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listActiveTransactionsUseCase.listAllActiveTransactions(page, size)
+            .map(mapper::toActiveResponse));
    }
 
-   /**
-    * Lista transacciones activas de una zona.
-    *
-    * GET /api/v1/transactions/active/zone/{zoneId}
-    */
    @GetMapping("/active/zone/{zoneId}")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<ActiveTransactionResponse>> listActiveByZone(
          @PathVariable Long zoneId,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<ActiveTransactionDto> dtoPage =
-            listActiveTransactionsUseCase.listActiveTransactionsByZone(zoneId, page, size);
-
-      PagedResponse<ActiveTransactionResponse> responsePage = dtoPage.map(mapper::toActiveResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listActiveTransactionsUseCase.listActiveTransactionsByZone(zoneId, page, size)
+            .map(mapper::toActiveResponse));
    }
 
-   /**
-    * Busca transacciones activas por placa (búsqueda parcial).
-    *
-    * GET /api/v1/transactions/active/search?plateNumber=ABC
-    */
    @GetMapping("/active/search")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<ActiveTransactionResponse>> searchActiveByPlate(
          @RequestParam String plateNumber,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<ActiveTransactionDto> dtoPage =
-            listActiveTransactionsUseCase.searchActiveTransactionsByPlate(plateNumber, page, size);
-
-      PagedResponse<ActiveTransactionResponse> responsePage = dtoPage.map(mapper::toActiveResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listActiveTransactionsUseCase.searchActiveTransactionsByPlate(plateNumber, page, size)
+            .map(mapper::toActiveResponse));
    }
 
-   /**
-    * Lista transacciones que exceden tiempo recomendado (alertas).
-    *
-    * GET /api/v1/transactions/active/overdue
-    */
    @GetMapping("/active/overdue")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<ActiveTransactionResponse>> listOverdue(
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<ActiveTransactionDto> dtoPage =
-            listActiveTransactionsUseCase.listOverdueTransactions(page, size);
-
-      PagedResponse<ActiveTransactionResponse> responsePage = dtoPage.map(mapper::toActiveResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listActiveTransactionsUseCase.listOverdueTransactions(page, size)
+            .map(mapper::toActiveResponse));
    }
 
-   // ========================= LISTADOS - HISTORIAL COMPLETO =========================
+   // ========================= HISTORIAL =========================
 
-   /**
-    * Lista todas las transacciones con paginación y ordenamiento.
-    *
-    * GET /api/v1/transactions
-    */
    @GetMapping
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<TransactionResponse>> listAll(
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size,
          @RequestParam(defaultValue = "createdAt") String sortBy,
          @RequestParam(defaultValue = "DESC") String sortDirection) {
-
-      PagedResponse<TransactionDto> dtoPage =
-            listTransactionsUseCase.listAllTransactions(page, size, sortBy, sortDirection);
-
-      PagedResponse<TransactionResponse> responsePage = dtoPage.map(mapper::toResponse);
-
-      return ResponseEntity.ok(responsePage);
+      if (!SORTABLE.contains(sortBy)) {
+         throw new IllegalArgumentException("No se puede ordenar por " + sortBy + "; usa uno de " + SORTABLE);
+      }
+      return ResponseEntity.ok(listTransactionsUseCase.listAllTransactions(page, size, sortBy, sortDirection)
+            .map(mapper::toResponse));
    }
 
-   /**
-    * Lista transacciones por rango de fechas.
-    *
-    * GET /api/v1/transactions/date-range?startDate=...&endDate=...
-    */
    @GetMapping("/date-range")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<TransactionResponse>> listByDateRange(
          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<TransactionDto> dtoPage =
-            listTransactionsUseCase.listTransactionsByDateRange(startDate, endDate, page, size);
-
-      PagedResponse<TransactionResponse> responsePage = dtoPage.map(mapper::toResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listTransactionsUseCase.listTransactionsByDateRange(startDate, endDate, page, size)
+            .map(mapper::toResponse));
    }
 
-   /**
-    * Lista transacciones por estado.
-    *
-    * GET /api/v1/transactions/status/{status}
-    */
    @GetMapping("/status/{status}")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<TransactionResponse>> listByStatus(
          @PathVariable String status,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<TransactionDto> dtoPage =
-            listTransactionsUseCase.listTransactionsByStatus(status, page, size);
-
-      PagedResponse<TransactionResponse> responsePage = dtoPage.map(mapper::toResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listTransactionsUseCase.listTransactionsByStatus(status.toUpperCase(), page, size)
+            .map(mapper::toResponse));
    }
 
-   /**
-    * Lista transacciones por estado de pago.
-    *
-    * GET /api/v1/transactions/payment-status/{paymentStatus}
-    */
    @GetMapping("/payment-status/{paymentStatus}")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<TransactionResponse>> listByPaymentStatus(
          @PathVariable String paymentStatus,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<TransactionDto> dtoPage =
-            listTransactionsUseCase.listTransactionsByPaymentStatus(paymentStatus, page, size);
-
-      PagedResponse<TransactionResponse> responsePage = dtoPage.map(mapper::toResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listTransactionsUseCase
+            .listTransactionsByPaymentStatus(paymentStatus.toUpperCase(), page, size)
+            .map(mapper::toResponse));
    }
 
-   /**
-    * Lista transacciones de una zona (histórico).
-    *
-    * GET /api/v1/transactions/zone/{zoneId}
-    */
    @GetMapping("/zone/{zoneId}")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<TransactionResponse>> listByZone(
          @PathVariable Long zoneId,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<TransactionDto> dtoPage =
-            listTransactionsUseCase.listTransactionsByZone(zoneId, page, size);
-
-      PagedResponse<TransactionResponse> responsePage = dtoPage.map(mapper::toResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listTransactionsUseCase.listTransactionsByZone(zoneId, page, size)
+            .map(mapper::toResponse));
    }
 
-   /**
-    * Busca transacciones por placa (histórico).
-    *
-    * GET /api/v1/transactions/search?plateNumber=ABC
-    */
    @GetMapping("/search")
+   @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<TransactionResponse>> searchByPlate(
          @RequestParam String plateNumber,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-
-      PagedResponse<TransactionDto> dtoPage =
-            listTransactionsUseCase.searchTransactionsByPlate(plateNumber, page, size);
-
-      PagedResponse<TransactionResponse> responsePage = dtoPage.map(mapper::toResponse);
-
-      return ResponseEntity.ok(responsePage);
+      return ResponseEntity.ok(listTransactionsUseCase.searchTransactionsByPlate(plateNumber, page, size)
+            .map(mapper::toResponse));
    }
 }

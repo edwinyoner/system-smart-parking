@@ -71,6 +71,7 @@ public class ParkingService implements
             command.address(), command.latitude(), command.longitude(), userId);
       ensureCodeAvailable(parking.getCode());
       applyManager(parking, command.managerId());
+      parking.changeDriverDocumentPolicy(Boolean.TRUE.equals(command.requireDriverDocument()));
       return toDto(parkingPersistencePort.save(parking));
    }
 
@@ -87,6 +88,9 @@ public class ParkingService implements
       }
       if (command.status() != null && !command.status().isBlank()) {
          parking.changeStatus(command.status());
+      }
+      if (command.requireDriverDocument() != null) {
+         parking.changeDriverDocumentPolicy(command.requireDriverDocument());
       }
       parking.updateModifiedBy(currentUserPort.requireCurrentUserId());
       return toDto(parkingPersistencePort.save(parking));
@@ -246,7 +250,7 @@ public class ParkingService implements
             p.getLatitude(), p.getLongitude(), p.getManagerId(), p.getManagerName(),
             c.totalZones(), c.totalSpaces(), c.availableSpaces(), c.occupiedSpaces(),
             c.unavailableSpaces(), c.occupancyPercentage(),
-            p.getStatus(), p.isOperational(),
+            p.getStatus(), p.isOperational(), p.isDriverDocumentRequired(),
             p.getCreatedAt(), p.getCreatedBy(), p.getUpdatedAt(), p.getUpdatedBy(),
             p.getDeletedAt(), p.getDeletedBy()
       );

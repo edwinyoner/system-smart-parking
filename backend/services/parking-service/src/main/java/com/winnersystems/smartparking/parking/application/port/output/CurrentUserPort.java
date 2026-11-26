@@ -22,6 +22,15 @@ public interface CurrentUserPort {
     *
     * @throws IllegalStateException si no hay usuario autenticado
     */
+   /**
+    * Si el usuario actual tiene un permiso (autoridad del JWT). Sirve para reglas que no se
+    * resuelven con @PreAuthorize, como registrar en un parqueo sin estar de turno.
+    * Por defecto no concede nada: el adaptador real lo lee del token.
+    */
+   default boolean hasAuthority(String authority) {
+      return false;
+   }
+
    default Long requireCurrentUserId() {
       return getCurrentUserId()
             .orElseThrow(() -> new IllegalStateException("La operación requiere un usuario autenticado"));

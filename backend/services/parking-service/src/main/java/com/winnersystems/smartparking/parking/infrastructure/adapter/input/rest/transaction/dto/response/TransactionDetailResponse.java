@@ -81,6 +81,12 @@ public class TransactionDetailResponse {
    private LocalDateTime createdAt;
    private LocalDateTime updatedAt;
 
+   // Cómo se registró (MANUAL o CAMERA_AI) y quién (null si la cámara registró sola)
+   private String entryMethod;
+   private String exitMethod;
+   private Long entryOperatorId;
+   private Long exitOperatorId;
+
    // ========================= INNER CLASSES =========================
 
    @Data
@@ -100,6 +106,7 @@ public class TransactionDetailResponse {
    @AllArgsConstructor
    public static class CustomerInfo {
       private Long id;
+      private String documentType;
       private String documentNumber;
       private String name;
       private String phone;
@@ -140,6 +147,7 @@ public class TransactionDetailResponse {
    @NoArgsConstructor
    @AllArgsConstructor
    public static class DocumentInfo {
+      private String type;
       private String number;
    }
 

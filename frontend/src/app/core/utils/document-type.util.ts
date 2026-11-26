@@ -16,7 +16,6 @@ export const MAX_DOCUMENT_LENGTH = 20;
 /** Formatos habituales en el Perú. Se puede escribir cualquier otro */
 export const DOCUMENT_RULE_PRESETS = [
   { label: 'DNI: 8 dígitos', minLength: 8, maxLength: 8, numericOnly: true, sunatCode: '1' },
-  { label: 'RUC: 11 dígitos', minLength: 11, maxLength: 11, numericOnly: true, sunatCode: '6' },
   { label: 'CE: 9 a 12 caracteres', minLength: 9, maxLength: 12, numericOnly: false, sunatCode: '4' },
   { label: 'Pasaporte: 6 a 12 caracteres', minLength: 6, maxLength: 12, numericOnly: false, sunatCode: '7' },
 ];

@@ -12,6 +12,7 @@ public record CreateParkingCommand(
       String address,
       Double latitude,
       Double longitude,
-      Long managerId
+      Long managerId,
+      Boolean requireDriverDocument   // null = apagado
 ) {
 }
