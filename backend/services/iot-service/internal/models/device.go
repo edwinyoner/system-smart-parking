@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -46,6 +47,47 @@ func (Device) TableName() string {
 }
 
 // IsActive verifica si el dispositivo está activo
+// IsAvenuePanel panel de avenida: no está en un parqueo, orienta hacia varios
+func (d *Device) IsAvenuePanel() bool {
+	return d.DeviceType == DeviceTypeESP32Display && d.ParkingID == nil
+}
+
+// Rotación del panel de avenida: segundos que se muestra cada parqueo
+const (
+	DefaultRotationSeconds = 10
+	minRotationSeconds     = 5
+	maxRotationSeconds     = 60
+)
+
+// panelMetadata configuración opcional de un panel de avenida, en devices.metadata:
+// {"parking_ids":[1,2], "rotation_seconds":10}
+type panelMetadata struct {
+	ParkingIDs      []uint64 `json:"parking_ids"`
+	RotationSeconds int      `json:"rotation_seconds"`
+}
+
+func (d *Device) panelMetadata() panelMetadata {
+	var meta panelMetadata
+	if d.Metadata != "" {
+		_ = json.Unmarshal([]byte(d.Metadata), &meta)
+	}
+	return meta
+}
+
+// PanelParkingIDs parqueos que rota un panel de avenida, en orden. Vacío = todos los publicados.
+func (d *Device) PanelParkingIDs() []uint64 {
+	return d.panelMetadata().ParkingIDs
+}
+
+// PanelRotationSeconds segundos por parqueo (10 por defecto, entre 5 y 60)
+func (d *Device) PanelRotationSeconds() int {
+	seconds := d.panelMetadata().RotationSeconds
+	if seconds < minRotationSeconds || seconds > maxRotationSeconds {
+		return DefaultRotationSeconds
+	}
+	return seconds
+}
+
 func (d *Device) IsActive() bool {
 	return d.Status == DeviceStatusActive
 }

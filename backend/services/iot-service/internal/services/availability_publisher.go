@@ -17,6 +17,19 @@ func AvailabilityTopic(parkingID uint64) string {
 	return fmt.Sprintf("smartparking/parkings/%d/availability", parkingID)
 }
 
+// PanelTopic tema del que lee un panel según cómo está registrado
+func PanelTopic(d models.Device) string {
+	if d.IsAvenuePanel() {
+		return AvenueTopic(d.DeviceID)
+	}
+	return AvailabilityTopic(*d.ParkingID)
+}
+
+// AvenueTopic tema propio de cada panel de avenida (cada uno muestra su lista de parqueos)
+func AvenueTopic(deviceID string) string {
+	return fmt.Sprintf("smartparking/panels/%s/availability", deviceID)
+}
+
 // Publisher lo mínimo que necesita el publicador del cliente MQTT (facilita las pruebas)
 type Publisher interface {
 	Publish(topic string, payload []byte, retained bool) error
@@ -33,7 +46,7 @@ type AvailabilityPublisher struct {
 	logger       *logrus.Logger
 
 	mu   sync.Mutex
-	last map[uint64]string // último contenido publicado por parqueo (sin la hora)
+	last map[string]string // último contenido publicado por tema (sin la hora)
 	wake chan uint64
 }
 
@@ -44,7 +57,7 @@ func NewAvailabilityPublisher(devices *repository.DeviceRepository, availability
 		interval = 5 * time.Second
 	}
 	return &AvailabilityPublisher{devices: devices, availability: availability, publisher: publisher,
-		interval: interval, logger: logger, last: make(map[uint64]string), wake: make(chan uint64, 32)}
+		interval: interval, logger: logger, last: make(map[string]string), wake: make(chan uint64, 32)}
 }
 
 // Run publica hasta que se cancele el contexto
@@ -60,7 +73,7 @@ func (p *AvailabilityPublisher) Run(ctx context.Context) {
 			p.publishAll(ctx)
 		case parkingID := <-p.wake:
 			_ = p.availability.Invalidate(ctx, parkingID)
-			p.publishOne(ctx, parkingID)
+			p.publishAll(ctx)
 		}
 	}
 }
@@ -77,60 +90,89 @@ func (p *AvailabilityPublisher) Notify(parkingID uint64) {
 func (p *AvailabilityPublisher) Reset() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.last = make(map[uint64]string)
+	p.last = make(map[string]string)
 }
 
-// parkingsWithPanels parqueos que tienen al menos un panel activo
-func (p *AvailabilityPublisher) parkingsWithPanels() []uint64 {
+// activePanels paneles activos (de parqueo y de avenida)
+func (p *AvailabilityPublisher) activePanels() []models.Device {
+	if p.devices == nil {
+		return nil
+	}
 	panels, err := p.devices.FindByType(models.DeviceTypeESP32Display)
 	if err != nil {
 		p.logger.WithError(err).Warn("No se pudieron leer los paneles")
 		return nil
 	}
-	seen := make(map[uint64]bool)
-	var ids []uint64
+	active := panels[:0]
 	for _, d := range panels {
-		if d.IsActive() && d.ParkingID != nil && !seen[*d.ParkingID] {
-			seen[*d.ParkingID] = true
-			ids = append(ids, *d.ParkingID)
+		if d.IsActive() {
+			active = append(active, d)
 		}
 	}
-	return ids
+	return active
 }
 
 func (p *AvailabilityPublisher) publishAll(ctx context.Context) {
-	for _, id := range p.parkingsWithPanels() {
-		p.publishOne(ctx, id)
+	published := make(map[string]bool) // varios paneles pueden compartir tema
+	for _, d := range p.activePanels() {
+		topic := PanelTopic(d)
+		if published[topic] {
+			continue
+		}
+		published[topic] = true
+		if d.IsAvenuePanel() {
+			p.publishAvenue(ctx, d)
+		} else {
+			p.publishPanel(ctx, topic, *d.ParkingID)
+		}
 	}
 }
 
-func (p *AvailabilityPublisher) publishOne(ctx context.Context, parkingID uint64) {
+// publishPanel panel junto a un parqueo
+func (p *AvailabilityPublisher) publishPanel(ctx context.Context, topic string, parkingID uint64) {
 	panel, _, err := p.availability.Get(ctx, parkingID)
 	if err != nil {
 		p.logger.WithError(err).WithField("parking_id", parkingID).Debug("Sin disponibilidad para publicar")
 		return
 	}
-	payload, err := json.Marshal(panel)
-	if err != nil {
-		return
-	}
 	// Se compara sin la hora: si solo cambió last_updated no se vuelve a publicar
 	withoutTime := *panel
 	withoutTime.LastUpdated = ""
+	p.publishIfChanged(topic, panel, withoutTime)
+}
+
+// publishAvenue panel de avenida (lista de parqueos, una consulta en caché para todos)
+func (p *AvailabilityPublisher) publishAvenue(ctx context.Context, d models.Device) {
+	panel, _, err := p.availability.GetAvenue(ctx, d.DeviceID, d.PanelParkingIDs(), d.PanelRotationSeconds())
+	if err != nil {
+		p.logger.WithError(err).Debug("Sin datos para el panel de avenida")
+		return
+	}
+	withoutTime := *panel
+	withoutTime.LastUpdated = ""
+	p.publishIfChanged(AvenueTopic(d.DeviceID), panel, withoutTime)
+}
+
+// publishIfChanged publica (retenido) solo si el contenido sin la hora cambió
+func (p *AvailabilityPublisher) publishIfChanged(topic string, value, withoutTime any) {
+	payload, err := json.Marshal(value)
+	if err != nil {
+		return
+	}
 	fingerprint, _ := json.Marshal(withoutTime)
 
 	p.mu.Lock()
-	unchanged := p.last[parkingID] == string(fingerprint)
+	unchanged := p.last[topic] == string(fingerprint)
 	p.mu.Unlock()
 	if unchanged {
 		return
 	}
-	if err := p.publisher.Publish(AvailabilityTopic(parkingID), payload, true); err != nil {
+	if err := p.publisher.Publish(topic, payload, true); err != nil {
 		p.logger.WithError(err).Warn("No se pudo publicar la disponibilidad")
 		return
 	}
 	p.mu.Lock()
-	p.last[parkingID] = string(fingerprint)
+	p.last[topic] = string(fingerprint)
 	p.mu.Unlock()
-	p.logger.WithFields(logrus.Fields{"parking_id": parkingID, "message": panel.Message}).Info("Disponibilidad publicada")
+	p.logger.WithField("topic", topic).Info("Disponibilidad publicada")
 }

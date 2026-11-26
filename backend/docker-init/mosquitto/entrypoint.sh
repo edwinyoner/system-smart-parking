@@ -32,13 +32,15 @@ if [ -f "$DEVICES" ]; then
 fi
 
 # iot-service lee y escribe todo; cada sensor publica solo en su tema (%u = su usuario = deviceId)
-# y los paneles solo leen la disponibilidad (es información pública).
+# los paneles de parqueo leen la disponibilidad (información pública) y cada panel de avenida
+# lee solo su propio tema.
 cat > "$ACL" <<ACL
 user $MQTT_IOT_USERNAME
 topic readwrite smartparking/#
 
 pattern write smartparking/sensors/%u/reading
 pattern read smartparking/parkings/+/availability
+pattern read smartparking/panels/%u/availability
 ACL
 chmod 0600 "$ACL"
 chown mosquitto:mosquitto "$PASSWD" "$ACL"

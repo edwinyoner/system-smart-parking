@@ -212,11 +212,14 @@ func (c *ParkingClient) ProcessSensorReading(ctx context.Context, req SensorRead
 
 // ZoneAvailability espacios libres de una zona (solo cuenta las que reciben vehículos)
 type ZoneAvailability struct {
+	ID              uint64 `json:"id"`
 	Code            string `json:"code"`
 	Name            string `json:"name"`
 	Operational     bool   `json:"operational"`
 	TotalSpaces     int    `json:"totalSpaces"`
 	AvailableSpaces int    `json:"availableSpaces"`
+	OccupiedSpaces  int    `json:"occupiedSpaces"`
+	UsableSpaces    int    `json:"usableSpaces"` // libres + ocupados: el total del panel
 }
 
 // ParkingAvailability respuesta de GET /public/parkings/{id}/availability.
@@ -230,6 +233,8 @@ type ParkingAvailability struct {
 	OpenNow         bool               `json:"openNow"`
 	TotalSpaces     int                `json:"totalSpaces"`
 	AvailableSpaces int                `json:"availableSpaces"`
+	OccupiedSpaces  int                `json:"occupiedSpaces"`
+	UsableSpaces    int                `json:"usableSpaces"`
 	Zones           []ZoneAvailability `json:"zones"`
 	GeneratedAt     string             `json:"generatedAt"`
 }
@@ -256,4 +261,36 @@ func (c *ParkingClient) GetAvailability(ctx context.Context, parkingID uint64) (
 		return nil, fmt.Errorf("error al decodificar la disponibilidad: %w", err)
 	}
 	return &result, nil
+}
+
+// PublicParkingCard un parqueo del listado público (solo los campos que usan los paneles de avenida)
+type PublicParkingCard struct {
+	ID              uint64 `json:"id"`
+	Code            string `json:"code"`
+	Name            string `json:"name"`
+	Address         string `json:"address"`
+	Status          string `json:"status"`
+	Operational     bool   `json:"operational"`
+	OpenNow         bool   `json:"openNow"`
+	TotalSpaces     int    `json:"totalSpaces"`
+	AvailableSpaces int    `json:"availableSpaces"`
+	OccupiedSpaces  int    `json:"occupiedSpaces"`
+	UsableSpaces    int    `json:"usableSpaces"`
+}
+
+// ListPublicParkings todos los parqueos publicados, en una sola llamada (paneles de avenida).
+// Endpoint: GET /public/parkings (sin token)
+func (c *ParkingClient) ListPublicParkings(ctx context.Context) ([]PublicParkingCard, error) {
+	resp, err := c.client.Get(ctx, "/public/parkings", nil)
+	if err != nil {
+		return nil, fmt.Errorf("parking-service no respondió: %w", err)
+	}
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("parking-service respondió HTTP %d", resp.StatusCode)
+	}
+	var cards []PublicParkingCard
+	if err := resp.DecodeJSON(&cards); err != nil {
+		return nil, fmt.Errorf("error al decodificar los parqueos: %w", err)
+	}
+	return cards, nil
 }

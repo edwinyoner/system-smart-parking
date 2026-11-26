@@ -48,8 +48,24 @@ type GetAvailabilityRequest struct {
 }
 
 // GetAvailabilityResponse lo que recibe el panel: la disponibilidad y el texto a mostrar
+// Modos de panel
+const (
+	PanelModeParking = "PARKING" // junto a un parqueo: solo ese parqueo
+	PanelModeAvenue  = "AVENUE"  // en una avenida: rota todos los parqueos, uno cada 10 s
+)
+
+// AvenueAvailabilityResponse respuesta para un panel de avenida
+type AvenueAvailabilityResponse struct {
+	Success bool   `json:"success"`
+	Mode    string `json:"mode"`
+	services.AvenuePanel
+	CacheHit       bool  `json:"cache_hit"`
+	ResponseTimeMS int64 `json:"response_time_ms"`
+}
+
 type GetAvailabilityResponse struct {
-	Success bool `json:"success"`
+	Success bool   `json:"success"`
+	Mode    string `json:"mode"`
 	services.PanelAvailability
 	CacheHit       bool  `json:"cache_hit"`
 	ResponseTimeMS int64 `json:"response_time_ms"`
@@ -85,10 +101,8 @@ func (h *DisplayHandler) GetAvailability(c *gin.Context) {
 		})
 		return
 	}
-	if device.ParkingID == nil {
-		c.JSON(http.StatusConflict, ErrorResponse{
-			Success: false, Error: "Device without parking", Message: "El panel no tiene un parqueo asignado",
-		})
+	if device.IsAvenuePanel() {
+		h.avenueAvailability(c, device, startTime)
 		return
 	}
 	if req.ParkingID != 0 && req.ParkingID != *device.ParkingID {
@@ -116,6 +130,7 @@ func (h *DisplayHandler) GetAvailability(c *gin.Context) {
 
 	response := GetAvailabilityResponse{
 		Success:           true,
+		Mode:              PanelModeParking,
 		PanelAvailability: *panel,
 		CacheHit:          cacheHit,
 		ResponseTimeMS:    time.Since(startTime).Milliseconds(),
@@ -125,6 +140,31 @@ func (h *DisplayHandler) GetAvailability(c *gin.Context) {
 }
 
 // logDisplayQuery registra la consulta en display_logs
+// avenueAvailability panel sin parqueo: muestra los parqueos de su metadata (o todos)
+func (h *DisplayHandler) avenueAvailability(c *gin.Context, device *models.Device, startTime time.Time) {
+	go h.deviceRepo.UpdateHeartbeat(device.DeviceID)
+
+	panel, cacheHit, err := h.availability.GetAvenue(c.Request.Context(), device.DeviceID, device.PanelParkingIDs(), device.PanelRotationSeconds())
+	if err != nil {
+		h.logger.WithError(err).Error("Error al obtener los parqueos para el panel de avenida")
+		c.JSON(http.StatusServiceUnavailable, ErrorResponse{Success: false, Error: "Service unavailable", Message: "SIN DATOS"})
+		return
+	}
+	response := AvenueAvailabilityResponse{Success: true, Mode: PanelModeAvenue, AvenuePanel: *panel,
+		CacheHit: cacheHit, ResponseTimeMS: time.Since(startTime).Milliseconds()}
+
+	// Una fila del historial por cada parqueo mostrado (la analítica es por parqueo)
+	go func() {
+		for _, p := range panel.Parkings {
+			h.logDisplayQuery(device.DeviceID, p.ParkingID, GetAvailabilityResponse{
+				PanelAvailability: services.PanelAvailability{TotalSpaces: p.TotalSpaces, AvailableSpaces: p.AvailableSpaces,
+					OccupiedSpaces: max(p.TotalSpaces-p.AvailableSpaces, 0)},
+				CacheHit: cacheHit, ResponseTimeMS: response.ResponseTimeMS})
+		}
+	}()
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *DisplayHandler) logDisplayQuery(deviceID string, parkingID uint64, response GetAvailabilityResponse) {
 	// Convertir int64 a *int
 	responseTimeMs := int(response.ResponseTimeMS)
