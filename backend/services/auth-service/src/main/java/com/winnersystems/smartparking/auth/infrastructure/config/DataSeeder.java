@@ -119,6 +119,13 @@ public class DataSeeder implements CommandLineRunner {
             {"shifts.delete", "Eliminar turnos"},
             {"shifts.restore", "Ver turnos eliminados y restaurarlos"},
 
+            // Parqueos (contienen zonas; turnos y tarifas se configuran por parqueo)
+            {"parkings.create", "Crear parqueos"},
+            {"parkings.read", "Ver información de parqueos"},
+            {"parkings.update", "Actualizar parqueos y cambiar su estado"},
+            {"parkings.delete", "Eliminar parqueos"},
+            {"parkings.restore", "Ver parqueos eliminados y restaurarlos"},
+
             // Zonas de Estacionamiento
             {"zones.create", "Crear nuevas zonas de estacionamiento"},
             {"zones.read", "Ver información de zonas"},
@@ -246,6 +253,8 @@ public class DataSeeder implements CommandLineRunner {
 
                   // Gestión de Turnos
                   "shifts.create", "shifts.read", "shifts.update", "shifts.delete", "shifts.restore",
+                  // Gestión de Parqueos
+                  "parkings.create", "parkings.read", "parkings.update", "parkings.delete", "parkings.restore",
                   // Gestión de Zonas
                   "zones.create", "zones.read", "zones.update", "zones.delete", "zones.activate",
                   // Gestión de Tipos de Espacio
@@ -287,7 +296,8 @@ public class DataSeeder implements CommandLineRunner {
                   // Solo lectura de usuarios (ver su perfil)
                   "users.read",
 
-                  // Ver información de zonas y espacios
+                  // Ver información de parqueos, zonas y espacios
+                  "parkings.read",
                   "zones.read",
                   "spaces.read",
                   "space-types.read",

@@ -75,7 +75,7 @@ public class ChargeService implements GetChargeUseCase, SettleChargeUseCase {
       Transaction t = loadTransaction(transactionId);
       String plate = plateOf(t.getVehicleId());
       String description = "Estadía " + (plate != null ? plate : "#" + t.getId())
-            + parkingPort.findById(t.getParkingId()).map(p -> " · " + p.getName()).orElse("");
+            + parkingPort.findByIdIncludingDeleted(t.getParkingId()).map(p -> " · " + p.getName()).orElse("");
 
       if (!t.isActive()) {
          String reason = t.isCancelled() ? "La estadía fue anulada" : "El vehículo ya salió";

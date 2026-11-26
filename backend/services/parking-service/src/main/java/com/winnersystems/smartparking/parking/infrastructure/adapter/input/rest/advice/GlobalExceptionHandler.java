@@ -1,6 +1,7 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.advice;
 
 import com.winnersystems.smartparking.parking.domain.exception.*;
+import com.winnersystems.smartparking.parking.infrastructure.adapter.output.client.UserDirectoryUnavailableException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -135,6 +136,24 @@ public class GlobalExceptionHandler {
    public ResponseEntity<ErrorResponse> handleConflict(
          ResourceConflictException ex, WebRequest request) {
       return build(HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request);
+   }
+
+   /**
+    * Parqueo inactivo, en mantenimiento o eliminado: no recibe vehículos (409).
+    */
+   @ExceptionHandler(ParkingNotOperationalException.class)
+   public ResponseEntity<ErrorResponse> handleParkingNotOperational(
+         ParkingNotOperationalException ex, WebRequest request) {
+      return build(HttpStatus.CONFLICT, "Parking Not Operational", ex.getMessage(), request);
+   }
+
+   /**
+    * auth-service no respondió al consultar un usuario (503).
+    */
+   @ExceptionHandler(UserDirectoryUnavailableException.class)
+   public ResponseEntity<ErrorResponse> handleUserDirectoryUnavailable(
+         UserDirectoryUnavailableException ex, WebRequest request) {
+      return build(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", ex.getMessage(), request);
    }
 
    private ResponseEntity<ErrorResponse> build(HttpStatus status, String error, String message, WebRequest request) {

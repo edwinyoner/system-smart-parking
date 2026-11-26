@@ -1,26 +1,17 @@
 package com.winnersystems.smartparking.parking.application.dto.command;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 /**
- * Command para crear un nuevo Parking.
+ * Datos para crear un parqueo.
  *
- * @author Edwin Yoner - Winner Systems
+ * @param managerId responsable opcional; su nombre se consulta en auth-service
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateParkingCommand {
-   private String name;
-   private String code;
-   private String description;
-   private String address;
-   private Double latitude;
-   private Double longitude;
-   private Long managerId;
-   private String managerName;
+public record CreateParkingCommand(
+      String name,
+      String code,
+      String description,
+      String address,
+      Double latitude,
+      Double longitude,
+      Long managerId
+) {
 }

@@ -1,43 +1,36 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.parking.dto.request;
 
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
- * Request para actualizar un parking.
- *
- * @author Edwin Yoner - Winner Systems
+ * Actualización completa de un parqueo (el código no cambia): una ubicación o un
+ * responsable que llega vacío se quita.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UpdateParkingRequest {
+public record UpdateParkingRequest(
+      @NotBlank(message = "El nombre del parqueo es obligatorio")
+      @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
+      String name,
 
-   @NotBlank(message = "El nombre del parking es obligatorio")
-   @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
-   private String name;
+      @Size(max = 500, message = "La descripción no puede exceder 500 caracteres")
+      String description,
 
-   @Size(max = 500, message = "La descripción no puede exceder 500 caracteres")
-   private String description;
+      @NotBlank(message = "La dirección es obligatoria")
+      @Size(max = 255, message = "La dirección no puede exceder 255 caracteres")
+      String address,
 
-   @NotBlank(message = "La dirección es obligatoria")
-   @Size(max = 255, message = "La dirección no puede exceder 255 caracteres")
-   private String address;
+      @DecimalMin(value = "-90.0", message = "La latitud debe estar entre -90 y 90")
+      @DecimalMax(value = "90.0", message = "La latitud debe estar entre -90 y 90")
+      Double latitude,
 
-   @DecimalMin(value = "-90.0", message = "Latitud inválida")
-   @DecimalMax(value = "90.0", message = "Latitud inválida")
-   private Double latitude;
+      @DecimalMin(value = "-180.0", message = "La longitud debe estar entre -180 y 180")
+      @DecimalMax(value = "180.0", message = "La longitud debe estar entre -180 y 180")
+      Double longitude,
 
-   @DecimalMin(value = "-180.0", message = "Longitud inválida")
-   @DecimalMax(value = "180.0", message = "Longitud inválida")
-   private Double longitude;
+      @Positive(message = "Responsable inválido")
+      Long managerId,
 
-   private Long managerId;
-   private String managerName;
-
-   private String status;
+      /** Opcional: ACTIVE, INACTIVE, MAINTENANCE u OUT_OF_SERVICE (vacío = no cambia) */
+      @Pattern(regexp = "^(ACTIVE|INACTIVE|MAINTENANCE|OUT_OF_SERVICE)?$", message = "Estado inválido")
+      String status
+) {
 }

@@ -301,7 +301,7 @@ public class InfractionService implements
 
    private InfractionDto buildInfractionDto(Infraction i) {
       String parkingName = i.getParkingId() != null
-            ? parkingPersistencePort.findById(i.getParkingId()).map(Parking::getName).orElse(null)
+            ? parkingPersistencePort.findByIdIncludingDeleted(i.getParkingId()).map(Parking::getName).orElse(null)
             : null;
 
       String zoneName = i.getZoneId() != null

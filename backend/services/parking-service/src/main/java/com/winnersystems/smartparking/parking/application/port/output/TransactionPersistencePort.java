@@ -38,6 +38,9 @@ public interface TransactionPersistencePort {
 
    long countActiveByZoneId(Long zoneId);
 
+   /** Vehículos dentro del parqueo (transacciones ACTIVE) */
+   long countActiveByParkingId(Long parkingId);
+
    // ========================= LIST ACTIVAS (paginado) =========================
 
    PageResult<Transaction> findAllActive(PageRequest pageRequest);

@@ -9,66 +9,30 @@ import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper para conversión entre DTOs REST y DTOs de aplicación para parkings.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre los DTO REST de parqueos y los de la capa de aplicación.
  */
 @Component
 public class ParkingRestMapper {
 
-   /**
-    * Convierte CreateParkingRequest a CreateParkingCommand.
-    */
-   public CreateParkingCommand toCommand(CreateParkingRequest request) {
-      return CreateParkingCommand.builder()
-            .name(request.getName())
-            .code(request.getCode())
-            .description(request.getDescription())
-            .address(request.getAddress())
-            .latitude(request.getLatitude())
-            .longitude(request.getLongitude())
-            .managerId(request.getManagerId())
-            .managerName(request.getManagerName())
-            .build();
+   public CreateParkingCommand toCommand(CreateParkingRequest r) {
+      return new CreateParkingCommand(r.name(), r.code(), r.description(), r.address(),
+            r.latitude(), r.longitude(), r.managerId());
    }
 
-   /**
-    * Convierte UpdateParkingRequest a UpdateParkingCommand.
-    */
-   public UpdateParkingCommand toCommand(UpdateParkingRequest request) {
-      return UpdateParkingCommand.builder()
-            .name(request.getName())
-            .description(request.getDescription())
-            .address(request.getAddress())
-            .latitude(request.getLatitude())
-            .longitude(request.getLongitude())
-            .managerId(request.getManagerId())
-            .managerName(request.getManagerName())
-            .build();
+   public UpdateParkingCommand toCommand(UpdateParkingRequest r) {
+      return new UpdateParkingCommand(r.name(), r.description(), r.address(),
+            r.latitude(), r.longitude(), r.managerId(), r.status());
    }
 
-   /**
-    * Convierte ParkingDto a ParkingResponse.
-    */
-   public ParkingResponse toResponse(ParkingDto dto) {
+   public ParkingResponse toResponse(ParkingDto d) {
       return new ParkingResponse(
-            dto.id(),
-            dto.name(),
-            dto.code(),
-            dto.description(),
-            dto.address(),
-            dto.latitude(),
-            dto.longitude(),
-            dto.managerId(),
-            dto.managerName(),
-            dto.totalZones(),
-            dto.totalSpaces(),
-            dto.availableSpaces(),
-            dto.occupancyPercentage(),
-            dto.status(),
-            dto.createdAt(),
-            dto.updatedAt()
+            d.id(), d.name(), d.code(), d.description(), d.address(),
+            d.latitude(), d.longitude(), d.managerId(), d.managerName(),
+            d.totalZones(), d.totalSpaces(), d.availableSpaces(), d.occupiedSpaces(),
+            d.unavailableSpaces(), d.occupancyPercentage(),
+            d.status(), d.operational(),
+            d.createdAt(), d.createdBy(), d.updatedAt(), d.updatedBy(),
+            d.deletedAt(), d.deletedBy()
       );
    }
 }

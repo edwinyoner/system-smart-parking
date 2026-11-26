@@ -1,54 +1,61 @@
 // domain/model/Parking.java
 package com.winnersystems.smartparking.parking.domain.model;
 
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
- * Entidad de dominio que representa un PARQUEO o ESTACIONAMIENTO GENERAL.
+ * Parqueo: una ubicación física (ej.: "Parqueo San Martín") que agrupa una o más zonas
+ * (Zona Norte, Zona Sur) y, dentro de cada zona, sus espacios.
  *
- * Un parqueo es un contenedor lógico que agrupa múltiples zonas de estacionamiento.
- * Representa una ubicación física completa (ej: "Parqueo Simón Bolívar").
+ * Los turnos y las tarifas se configuran POR PARQUEO (ParkingShiftRate) y valen para
+ * todas sus zonas.
  *
- * Ejemplos:
- * - "Parqueo Simón Bolívar" (tiene 4 zonas alrededor)
- * - "Parqueo Mercado Central" (tiene 2 zonas)
- * - "Parqueo Plaza de Armas" (tiene 4 zonas)
+ * La capacidad (zonas, espacios, disponibles) NO se guarda aquí: se calcula contando
+ * los espacios reales, para que nunca muestre espacios libres en un parqueo lleno.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Reglas:
+ * - El código es único (también frente a los eliminados), se guarda en mayúsculas y no cambia.
+ * - La ubicación GPS es opcional, pero si se indica van latitud y longitud juntas.
+ * - Solo un parqueo ACTIVE y no eliminado recibe vehículos (isOperational). Los que ya
+ *   están dentro pueden salir aunque el parqueo pase a inactivo o mantenimiento.
+ * - Eliminar es lógico y se puede restaurar.
  */
 public class Parking {
 
-   // ========================= CAMPOS DE IDENTIDAD =========================
+   // ========================= CONSTANTES =========================
+
+   public static final String STATUS_ACTIVE = "ACTIVE";
+   public static final String STATUS_INACTIVE = "INACTIVE";
+   public static final String STATUS_MAINTENANCE = "MAINTENANCE";
+   public static final String STATUS_OUT_OF_SERVICE = "OUT_OF_SERVICE";
+   public static final Set<String> STATUSES =
+         Set.of(STATUS_ACTIVE, STATUS_INACTIVE, STATUS_MAINTENANCE, STATUS_OUT_OF_SERVICE);
+
+   public static final int MAX_NAME = 100;
+   public static final int MAX_ADDRESS = 255;
+   public static final int MAX_DESCRIPTION = 500;
+   private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9][A-Z0-9_-]{1,19}$");
+
+   // ========================= CAMPOS =========================
 
    private Long id;
-   private String name;                        // "Parqueo Simón Bolívar"
-   private String code;                        // "PSB"
-   private String description;                 // Descripción general
+   private String name;                        // "Parqueo San Martín"
+   private String code;                        // "PSM"
+   private String description;
 
-   // ========================= CAMPOS DE UBICACIÓN =========================
-
-   private String address;                     // Dirección general (ej: "Distrito de Huaraz")
-   private Double latitude;                    // Coordenadas GPS del centro
+   private String address;                     // Dirección (ej.: "Jr. San Martín 520, Huaraz")
+   private Double latitude;                    // Coordenadas GPS del acceso
    private Double longitude;
 
-   // ========================= CAMPOS DE GESTIÓN =========================
+   private Long managerId;                     // Usuario responsable (auth-service), opcional
+   private String managerName;                 // Copia del nombre, tomada de auth-service
 
-   private Long managerId;                     // FK a auth-service (responsable del parqueo)
-   private String managerName;                 // Nombre del responsable (desnormalizado)
-
-   // ========================= CAMPOS DE CAPACIDAD (Calculados) =========================
-
-   private Integer totalZones;                 // Cantidad de zonas
-   private Integer totalSpaces;                // Total de espacios (suma de todas las zonas)
-   private Integer availableSpaces;            // Espacios disponibles (calculado)
-
-   // ========================= CAMPOS DE ESTADO =========================
-
-   private String status;                      // ACTIVE, INACTIVE, MAINTENANCE, OUT_OF_SERVICE
-
-   // ========================= CAMPOS DE AUDITORÍA =========================
+   private String status;
 
    private LocalDateTime createdAt;
    private Long createdBy;
@@ -57,54 +64,92 @@ public class Parking {
    private LocalDateTime deletedAt;
    private Long deletedBy;
 
-   // ========================= CONSTANTES DE ESTADO =========================
-
-   public static final String STATUS_ACTIVE = "ACTIVE";
-   public static final String STATUS_INACTIVE = "INACTIVE";
-   public static final String STATUS_MAINTENANCE = "MAINTENANCE";
-   public static final String STATUS_OUT_OF_SERVICE = "OUT_OF_SERVICE";
-
    // ========================= CONSTRUCTORES =========================
 
    public Parking() {
       this.status = STATUS_ACTIVE;
-      this.totalZones = 0;
-      this.totalSpaces = 0;
-      this.availableSpaces = 0;
       this.createdAt = LocalDateTime.now();
-      this.updatedAt = LocalDateTime.now();
+      this.updatedAt = this.createdAt;
    }
 
-   public Parking(String name, String code, String address) {
-      this();
-      this.name = name;
-      this.code = code;
-      this.address = address;
+   /** Crea un parqueo validado y activo. El código se normaliza a mayúsculas */
+   public static Parking create(String name, String code, String description, String address,
+                                Double latitude, Double longitude, Long createdBy) {
+      Parking parking = new Parking();
+      parking.code = normalizeCode(code);
+      parking.applyInfo(name, description, address, latitude, longitude);
+      parking.createdBy = createdBy;
+      parking.updatedBy = createdBy;
+      return parking;
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - GESTIÓN DE ESTADO =========================
+   // ========================= DATOS =========================
+
+   /** Actualiza los datos editables (el código no cambia) */
+   public void update(String name, String description, String address, Double latitude, Double longitude) {
+      applyInfo(name, description, address, latitude, longitude);
+      touch();
+   }
+
+   /** Asigna el responsable. El nombre lo da auth-service, no el cliente */
+   public void assignManager(Long managerId, String managerName) {
+      if (managerId == null) {
+         removeManager();
+         return;
+      }
+      this.managerId = managerId;
+      this.managerName = blankToNull(managerName);
+      touch();
+   }
+
+   public void removeManager() {
+      this.managerId = null;
+      this.managerName = null;
+      touch();
+   }
+
+   public boolean hasManager() {
+      return managerId != null;
+   }
+
+   public boolean hasLocation() {
+      return latitude != null && longitude != null;
+   }
+
+   // ========================= ESTADO =========================
 
    public void activate() {
       this.status = STATUS_ACTIVE;
-      this.updatedAt = LocalDateTime.now();
+      touch();
    }
 
    public void deactivate() {
       this.status = STATUS_INACTIVE;
-      this.updatedAt = LocalDateTime.now();
+      touch();
    }
 
    public void setInMaintenance() {
       this.status = STATUS_MAINTENANCE;
-      this.updatedAt = LocalDateTime.now();
+      touch();
    }
 
    public void setOutOfService() {
       this.status = STATUS_OUT_OF_SERVICE;
-      this.updatedAt = LocalDateTime.now();
+      touch();
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - CONSULTAS =========================
+   /** Cambia a cualquiera de los 4 estados; un estado desconocido es un error */
+   public void changeStatus(String newStatus) {
+      String value = newStatus == null ? "" : newStatus.trim().toUpperCase();
+      switch (value) {
+         case STATUS_ACTIVE -> activate();
+         case STATUS_INACTIVE -> deactivate();
+         case STATUS_MAINTENANCE -> setInMaintenance();
+         case STATUS_OUT_OF_SERVICE -> setOutOfService();
+         default -> throw new ParkingDomainException(
+               "Estado de parqueo inválido: " + newStatus + ". Usa ACTIVE, INACTIVE, MAINTENANCE u OUT_OF_SERVICE");
+      }
+   }
 
    public boolean isActive() {
       return STATUS_ACTIVE.equals(status);
@@ -114,259 +159,173 @@ public class Parking {
       return STATUS_INACTIVE.equals(status);
    }
 
+   /** Recibe vehículos nuevos: activo y no eliminado */
    public boolean isOperational() {
       return isActive() && !isDeleted();
+   }
+
+   // ========================= PAPELERA =========================
+
+   public void markAsDeleted(Long deletedByUserId) {
+      LocalDateTime now = LocalDateTime.now();
+      this.deletedAt = now;
+      this.deletedBy = deletedByUserId;
+      this.updatedBy = deletedByUserId;
+      this.status = STATUS_INACTIVE;
+      this.updatedAt = now;
+   }
+
+   /** Sale de la papelera y vuelve activo, con sus zonas, espacios, turnos y tarifas */
+   public void restore(Long restoredBy) {
+      if (!isDeleted()) {
+         throw new ParkingDomainException("El parqueo no está eliminado");
+      }
+      this.deletedAt = null;
+      this.deletedBy = null;
+      this.status = STATUS_ACTIVE;
+      this.updatedBy = restoredBy;
+      touch();
    }
 
    public boolean isDeleted() {
       return deletedAt != null;
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - CAPACIDAD =========================
-
-   public void updateTotalZones(Integer zones) {
-      this.totalZones = zones;
-      this.updatedAt = LocalDateTime.now();
+   public void updateModifiedBy(Long userId) {
+      this.updatedBy = userId;
+      touch();
    }
 
-   public void updateCapacity(Integer totalSpaces, Integer availableSpaces) {
-      this.totalSpaces = totalSpaces;
-      this.availableSpaces = availableSpaces;
-      this.updatedAt = LocalDateTime.now();
-   }
+   // ========================= VALIDACIONES =========================
 
-   public Double getOccupancyPercentage() {
-      if (totalSpaces == null || totalSpaces == 0) {
-         return 0.0;
+   private void applyInfo(String name, String description, String address, Double latitude, Double longitude) {
+      this.name = requireText(name, "El nombre", "obligatorio", MAX_NAME);
+      this.address = requireText(address, "La dirección", "obligatoria", MAX_ADDRESS);
+      String desc = blankToNull(description);
+      if (desc != null && desc.length() > MAX_DESCRIPTION) {
+         throw new ParkingDomainException("La descripción no puede exceder " + MAX_DESCRIPTION + " caracteres");
       }
-      int occupied = totalSpaces - (availableSpaces != null ? availableSpaces : 0);
-      return (occupied * 100.0) / totalSpaces;
+      this.description = desc;
+      applyLocation(latitude, longitude);
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - SOFT DELETE =========================
-
-   public void markAsDeleted(Long deletedByUserId) {
-      this.deletedAt = LocalDateTime.now();
-      this.deletedBy = deletedByUserId;
-      this.status = STATUS_OUT_OF_SERVICE;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   public void restore() {
-      this.deletedAt = null;
-      this.deletedBy = null;
-      this.status = STATUS_OUT_OF_SERVICE;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   // ========================= MÉTODOS DE NEGOCIO - ACTUALIZACIÓN =========================
-
-   public void updateBasicInfo(String name, String address, String description) {
-      this.name = name;
-      this.address = address;
-      this.description = description;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   public void updateLocation(Double latitude, Double longitude) {
+   private void applyLocation(Double latitude, Double longitude) {
+      if (latitude == null && longitude == null) {
+         this.latitude = null;
+         this.longitude = null;
+         return;
+      }
+      if (latitude == null || longitude == null) {
+         throw new ParkingDomainException("Indica latitud y longitud juntas, o ninguna");
+      }
+      if (latitude < -90 || latitude > 90) {
+         throw new ParkingDomainException("La latitud debe estar entre -90 y 90");
+      }
+      if (longitude < -180 || longitude > 180) {
+         throw new ParkingDomainException("La longitud debe estar entre -180 y 180");
+      }
       this.latitude = latitude;
       this.longitude = longitude;
-      this.updatedAt = LocalDateTime.now();
    }
 
-   public void assignManager(Long managerId, String managerName) {
-      this.managerId = managerId;
-      this.managerName = managerName;
-      this.updatedAt = LocalDateTime.now();
+   private static String normalizeCode(String code) {
+      String value = code == null ? "" : code.trim().toUpperCase();
+      if (!CODE_PATTERN.matcher(value).matches()) {
+         throw new ParkingDomainException(
+               "El código debe tener de 2 a 20 caracteres: letras, dígitos, guion o guion bajo (ej.: PSM)");
+      }
+      return value;
    }
 
-   public void validate() {
-      if (name == null || name.trim().isEmpty()) {
-         throw new IllegalArgumentException("El nombre del parqueo es obligatorio");
+   /** @param label "El nombre" o "La dirección"; required "obligatorio" u "obligatoria" */
+   private static String requireText(String value, String label, String required, int max) {
+      if (value == null || value.isBlank()) {
+         throw new ParkingDomainException(label + " es " + required);
       }
-      if (code == null || code.trim().isEmpty()) {
-         throw new IllegalArgumentException("El código del parqueo es obligatorio");
+      String trimmed = value.trim();
+      if (trimmed.length() > max) {
+         throw new ParkingDomainException(label + " no puede exceder " + max + " caracteres");
       }
+      return trimmed;
+   }
+
+   private static String blankToNull(String value) {
+      return value == null || value.isBlank() ? null : value.trim();
+   }
+
+   private void touch() {
+      this.updatedAt = LocalDateTime.now();
    }
 
    // ========================= GETTERS Y SETTERS =========================
+   // Los setters los usa el mapper de persistencia; la lógica usa los métodos de negocio
 
-   public Long getId() {
-      return id;
-   }
+   public Long getId() { return id; }
+   public void setId(Long id) { this.id = id; }
 
-   public void setId(Long id) {
-      this.id = id;
-   }
+   public String getName() { return name; }
+   public void setName(String name) { this.name = name; }
 
-   public String getName() {
-      return name;
-   }
+   public String getCode() { return code; }
+   public void setCode(String code) { this.code = code; }
 
-   public void setName(String name) {
-      this.name = name;
-   }
+   public String getDescription() { return description; }
+   public void setDescription(String description) { this.description = description; }
 
-   public String getCode() {
-      return code;
-   }
+   public String getAddress() { return address; }
+   public void setAddress(String address) { this.address = address; }
 
-   public void setCode(String code) {
-      this.code = code;
-   }
+   public Double getLatitude() { return latitude; }
+   public void setLatitude(Double latitude) { this.latitude = latitude; }
 
-   public String getDescription() {
-      return description;
-   }
+   public Double getLongitude() { return longitude; }
+   public void setLongitude(Double longitude) { this.longitude = longitude; }
 
-   public void setDescription(String description) {
-      this.description = description;
-   }
+   public Long getManagerId() { return managerId; }
+   public void setManagerId(Long managerId) { this.managerId = managerId; }
 
-   public String getAddress() {
-      return address;
-   }
+   public String getManagerName() { return managerName; }
+   public void setManagerName(String managerName) { this.managerName = managerName; }
 
-   public void setAddress(String address) {
-      this.address = address;
-   }
+   public String getStatus() { return status; }
+   public void setStatus(String status) { this.status = status; }
 
-   public Double getLatitude() {
-      return latitude;
-   }
+   public LocalDateTime getCreatedAt() { return createdAt; }
+   public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-   public void setLatitude(Double latitude) {
-      this.latitude = latitude;
-   }
+   public Long getCreatedBy() { return createdBy; }
+   public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
 
-   public Double getLongitude() {
-      return longitude;
-   }
+   public LocalDateTime getUpdatedAt() { return updatedAt; }
+   public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-   public void setLongitude(Double longitude) {
-      this.longitude = longitude;
-   }
+   public Long getUpdatedBy() { return updatedBy; }
+   public void setUpdatedBy(Long updatedBy) { this.updatedBy = updatedBy; }
 
-   public Long getManagerId() {
-      return managerId;
-   }
+   public LocalDateTime getDeletedAt() { return deletedAt; }
+   public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 
-   public void setManagerId(Long managerId) {
-      this.managerId = managerId;
-   }
-
-   public String getManagerName() {
-      return managerName;
-   }
-
-   public void setManagerName(String managerName) {
-      this.managerName = managerName;
-   }
-
-   public Integer getTotalZones() {
-      return totalZones;
-   }
-
-   public void setTotalZones(Integer totalZones) {
-      this.totalZones = totalZones;
-   }
-
-   public Integer getTotalSpaces() {
-      return totalSpaces;
-   }
-
-   public void setTotalSpaces(Integer totalSpaces) {
-      this.totalSpaces = totalSpaces;
-   }
-
-   public Integer getAvailableSpaces() {
-      return availableSpaces;
-   }
-
-   public void setAvailableSpaces(Integer availableSpaces) {
-      this.availableSpaces = availableSpaces;
-   }
-
-   public String getStatus() {
-      return status;
-   }
-
-   public void setStatus(String status) {
-      this.status = status;
-   }
-
-   public LocalDateTime getCreatedAt() {
-      return createdAt;
-   }
-
-   public void setCreatedAt(LocalDateTime createdAt) {
-      this.createdAt = createdAt;
-   }
-
-   public Long getCreatedBy() {
-      return createdBy;
-   }
-
-   public void setCreatedBy(Long createdBy) {
-      this.createdBy = createdBy;
-   }
-
-   public LocalDateTime getUpdatedAt() {
-      return updatedAt;
-   }
-
-   public void setUpdatedAt(LocalDateTime updatedAt) {
-      this.updatedAt = updatedAt;
-   }
-
-   public Long getUpdatedBy() {
-      return updatedBy;
-   }
-
-   public void setUpdatedBy(Long updatedBy) {
-      this.updatedBy = updatedBy;
-   }
-
-   public LocalDateTime getDeletedAt() {
-      return deletedAt;
-   }
-
-   public void setDeletedAt(LocalDateTime deletedAt) {
-      this.deletedAt = deletedAt;
-   }
-
-   public Long getDeletedBy() {
-      return deletedBy;
-   }
-
-   public void setDeletedBy(Long deletedBy) {
-      this.deletedBy = deletedBy;
-   }
+   public Long getDeletedBy() { return deletedBy; }
+   public void setDeletedBy(Long deletedBy) { this.deletedBy = deletedBy; }
 
    // ========================= EQUALS, HASHCODE Y TOSTRING =========================
 
+   /** Igualdad por ID: dos parqueos nuevos (sin ID) no son iguales entre sí */
    @Override
    public boolean equals(Object o) {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
-      Parking parking = (Parking) o;
-      return Objects.equals(id, parking.id) || Objects.equals(code, parking.code);
+      Parking that = (Parking) o;
+      return id != null && id.equals(that.id);
    }
 
    @Override
    public int hashCode() {
-      return Objects.hash(id, code);
+      return Objects.hashCode(id);
    }
 
    @Override
    public String toString() {
-      return "Parking{" +
-            "id=" + id +
-            ", name='" + name + '\'' +
-            ", code='" + code + '\'' +
-            ", totalZones=" + totalZones +
-            ", totalSpaces=" + totalSpaces +
-            ", status='" + status + '\'' +
-            '}';
+      return "Parking{id=" + id + ", code='" + code + "', name='" + name + "', status=" + status + '}';
    }
 }

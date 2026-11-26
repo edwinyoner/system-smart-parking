@@ -5,10 +5,8 @@ import com.winnersystems.smartparking.parking.infrastructure.adapter.output.pers
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper para conversión entre Parking (dominio) y ParkingEntity (JPA).
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre Parking (dominio) y ParkingEntity (JPA).
+ * La capacidad no se guarda: la calcula ParkingCapacityPersistenceAdapter.
  */
 @Component
 public class ParkingPersistenceMapper {
@@ -16,16 +14,16 @@ public class ParkingPersistenceMapper {
    public Parking toDomain(ParkingEntity entity) {
       if (entity == null) return null;
 
-      Parking parking = new Parking(entity.getName(), entity.getCode(), entity.getAddress());
+      Parking parking = new Parking();
       parking.setId(entity.getId());
+      parking.setName(entity.getName());
+      parking.setCode(entity.getCode());
       parking.setDescription(entity.getDescription());
+      parking.setAddress(entity.getAddress());
       parking.setLatitude(entity.getLatitude());
       parking.setLongitude(entity.getLongitude());
       parking.setManagerId(entity.getManagerId());
       parking.setManagerName(entity.getManagerName());
-      parking.setTotalZones(entity.getTotalZones());
-      parking.setTotalSpaces(entity.getTotalSpaces());
-      parking.setAvailableSpaces(entity.getAvailableSpaces());
       parking.setStatus(entity.getStatus());
       parking.setCreatedAt(entity.getCreatedAt());
       parking.setCreatedBy(entity.getCreatedBy());
@@ -49,9 +47,6 @@ public class ParkingPersistenceMapper {
             .longitude(parking.getLongitude())
             .managerId(parking.getManagerId())
             .managerName(parking.getManagerName())
-            .totalZones(parking.getTotalZones())
-            .totalSpaces(parking.getTotalSpaces())
-            .availableSpaces(parking.getAvailableSpaces())
             .status(parking.getStatus())
             .createdAt(parking.getCreatedAt())
             .createdBy(parking.getCreatedBy())
@@ -62,6 +57,7 @@ public class ParkingPersistenceMapper {
             .build();
    }
 
+   /** El código y la creación no cambian después de crear */
    public void updateEntity(ParkingEntity entity, Parking parking) {
       if (entity == null || parking == null) return;
 
@@ -72,9 +68,6 @@ public class ParkingPersistenceMapper {
       entity.setLongitude(parking.getLongitude());
       entity.setManagerId(parking.getManagerId());
       entity.setManagerName(parking.getManagerName());
-      entity.setTotalZones(parking.getTotalZones());
-      entity.setTotalSpaces(parking.getTotalSpaces());
-      entity.setAvailableSpaces(parking.getAvailableSpaces());
       entity.setStatus(parking.getStatus());
       entity.setUpdatedAt(parking.getUpdatedAt());
       entity.setUpdatedBy(parking.getUpdatedBy());

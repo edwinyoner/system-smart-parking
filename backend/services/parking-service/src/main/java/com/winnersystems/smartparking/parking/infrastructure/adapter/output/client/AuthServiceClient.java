@@ -69,6 +69,7 @@ public interface AuthServiceClient {
          Long id,
          String firstName,
          String lastName,
+         String fullName,
          String email,
          String phoneNumber,
          String profilePicture,
@@ -76,7 +77,10 @@ public interface AuthServiceClient {
          Boolean emailVerified
    ) {
       public String getFullName() {
-         return firstName + " " + lastName;
+         if (fullName != null && !fullName.isBlank()) {
+            return fullName;
+         }
+         return (firstName + " " + lastName).trim();
       }
    }
 }

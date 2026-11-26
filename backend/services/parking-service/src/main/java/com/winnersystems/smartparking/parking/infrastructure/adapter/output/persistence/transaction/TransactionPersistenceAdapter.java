@@ -84,6 +84,11 @@ public class TransactionPersistenceAdapter implements TransactionPersistencePort
       return transactionRepository.countActiveByZoneId(zoneId);
    }
 
+   @Override
+   public long countActiveByParkingId(Long parkingId) {
+      return transactionRepository.countActiveByParkingId(parkingId);
+   }
+
    // ========================= LIST ACTIVAS =========================
 
    @Override

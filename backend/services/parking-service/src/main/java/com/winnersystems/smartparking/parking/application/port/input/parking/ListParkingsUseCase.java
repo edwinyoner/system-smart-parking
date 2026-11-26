@@ -6,11 +6,12 @@ import com.winnersystems.smartparking.parking.application.dto.query.ParkingDto;
 import java.util.List;
 
 /**
- * Puerto de entrada para listar Parkings.
- *
- * @author Edwin Yoner - Winner Systems
+ * Puerto de entrada para listar parqueos.
  */
 public interface ListParkingsUseCase {
-   PagedResponse<ParkingDto> listAllParkings(int pageNumber, int pageSize, String search, String status);
+
+   /** @param deleted true = papelera */
+   PagedResponse<ParkingDto> listAllParkings(int pageNumber, int pageSize, String search, String status, boolean deleted);
+
    List<ParkingDto> listAllActiveParkings();
 }

@@ -8,47 +8,63 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio JPA para Parking.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
- */
 @Repository
 public interface ParkingRepository extends JpaRepository<ParkingEntity, Long> {
 
-   // ========================= BÚSQUEDA POR ID =========================
-
    Optional<ParkingEntity> findByIdAndDeletedAtIsNull(Long id);
 
-   // ========================= BÚSQUEDA POR CÓDIGO =========================
+   Optional<ParkingEntity> findByIdAndDeletedAtIsNotNull(Long id);
 
-   Optional<ParkingEntity> findByCodeAndDeletedAtIsNull(String code);
+   /** Incluye eliminados (el código sigue reservado en la papelera) */
+   Optional<ParkingEntity> findFirstByCodeIgnoreCase(String code);
 
-   boolean existsByCodeAndDeletedAtIsNull(String code);
-
-   // ========================= LISTA ACTIVOS (sin paginar) =========================
-
-   List<ParkingEntity> findByStatusAndDeletedAtIsNull(String status);
-
-   // ========================= PAGINACIÓN CON FILTROS =========================
+   List<ParkingEntity> findByStatusAndDeletedAtIsNullOrderByNameAsc(String status);
 
    /**
-    * Todos los parkings no eliminados con filtros opcionales de búsqueda y estado.
-    * search filtra por nombre o código (case-insensitive).
-    * status filtra por estado exacto. Si es null, retorna todos.
+    * Lista paginada de parqueos vigentes o, con deleted = true, de la papelera.
+    *
+    * @param search texto en minúsculas, con %, _ y \\ escapados (null = sin filtro)
+    * @param status estado exacto (null = todos)
     */
-   @Query("SELECT p FROM ParkingEntity p " +
-         "WHERE p.deletedAt IS NULL " +
-         "AND (:search IS NULL OR UPPER(p.name) LIKE UPPER(CONCAT('%', :search, '%')) " +
-         "     OR UPPER(p.code) LIKE UPPER(CONCAT('%', :search, '%'))) " +
-         "AND (:status IS NULL OR p.status = :status)")
-   Page<ParkingEntity> findAllWithFilters(
-         @Param("search") String search,
-         @Param("status") String status,
-         Pageable pageable
-   );
+   @Query("""
+         SELECT p FROM ParkingEntity p
+         WHERE ((:deleted = false AND p.deletedAt IS NULL) OR (:deleted = true AND p.deletedAt IS NOT NULL))
+           AND (:search IS NULL
+                OR LOWER(p.name) LIKE CONCAT('%', :search, '%') ESCAPE '\\'
+                OR LOWER(p.code) LIKE CONCAT('%', :search, '%') ESCAPE '\\'
+                OR LOWER(p.address) LIKE CONCAT('%', :search, '%') ESCAPE '\\')
+           AND (:status IS NULL OR p.status = :status)
+         """)
+   Page<ParkingEntity> search(@Param("search") String search,
+                              @Param("status") String status,
+                              @Param("deleted") boolean deleted,
+                              Pageable pageable);
+
+   // ========================= CAPACIDAD (calculada) =========================
+
+   /** Zonas no eliminadas por parqueo: filas [parkingId, cantidad] */
+   @Query("""
+         SELECT z.parkingId, COUNT(z) FROM ZoneEntity z
+         WHERE z.parkingId IN :parkingIds AND z.deletedAt IS NULL
+         GROUP BY z.parkingId
+         """)
+   List<Object[]> countZonesByParking(@Param("parkingIds") Collection<Long> parkingIds);
+
+   /**
+    * Espacios no eliminados de zonas no eliminadas, agrupados por parqueo, estado
+    * del espacio y estado de la zona: filas [parkingId, estadoEspacio, estadoZona, cantidad].
+    */
+   @Query("""
+         SELECT z.parkingId, s.status, z.status, COUNT(s)
+         FROM SpaceEntity s, ZoneEntity z
+         WHERE s.zoneId = z.id
+           AND z.parkingId IN :parkingIds
+           AND z.deletedAt IS NULL AND s.deletedAt IS NULL
+         GROUP BY z.parkingId, s.status, z.status
+         """)
+   List<Object[]> countSpacesByParking(@Param("parkingIds") Collection<Long> parkingIds);
 }

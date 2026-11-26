@@ -3,9 +3,7 @@ package com.winnersystems.smartparking.parking.application.dto.query;
 import java.time.LocalDateTime;
 
 /**
- * DTO de consulta para Parking.
- *
- * @author Edwin Yoner - Winner Systems
+ * Parqueo con su capacidad calculada desde los espacios reales.
  */
 public record ParkingDto(
       Long id,
@@ -17,11 +15,19 @@ public record ParkingDto(
       Double longitude,
       Long managerId,
       String managerName,
-      Integer totalZones,
-      Integer totalSpaces,
-      Integer availableSpaces,
-      Double occupancyPercentage,
+      int totalZones,
+      int totalSpaces,
+      int availableSpaces,
+      int occupiedSpaces,
+      int unavailableSpaces,
+      double occupancyPercentage,
       String status,
+      boolean operational,
       LocalDateTime createdAt,
-      LocalDateTime updatedAt
-) {}
+      Long createdBy,
+      LocalDateTime updatedAt,
+      Long updatedBy,
+      LocalDateTime deletedAt,
+      Long deletedBy
+) {
+}

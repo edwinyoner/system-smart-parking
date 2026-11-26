@@ -3,10 +3,11 @@ package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest
 import java.time.LocalDateTime;
 
 /**
- * Response con información de un parking.
+ * Parqueo con su capacidad calculada en el momento desde los espacios reales.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * @param availableSpaces   espacios libres en zonas activas (los que reciben un vehículo ahora)
+ * @param unavailableSpaces en mantenimiento, fuera de servicio o en zonas no activas
+ * @param operational       activo y no eliminado: recibe vehículos
  */
 public record ParkingResponse(
       Long id,
@@ -18,11 +19,19 @@ public record ParkingResponse(
       Double longitude,
       Long managerId,
       String managerName,
-      Integer totalZones,
-      Integer totalSpaces,
-      Integer availableSpaces,
-      Double occupancyPercentage,
+      int totalZones,
+      int totalSpaces,
+      int availableSpaces,
+      int occupiedSpaces,
+      int unavailableSpaces,
+      double occupancyPercentage,
       String status,
+      boolean operational,
       LocalDateTime createdAt,
-      LocalDateTime updatedAt
-) {}
+      Long createdBy,
+      LocalDateTime updatedAt,
+      Long updatedBy,
+      LocalDateTime deletedAt,
+      Long deletedBy
+) {
+}

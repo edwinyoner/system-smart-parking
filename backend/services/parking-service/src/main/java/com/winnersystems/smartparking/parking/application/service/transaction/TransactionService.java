@@ -278,8 +278,12 @@ public class TransactionService implements
 
    // ========================= HELPERS - CARGA DE ENTIDADES =========================
 
+   /**
+    * Incluye eliminados para mostrar el historial. Una entrada nueva igual se
+    * rechaza: validateParkingOperational exige un parqueo activo y no eliminado.
+    */
    private Parking loadParking(Long parkingId) {
-      return parkingPersistencePort.findById(parkingId)
+      return parkingPersistencePort.findByIdIncludingDeleted(parkingId)
             .orElseThrow(() -> new IllegalArgumentException("Parking no encontrado: " + parkingId));
    }
 

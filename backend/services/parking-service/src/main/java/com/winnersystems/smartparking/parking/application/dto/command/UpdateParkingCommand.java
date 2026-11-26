@@ -1,27 +1,19 @@
 package com.winnersystems.smartparking.parking.application.dto.command;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 /**
- * Command para actualizar un Parking existente.
+ * Datos editables de un parqueo (el código no cambia).
  *
- * @author Edwin Yoner - Winner Systems
+ * Es una actualización completa: una ubicación o un responsable en null se quitan.
+ *
+ * @param status nuevo estado opcional (null = no cambia)
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UpdateParkingCommand {
-
-   private String name;
-   private String description;
-   private String address;
-   private Double latitude;
-   private Double longitude;
-   private Long managerId;
-   private String managerName;
-   private String status;
+public record UpdateParkingCommand(
+      String name,
+      String description,
+      String address,
+      Double latitude,
+      Double longitude,
+      Long managerId,
+      String status
+) {
 }

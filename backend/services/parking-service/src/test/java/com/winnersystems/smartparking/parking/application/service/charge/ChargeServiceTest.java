@@ -52,7 +52,7 @@ class ChargeServiceTest {
       when(vehicles.findById(1L)).thenReturn(Optional.of(vehicle));
       Parking parking = new Parking();
       parking.setName("San Martín");
-      when(parkings.findById(3L)).thenReturn(Optional.of(parking));
+      when(parkings.findByIdIncludingDeleted(3L)).thenReturn(Optional.of(parking));
       when(rates.findByIdIncludingDeleted(6L)).thenReturn(Optional.of(
             Rate.create("Estándar", null, new BigDecimal("2.50"), new Rate.BillingRules(60, 0, 5, 5), true, 1L)));
 
