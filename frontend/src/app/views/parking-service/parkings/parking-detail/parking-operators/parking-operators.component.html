@@ -1,0 +1,218 @@
+<!-- Operadores del parqueo -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <strong>
+      <i class="fas fa-user-clock me-2"></i>Operadores
+      @if (onDuty.length) {
+      <span class="badge bg-success ms-2">{{ onDuty.length }} de turno ahora</span>
+      }
+    </strong>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Filtro de asignaciones">
+        <button type="button" class="btn" [class.btn-success]="view === 'current'" [class.btn-outline-secondary]="view !== 'current'"
+          (click)="view = 'current'">Vigentes y programadas</button>
+        <button type="button" class="btn" [class.btn-success]="view === 'ended'" [class.btn-outline-secondary]="view !== 'ended'"
+          (click)="view = 'ended'">Finalizadas</button>
+        <button type="button" class="btn" [class.btn-success]="view === 'all'" [class.btn-outline-secondary]="view !== 'all'"
+          (click)="view = 'all'">Todas</button>
+      </div>
+      @if (can('operator-assignments.create')) {
+      <span class="d-inline-block" [title]="shifts.length ? 'Asignar operador' : 'Primero configura el horario del parqueo'">
+        <button type="button" class="btn btn-sm btn-success" (click)="openAssign()" [disabled]="shifts.length === 0">
+          <i class="fas fa-user-plus me-1"></i>Asignar
+        </button>
+      </span>
+      }
+    </div>
+  </div>
+  <div class="card-body">
+    @if (successMessage) { <div class="alert alert-success py-2 small">{{ successMessage }}</div> }
+    @if (errorMessage) {
+    <div class="alert alert-danger py-2 small d-flex justify-content-between">
+      <span>{{ errorMessage }}</span><button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    </div>
+    }
+
+    @if (loading) {
+    <div class="text-center py-3"><span class="spinner-border spinner-border-sm text-success"></span></div>
+    } @else if (visible.length === 0) {
+    <p class="text-muted mb-0">
+      {{ view === 'ended' ? 'No hay asignaciones finalizadas.' : 'No hay operadores asignados.' }}
+    </p>
+    } @else {
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr><th>Operador</th><th>Turno</th><th>Atiende</th><th>Fechas</th><th class="text-center">Estado</th><th class="text-end">Acciones</th></tr>
+        </thead>
+        <tbody>
+          @for (a of visible; track a.id) {
+          <tr>
+            <td>
+              <span class="fw-semibold">{{ a.operatorName }}</span>
+              @if (a.onDutyNow) { <span class="badge bg-success ms-1"><i class="fas fa-circle me-1"></i>De turno</span> }
+            </td>
+            <td>{{ a.shiftName }} <small class="text-muted">{{ hhmm(a.shiftStartTime) }} - {{ hhmm(a.shiftEndTime) }}</small></td>
+            <td>{{ a.scope === 'PARKING' ? 'Todo el parqueo' : a.zoneName }}</td>
+            <td><small>{{ formatDate(a.startDate) }} - {{ formatDate(a.endDate) }}</small></td>
+            <td class="text-center">
+              <span class="badge" [ngClass]="status(a.status).badge"><i class="fas me-1" [ngClass]="status(a.status).icon"></i>{{ status(a.status).label }}</span>
+            </td>
+            <td class="text-end">
+              @if (a.status !== 'ENDED') {
+              <div class="btn-group btn-group-sm">
+                @if (can('operator-assignments.update')) {
+                <button type="button" class="btn btn-outline-warning" (click)="openDates(a)" title="Cambiar fechas">
+                  <i class="fas fa-calendar-alt"></i>
+                </button>
+                }
+                @if (can('operator-assignments.delete')) {
+                <button type="button" class="btn btn-outline-danger" (click)="toFinish = a"
+                  [title]="willCancel(a) ? 'Cancelar asignación' : 'Finalizar desde hoy'">
+                  <i class="fas fa-user-slash"></i>
+                </button>
+                }
+              </div>
+              }
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </div>
+</div>
+
+<!-- Asignar operador -->
+@if (showAssign) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form [formGroup]="assignForm" (ngSubmit)="assign()">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Asignar operador</h5>
+          <button type="button" class="btn-close" (click)="showAssign = false"></button>
+        </div>
+        <div class="modal-body">
+          @if (operators === null) {
+          <div class="alert alert-warning mb-0"><i class="fas fa-lock me-2"></i>Necesitas el permiso para ver usuarios.</div>
+          } @else {
+          <p class="small text-muted">
+            En cada turno el parqueo tiene un operador para todo el parqueo o uno por zona, y un operador
+            no puede estar en dos turnos que se crucen.
+          </p>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Operador</label>
+            <select class="form-select" formControlName="operatorId"
+              [class.is-invalid]="assignForm.get('operatorId')?.invalid && assignForm.get('operatorId')?.touched">
+              <option [ngValue]="null" disabled>Elige un operador</option>
+              @for (o of operators; track o.id) { <option [ngValue]="o.id">{{ operatorName(o) }}</option> }
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Turno</label>
+            <select class="form-select" formControlName="shiftId">
+              @for (s of shifts; track s.shiftId) {
+              <option [ngValue]="s.shiftId">{{ s.shiftName }} ({{ hhmm(s.startTime) }} - {{ hhmm(s.endTime) }})</option>
+              }
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Atiende</label>
+            <select class="form-select" formControlName="zoneId">
+              <option [ngValue]="null">Todo el parqueo</option>
+              @for (z of zones; track z.id) { <option [ngValue]="z.id">Solo {{ z.name }} ({{ z.code }})</option> }
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Desde</label>
+              <input type="date" class="form-control" formControlName="startDate" [min]="today">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Hasta (vacío = indefinida)</label>
+              <input type="date" class="form-control" formControlName="endDate" [min]="assignForm.get('startDate')?.value || today">
+            </div>
+          </div>
+          @if (formError) { <div class="alert alert-danger py-2 small mt-3 mb-0">{{ formError }}</div> }
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="showAssign = false">Cancelar</button>
+          <button type="submit" class="btn btn-success" [disabled]="saving || operators === null">
+            @if (saving) { <span class="spinner-border spinner-border-sm me-2"></span> } Asignar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Cambiar fechas -->
+@if (editing) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form [formGroup]="datesForm" (ngSubmit)="saveDates()">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-calendar-alt me-2"></i>Fechas de {{ editing.operatorName }}</h5>
+          <button type="button" class="btn-close" (click)="editing = null"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Desde</label>
+              <input type="date" class="form-control" formControlName="startDate" [min]="today">
+              @if (editing.status !== 'PENDING') { <small class="text-muted">Ya empezó: no cambia.</small> }
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Hasta (vacío = indefinida)</label>
+              <input type="date" class="form-control" formControlName="endDate" [min]="today">
+            </div>
+          </div>
+          <small class="text-muted d-block mt-2">Para terminarla hoy usa Finalizar.</small>
+          @if (formError) { <div class="alert alert-danger py-2 small mt-3 mb-0">{{ formError }}</div> }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="editing = null">Cancelar</button>
+          <button type="submit" class="btn btn-success" [disabled]="saving"><i class="fas fa-save me-1"></i>Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Finalizar o cancelar -->
+@if (toFinish) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">{{ willCancel(toFinish) ? 'Cancelar asignación' : 'Finalizar asignación' }}</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="toFinish = null"></button>
+      </div>
+      <div class="modal-body">
+        @if (willCancel(toFinish)) {
+        <p class="mb-0">La asignación de <strong>{{ toFinish.operatorName }}</strong> aún no cumple un día: se
+          <strong>cancelará</strong> y no quedará en el historial.</p>
+        } @else {
+        <p class="mb-0"><strong>{{ toFinish.operatorName }}</strong> deja de estar asignado desde hoy. La asignación
+          queda en el historial hasta ayer.</p>
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="toFinish = null">Volver</button>
+        <button type="button" class="btn btn-danger" (click)="finish()">
+          <i class="fas fa-user-slash me-1"></i>{{ willCancel(toFinish) ? 'Cancelar asignación' : 'Finalizar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}

@@ -29,7 +29,12 @@ export const MAX_SCHEDULE_ROWS = 24;
 export class Step4ConfigComponent implements OnInit {
 
   @Input() parkingId!: number;
+  /** Horario actual para editarlo (desde el detalle del parqueo) */
+  @Input() initial: ParkingShiftRate[] = [];
+  /** true = dentro del detalle: "Cancelar" en lugar de "Configurar después" */
+  @Input() embedded = false;
   @Output() configSaved = new EventEmitter<ParkingShiftRate[]>();
+  @Output() cancelled = new EventEmitter<void>();
 
   shifts: Shift[] = [];
   rates: Rate[] = [];
@@ -67,7 +72,10 @@ export class Step4ConfigComponent implements OnInit {
         this.shifts = [...shifts].sort((a, b) => a.startTime.localeCompare(b.startTime));
         this.rates = rates;
         this.loadingCatalogs = false;
-        if (this.configurations.length === 0 && this.shifts.length && this.rates.length) {
+        if (this.configurations.length > 0) return;
+        if (this.initial.length) {
+          this.loadInitial();
+        } else if (!this.embedded && this.shifts.length && this.rates.length) {
           this.addConfiguration();
         }
       },
@@ -76,6 +84,30 @@ export class Step4ConfigComponent implements OnInit {
         this.catalogError = 'No se pudieron cargar los turnos y tarifas. Intenta recargar.';
       },
     });
+  }
+
+  /**
+   * Carga el horario actual. Un turno o tarifa que ya no está activo se agrega igual al
+   * catálogo de la fila, para que se vea y se pueda cambiar o desactivar.
+   */
+  private loadInitial(): void {
+    for (const c of this.initial) {
+      if (!this.shifts.some(s => s.id === c.shiftId)) {
+        this.shifts.push({ id: c.shiftId, name: `${c.shiftName} (inactivo)`, code: c.shiftCode ?? '',
+          startTime: c.startTime ?? '00:00', endTime: c.endTime ?? '00:00', status: false,
+          crossesMidnight: c.crossesMidnight });
+      }
+      if (!this.rates.some(r => r.id === c.rateId)) {
+        this.rates.push({ id: c.rateId, name: `${c.rateName} (inactiva)`, amount: c.rateAmount ?? 0,
+          currency: c.rateCurrency ?? 'PEN', billingUnitMinutes: 60, minimumMinutes: 0, graceMinutes: 0,
+          toleranceMinutes: 0, status: false });
+      }
+      this.configurations.push(this.fb.group({
+        shiftId: [c.shiftId, Validators.required],
+        rateId:  [c.rateId, Validators.required],
+        status:  [c.status],
+      }));
+    }
   }
 
   addConfiguration(): void {
@@ -138,8 +170,9 @@ export class Step4ConfigComponent implements OnInit {
     return result;
   }
 
+  /** En el detalle se puede guardar un horario vacío (el parqueo deja de atender) */
   get canSubmit(): boolean {
-    return this.form.valid && this.configurations.length > 0 && this.overlaps.length === 0;
+    return this.form.valid && (this.embedded || this.configurations.length > 0) && this.overlaps.length === 0;
   }
 
   onSubmit(): void {

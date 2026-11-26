@@ -1,0 +1,351 @@
+<!-- Espacios de la zona -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <strong><i class="fas fa-th me-2"></i>{{ showDeleted ? 'Espacios eliminados' : 'Espacios' }} ({{ showDeleted ? deletedTotal : spaces.length }})</strong>
+    <div class="d-flex gap-2 flex-wrap">
+      @if (can('spaces.restore') || showDeleted) {
+      <div class="btn-group btn-group-sm" role="group" aria-label="Espacios vigentes o eliminados">
+        <button type="button" class="btn" [class.btn-success]="!showDeleted" [class.btn-outline-secondary]="showDeleted"
+          (click)="setShowDeleted(false)">Vigentes</button>
+        <button type="button" class="btn" [class.btn-danger]="showDeleted" [class.btn-outline-secondary]="!showDeleted"
+          (click)="setShowDeleted(true)">Eliminados</button>
+      </div>
+      }
+      @if (!showDeleted) {
+        @if (can('spaces.bulk-create')) {
+        <button type="button" class="btn btn-sm btn-outline-success" (click)="openBatch()"><i class="fas fa-layer-group me-1"></i>Agregar en lote</button>
+        }
+        @if (can('spaces.create')) {
+        <button type="button" class="btn btn-sm btn-success" (click)="openCreate()"><i class="fas fa-plus me-1"></i>Nuevo espacio</button>
+        }
+      }
+    </div>
+  </div>
+
+  <div class="card-body">
+    @if (successMessage) { <div class="alert alert-success py-2 small">{{ successMessage }}</div> }
+    @if (errorMessage) {
+    <div class="alert alert-danger py-2 small d-flex justify-content-between">
+      <span>{{ errorMessage }}</span><button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    </div>
+    }
+
+    @if (!showDeleted && spaces.length > 0) {
+    <!-- Resumen por estado: clic para filtrar -->
+    <div class="d-flex gap-2 flex-wrap mb-3">
+      @for (o of statusOptions; track o.value) {
+      <button type="button" class="btn btn-sm status-chip" [class.active]="statusFilter === o.value"
+        (click)="statusFilter = statusFilter === o.value ? '' : o.value; onFilterChange()">
+        <span class="badge me-1" [ngClass]="status(o.value).badge">{{ count(o.value) }}</span>{{ o.label }}
+      </button>
+      }
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-6">
+        <input type="text" class="form-control form-control-sm" placeholder="Buscar por código, sensor o descripción"
+          [(ngModel)]="search" (ngModelChange)="onFilterChange()">
+      </div>
+      <div class="col-md-3">
+        <select class="form-select form-select-sm" [(ngModel)]="typeFilter" (ngModelChange)="onFilterChange()">
+          <option value="">Todos los tipos</option>
+          @for (t of typeOptions; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary w-100" (click)="clearFilters()">
+          <i class="fas fa-times me-1"></i>Limpiar filtros
+        </button>
+      </div>
+    </div>
+    }
+
+    @if (loading) {
+    <div class="text-center py-4"><span class="spinner-border spinner-border-sm text-success"></span></div>
+    } @else if (spaces.length === 0) {
+    <p class="text-muted mb-0">{{ showDeleted ? 'No hay espacios eliminados.' : 'La zona aún no tiene espacios.' }}</p>
+    } @else if (filtered.length === 0) {
+    <p class="text-muted mb-0">Ningún espacio coincide con los filtros.</p>
+    } @else {
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle mb-0">
+        <thead>
+          <tr><th>Código</th><th>Tipo</th><th>Medidas</th><th>Sensor</th><th class="text-center">Estado</th><th class="text-end">Acciones</th></tr>
+        </thead>
+        <tbody>
+          @for (s of pageItems; track s.id) {
+          <tr>
+            <td>
+              <span class="fw-semibold">{{ s.code }}</span>
+              @if (s.hasCameraCoverage) { <i class="fas fa-video text-muted ms-1" title="Cubierto por cámara"></i> }
+              @if (s.description) { <small class="text-muted d-block">{{ s.description }}</small> }
+            </td>
+            <td>{{ typeLabel(s.type) }}</td>
+            <td>
+              @if (s.width && s.length) { <small>{{ s.width }} x {{ s.length }} m</small> }
+              @else { <small class="text-muted">-</small> }
+            </td>
+            <td><small>{{ s.sensorId || '-' }}</small></td>
+            <td class="text-center">
+              @if (showDeleted) {
+              <span class="badge bg-secondary">Eliminado {{ s.deletedAt | date:'dd/MM/yyyy' }}</span>
+              } @else {
+              <span class="badge" [ngClass]="status(s.status).badge"><i class="fas me-1" [ngClass]="status(s.status).icon"></i>{{ status(s.status).label }}</span>
+              }
+            </td>
+            <td class="text-end text-nowrap">
+              @if (showDeleted) {
+                @if (can('spaces.restore')) {
+                <button type="button" class="btn btn-sm btn-success" (click)="ask('restore', s)" [disabled]="busyId === s.id">
+                  <i class="fas fa-trash-restore me-1"></i>Restaurar
+                </button>
+                }
+              } @else {
+              <div class="btn-group btn-group-sm">
+                @if (can('spaces.update')) {
+                  @if (s.status === 'OCCUPIED') {
+                  <button type="button" class="btn btn-outline-success" (click)="ask('release', s)" [disabled]="busyId === s.id"
+                    title="Liberar (sin vehículo dentro)"><i class="fas fa-unlock"></i></button>
+                  } @else if (s.status === 'AVAILABLE') {
+                  <button type="button" class="btn btn-outline-warning" (click)="setStatus(s, 'MAINTENANCE')" [disabled]="busyId === s.id"
+                    title="Poner en mantenimiento"><i class="fas fa-tools"></i></button>
+                  <button type="button" class="btn btn-outline-secondary" (click)="setStatus(s, 'OUT_OF_SERVICE')" [disabled]="busyId === s.id"
+                    title="Fuera de servicio"><i class="fas fa-ban"></i></button>
+                  } @else {
+                  <button type="button" class="btn btn-outline-success" (click)="setStatus(s, 'AVAILABLE')" [disabled]="busyId === s.id"
+                    title="Habilitar (libre)"><i class="fas fa-check"></i></button>
+                  }
+                  <button type="button" class="btn btn-outline-warning" (click)="openEdit(s)" title="Editar"><i class="fas fa-edit"></i></button>
+                }
+                @if (can('spaces.delete')) {
+                <button type="button" class="btn btn-outline-danger" (click)="ask('delete', s)"
+                  [disabled]="busyId === s.id || s.status === 'OCCUPIED'"
+                  [title]="s.status === 'OCCUPIED' ? 'Tiene un vehículo dentro' : 'Eliminar'"><i class="fas fa-trash"></i></button>
+                }
+              </div>
+              }
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (showDeleted && deletedTotal > spaces.length) {
+    <small class="text-muted d-block mt-2">Se muestran {{ spaces.length }} de {{ deletedTotal }} eliminados.</small>
+    }
+
+    @if (totalPages > 1) {
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+      <small class="text-muted">{{ filtered.length }} espacios &middot; página {{ page }} de {{ totalPages }}</small>
+      <nav aria-label="Paginación de espacios">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item" [class.disabled]="page === 1">
+            <a class="page-link" (click)="goToPage(page - 1)" style="cursor: pointer;">&laquo;</a>
+          </li>
+          @for (p of pages; track p) {
+          <li class="page-item" [class.active]="p === page"><a class="page-link" (click)="goToPage(p)" style="cursor: pointer;">{{ p }}</a></li>
+          }
+          <li class="page-item" [class.disabled]="page === totalPages">
+            <a class="page-link" (click)="goToPage(page + 1)" style="cursor: pointer;">&raquo;</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    }
+    }
+  </div>
+</div>
+
+<!-- Crear o editar un espacio -->
+@if (formMode) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form [formGroup]="spaceForm" (ngSubmit)="saveSpace()" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-th me-2"></i>{{ formMode === 'create' ? 'Nuevo espacio' : 'Editar ' + editingSpace?.code }}</h5>
+          <button type="button" class="btn-close" (click)="closeForm()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Código <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" formControlName="code" maxlength="20" (input)="upperCode(spaceForm, 'code')"
+                [class.is-invalid]="isInvalid(spaceForm, 'code')">
+              <div class="invalid-feedback">Hasta 20 caracteres: mayúsculas, números, - y _.</div>
+              @if (formMode === 'edit') { <small class="text-muted">No se puede cambiar.</small> }
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Tipo <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="type">
+                @for (t of typeOptions; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Ancho (m)</label>
+              <input type="number" class="form-control" formControlName="width" step="0.1" [class.is-invalid]="isInvalid(spaceForm, 'width')">
+              <div class="invalid-feedback">Entre 0.5 y 20 m.</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Largo (m)</label>
+              <input type="number" class="form-control" formControlName="length" step="0.1" [class.is-invalid]="isInvalid(spaceForm, 'length')">
+              <div class="invalid-feedback">Entre 0.5 y 20 m.</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Sensor</label>
+              <input type="text" class="form-control" formControlName="sensorId" maxlength="50" placeholder="HC-SR04-01"
+                [class.is-invalid]="isInvalid(spaceForm, 'sensorId')">
+              <div class="invalid-feedback">Letras, números y . _ : -</div>
+            </div>
+            <div class="col-6 d-flex align-items-end">
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="coverage" formControlName="hasCameraCoverage">
+                <label class="form-check-label small" for="coverage">Cubierto por cámara</label>
+              </div>
+            </div>
+            @if (formMode === 'edit') {
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Estado</label>
+              @if (editingSpace?.status === 'OCCUPIED') {
+              <input type="text" class="form-control" value="Ocupado" disabled>
+              <small class="text-muted">Se libera con la salida del vehículo o con "Liberar".</small>
+              } @else {
+              <select class="form-select" formControlName="status">
+                @for (o of manualStatusOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+              </select>
+              }
+            </div>
+            }
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Descripción</label>
+              <input type="text" class="form-control" formControlName="description" maxlength="500">
+            </div>
+          </div>
+          @if (formError) { <div class="alert alert-danger py-2 small mt-3 mb-0">{{ formError }}</div> }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeForm()">Cancelar</button>
+          <button type="submit" class="btn btn-success" [disabled]="saving">
+            @if (saving) { <span class="spinner-border spinner-border-sm me-2"></span> }
+            <i class="fas fa-save me-1"></i>Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Lote -->
+@if (showBatch) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form [formGroup]="batchForm" (ngSubmit)="saveBatch()" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-layer-group me-2"></i>Agregar espacios en lote</h5>
+          <button type="button" class="btn-close" (click)="showBatch = false"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">Se crean todos o ninguno (máximo {{ batchMax }} por lote).</p>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Prefijo</label>
+              <input type="text" class="form-control" formControlName="prefix" maxlength="15" (input)="upperCode(batchForm, 'prefix')"
+                [class.is-invalid]="isInvalid(batchForm, 'prefix')">
+              <div class="invalid-feedback">Mayúsculas, números, - y _.</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Tipo</label>
+              <select class="form-select" formControlName="type">
+                @for (t of typeOptions; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+              </select>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Cantidad</label>
+              <input type="number" class="form-control" formControlName="count" min="1" [max]="batchMax"
+                [class.is-invalid]="isInvalid(batchForm, 'count')">
+              <div class="invalid-feedback">De 1 a {{ batchMax }}.</div>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Desde el N.°</label>
+              <input type="number" class="form-control" formControlName="start" min="0">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Dígitos</label>
+              <input type="number" class="form-control" formControlName="digits" min="1" max="5">
+            </div>
+          </div>
+
+          @if (batchCodes.length) {
+          <div class="small mt-3">
+            Se crearán <strong>{{ batchCodes.length }}</strong> espacios:
+            <code>{{ batchCodes[0] }}</code>
+            @if (batchCodes.length > 1) { ... <code>{{ batchCodes[batchCodes.length - 1] }}</code> }
+          </div>
+          }
+          @if (batchForm.errors?.['codeLength']) {
+          <small class="text-danger d-block mt-2">Los códigos no pueden pasar de 20 caracteres: acorta el prefijo.</small>
+          }
+          @if (batchCollisions.length) {
+          <small class="text-danger d-block mt-2">
+            Ya existen en la zona: {{ batchCollisions.slice(0, 5).join(', ') }}{{ batchCollisions.length > 5 ? '...' : '' }}.
+            Cambia el número inicial o el prefijo.
+          </small>
+          }
+          @if (formError) { <div class="alert alert-danger py-2 small mt-3 mb-0">{{ formError }}</div> }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="showBatch = false">Cancelar</button>
+          <button type="submit" class="btn btn-success" [disabled]="saving || batchForm.invalid || batchCollisions.length > 0">
+            @if (saving) { <span class="spinner-border spinner-border-sm me-2"></span> }
+            <i class="fas fa-plus me-1"></i>Crear {{ batchCodes.length }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Confirmaciones -->
+@if (confirm) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header text-white" [class.bg-danger]="confirm.kind === 'delete'" [class.bg-success]="confirm.kind !== 'delete'">
+        <h5 class="modal-title">
+          {{ confirm.kind === 'delete' ? 'Eliminar espacio' : confirm.kind === 'release' ? 'Liberar espacio' : 'Restaurar espacio' }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="confirm = null"></button>
+      </div>
+      <div class="modal-body">
+        @switch (confirm.kind) {
+          @case ('delete') {
+          <p class="mb-0">¿Eliminar el espacio <strong>{{ confirm.space.code }}</strong>? Se puede restaurar desde Eliminados.</p>
+          }
+          @case ('release') {
+          <p>¿Marcar <strong>{{ confirm.space.code }}</strong> como libre?</p>
+          <p class="small text-muted mb-0">
+            Úsalo solo si quedó ocupado sin un vehículo dentro (por ejemplo, un error del sensor). Si tiene una
+            entrada activa no se puede: registra su salida.
+          </p>
+          }
+          @case ('restore') {
+          <p class="mb-0">¿Restaurar el espacio <strong>{{ confirm.space.code }}</strong>? Vuelve como libre.</p>
+          }
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="confirm = null">Cancelar</button>
+        <button type="button" class="btn" [class.btn-danger]="confirm.kind === 'delete'" [class.btn-success]="confirm.kind !== 'delete'"
+          (click)="confirmAction()">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+}

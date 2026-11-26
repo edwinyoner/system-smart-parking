@@ -1,0 +1,131 @@
+<!-- Horario del parqueo -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <strong><i class="fas fa-clock me-2"></i>Horario y tarifas</strong>
+    <div class="d-flex align-items-center gap-2">
+      @if (current) {
+        @if (current.open) {
+        <span class="badge bg-success"><i class="fas fa-door-open me-1"></i>Atiende ahora: {{ current.current?.shiftName }}
+          (S/ {{ current.current?.rateAmount | number:'1.2-2' }} por hora)</span>
+        } @else {
+        <span class="badge bg-secondary"><i class="fas fa-door-closed me-1"></i>No atiende ahora</span>
+        }
+      }
+      @if (canEdit) {
+      <button type="button" class="btn btn-sm btn-outline-success" (click)="editing = true">
+        <i class="fas fa-edit me-1"></i>{{ schedule.length ? 'Editar horario' : 'Configurar horario' }}
+      </button>
+      }
+    </div>
+  </div>
+  <div class="card-body">
+    @if (successMessage) { <div class="alert alert-success py-2 small">{{ successMessage }}</div> }
+    @if (errorMessage) {
+    <div class="alert alert-danger py-2 small d-flex justify-content-between">
+      <span>{{ errorMessage }}</span>
+      <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    </div>
+    }
+
+    @if (loading) {
+    <div class="text-center py-3"><span class="spinner-border spinner-border-sm text-success"></span></div>
+    } @else if (schedule.length === 0) {
+    <p class="text-muted mb-0">
+      <i class="fas fa-exclamation-circle me-1"></i>
+      Sin horario: el parqueo no recibe vehículos hasta que se configuren sus turnos y tarifas.
+    </p>
+    } @else {
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr><th>Turno</th><th>Horario</th><th>Tarifa</th><th class="text-center">Estado</th>
+            @if (canEdit) { <th class="text-end">Acciones</th> }</tr>
+        </thead>
+        <tbody>
+          @for (c of schedule; track c.id) {
+          <tr [class.table-success]="isCurrent(c)">
+            <td>
+              <span class="fw-semibold">{{ c.shiftName }}</span>
+              @if (isCurrent(c)) { <span class="badge bg-success ms-1">Ahora</span> }
+            </td>
+            <td>
+              {{ hhmm(c.startTime) }} - {{ hhmm(c.endTime) }}
+              @if (c.crossesMidnight) { <i class="fas fa-moon text-muted ms-1" title="Termina al día siguiente"></i> }
+            </td>
+            <td>{{ c.rateName }} <small class="text-muted">S/ {{ c.rateAmount | number:'1.2-2' }} por hora</small></td>
+            <td class="text-center">
+              @if (!c.status) {
+              <span class="badge bg-secondary">Inactivo</span>
+              } @else if (unusableReason(c)) {
+              <span class="badge bg-warning text-dark" [title]="unusableReason(c)"><i class="fas fa-exclamation-triangle me-1"></i>Sin uso</span>
+              } @else {
+              <span class="badge bg-success">Atiende</span>
+              }
+            </td>
+            @if (canEdit) {
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn" [class.btn-outline-secondary]="c.status" [class.btn-outline-success]="!c.status"
+                  (click)="toggle(c)" [disabled]="busyId === c.id" [title]="c.status ? 'Desactivar' : 'Activar'">
+                  <i class="fas" [class.fa-pause]="c.status" [class.fa-play]="!c.status"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger" (click)="confirmRemove(c)" [disabled]="busyId === c.id"
+                  title="Quitar del horario">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+            }
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </div>
+</div>
+
+<!-- Editar todo el horario -->
+@if (editing) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-clock me-2"></i>Horario del parqueo</h5>
+        <button type="button" class="btn-close" (click)="editing = false"></button>
+      </div>
+      <div class="modal-body">
+        <app-step4-config [parkingId]="parkingId" [initial]="schedule" [embedded]="true"
+          (configSaved)="onSaved($event)" (cancelled)="editing = false"></app-step4-config>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Confirmar quitar turno -->
+@if (toRemove) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Quitar turno</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="toRemove = null"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Quitar <strong>{{ toRemove.shiftName }}</strong> del horario del parqueo?</p>
+        <p class="small text-muted mb-0">
+          En ese horario el parqueo dejará de atender. Si tiene operadores asignados no se puede
+          quitar: finaliza sus asignaciones o desactiva el turno.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="toRemove = null">Cancelar</button>
+        <button type="button" class="btn btn-danger" (click)="remove()"><i class="fas fa-trash me-1"></i>Quitar</button>
+      </div>
+    </div>
+  </div>
+</div>
+}

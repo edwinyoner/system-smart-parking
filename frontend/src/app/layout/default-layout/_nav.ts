@@ -70,17 +70,6 @@ export const navItems: INavDataWithPermissions[] = [
     icon: "fa-solid fa-parking",
     requiredPermissions: ["parkings.read"],
   },
-    //   name: "Zonas",
-  //   url: "/zones",
-  //   icon: "fa-solid fa-map-location-dot",
-  //   // requiredPermissions: ["zones.read"],
-  // },
-
-  //   name: "Espacios",
-  //   url: "/spaces",
-  //   icon: "fa-solid fa-table-cells",
-  //   // requiredPermissions: ["spaces.read"],
-  // },
   {
     name: "Tipos de Documento",
     url: "/document-types",

@@ -1,4 +1,6 @@
 // src/app/core/utils/parking.util.ts
+import { AbstractControl, ValidationErrors } from '@angular/forms';
+
 /**
  * Etiquetas, insignias y reglas compartidas de parqueos, zonas, espacios y asignaciones.
  * Las reglas de formato son las mismas que valida el backend (dominio Parking, Zone, Space).
@@ -104,4 +106,27 @@ export function apiError(err: any, fallback: string): string {
     if (first) return `${e.message ?? fallback}: ${first}`;
   }
   return e?.message || fallback;
+}
+
+/** "CAM-01, CAM-02" -> ["CAM-01", "CAM-02"] sin vacíos ni repetidos */
+export function parseCameras(value: string | null | undefined): string[] {
+  return [...new Set((value ?? '').split(',').map(c => c.trim()).filter(Boolean))];
+}
+
+/** Lista de cámaras separada por comas: máximo 10 y cada una con formato válido */
+export function cameraListValidator(ctrl: AbstractControl): ValidationErrors | null {
+  const cams = parseCameras(ctrl.value);
+  if (cams.length > MAX_CAMERAS_PER_ZONE) {
+    return { cameras: `Máximo ${MAX_CAMERAS_PER_ZONE} cámaras por zona.` };
+  }
+  const bad = cams.find(c => !CAMERA_ID_PATTERN.test(c));
+  return bad ? { cameras: `Identificador de cámara inválido: ${bad}` } : null;
+}
+
+/** "Zona Norte Baja" -> "NORTE-BAJA" (sin tildes; máx. 20 caracteres) */
+export function suggestZoneCode(name: string | null | undefined, fallback: string): string {
+  const words = (name ?? '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().split(/[^A-Z0-9]+/).filter(w => w && w !== 'ZONA');
+  return (words.join('-') || fallback).substring(0, 20).replace(/-+$/, '');
 }

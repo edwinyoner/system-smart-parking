@@ -1,0 +1,10 @@
+/* zone-spaces/zone-spaces.component.css */
+.status-chip {
+  border: 1px solid var(--cui-border-color);
+  background: transparent;
+}
+
+.status-chip.active {
+  border-color: var(--cui-success);
+  box-shadow: 0 0 0 1px var(--cui-success);
+}

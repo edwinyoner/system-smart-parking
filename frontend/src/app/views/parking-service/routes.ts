@@ -25,6 +25,13 @@ export const parkingRoutes: Routes = [
     canActivate: [AuthGuard],
   },
 
+  // ZONAS (y sus espacios): se llega desde el detalle del parqueo
+  {
+    path: "zones",
+    loadChildren: () => import("./zones/routes").then((m) => m.routes),
+    canActivate: [AuthGuard],
+  },
+
   // TIPOS DE DOCUMENTO
   {
     path: "document-types",

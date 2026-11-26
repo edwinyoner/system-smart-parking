@@ -1,10 +1,12 @@
 <!-- steps/step4-config/step4-config.component.html -->
-<div class="card">
+<div [class.card]="!embedded">
+  @if (!embedded) {
   <div class="card-header">
     <strong><i class="fas fa-clock me-2"></i>Horario y tarifas del parqueo</strong>
   </div>
+  }
 
-  <div class="card-body">
+  <div [class.card-body]="!embedded">
     <p class="text-muted small mb-3">
       Elige en qué turnos atiende el parqueo y qué tarifa cobra en cada uno; vale para todas sus zonas.
       Los turnos activos no pueden solaparse. Fuera de estos turnos el parqueo no recibe vehículos.
@@ -90,15 +92,26 @@
     }
   </div>
 
-  <div class="card-footer d-flex justify-content-between">
+  @if (embedded && configurations.length === 0 && !loadingCatalogs) {
+  <div class="alert alert-warning small mt-3 mb-0">
+    <i class="fas fa-exclamation-circle me-2"></i>Sin turnos, el parqueo no recibirá vehículos.
+  </div>
+  }
+
+  <div class="d-flex justify-content-between" [class.card-footer]="!embedded" [class.mt-3]="embedded">
+    @if (embedded) {
+    <button type="button" class="btn btn-outline-secondary" (click)="cancelled.emit()" [disabled]="loadingSave">Cancelar</button>
+    } @else {
     <button type="button" class="btn btn-outline-secondary" (click)="skip()" [disabled]="loadingSave">
       <i class="fas fa-forward me-1"></i>Configurar después
     </button>
+    }
     <button type="button" class="btn btn-success" (click)="onSubmit()" [disabled]="!canSubmit || loadingSave">
       @if (loadingSave) {
         <span class="spinner-border spinner-border-sm me-2"></span>Guardando...
       } @else {
-        Guardar horario y continuar<i class="fas fa-arrow-right ms-2"></i>
+        @if (embedded) { <i class="fas fa-save me-2"></i>Guardar horario }
+        @else { Guardar horario y continuar<i class="fas fa-arrow-right ms-2"></i> }
       }
     </button>
   </div>

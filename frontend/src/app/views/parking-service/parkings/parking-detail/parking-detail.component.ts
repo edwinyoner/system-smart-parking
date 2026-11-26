@@ -1,167 +1,152 @@
-// ============================================================
-// parking-detail/parking-detail.component.ts
-// ============================================================
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import {
-  CardModule,
-  TableModule,
-  ButtonModule,
-  BadgeModule,
-  DropdownModule,
-  SpinnerModule,
-  AlertModule,
-  GridModule,
-  ProgressModule,
-} from '@coreui/angular';
-import { IconModule } from '@coreui/icons-angular';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { EMPTY, catchError, exhaustMap, forkJoin } from 'rxjs';
+
 import { ParkingService } from '../../../../core/services/parking-service/parking.service';
 import { ZoneService } from '../../../../core/services/parking-service/zone.service';
-import { SpaceService } from '../../../../core/services/parking-service/space.service';
+import { AuthContextService } from '../../../../core/services/auth-service/auth-context.service';
 import { Parking } from '../../../../core/models/parking-service/parking.model';
 import { Zone } from '../../../../core/models/parking-service/zone.model';
-import { forkJoin } from 'rxjs';
+import { ParkingShiftRate } from '../../../../core/models/parking-service/parking-shift-rate.model';
+import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
+import { apiError, locationStatus } from '../../../../core/utils/parking.util';
+import { ParkingScheduleComponent } from './parking-schedule/parking-schedule.component';
+import { ParkingOperatorsComponent } from './parking-operators/parking-operators.component';
 
+/**
+ * Detalle del parqueo: datos, capacidad en vivo, zonas (con papelera), horario y
+ * operadores. Es la puerta de entrada a la gestión de zonas y espacios.
+ */
 @Component({
   selector: 'app-parking-detail',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    CardModule,
-    TableModule,
-    ButtonModule,
-    BadgeModule,
-    DropdownModule,
-    SpinnerModule,
-    AlertModule,
-    GridModule,
-    ProgressModule,
-    IconModule,
-  ],
+  imports: [CommonModule, RouterLink, AlertMessageComponent, ParkingScheduleComponent, ParkingOperatorsComponent],
   templateUrl: './parking-detail.component.html',
-  styleUrl: './parking-detail.component.css',
+  styleUrls: ['./parking-detail.component.css'],
 })
 export class ParkingDetailComponent implements OnInit {
+
+  parkingId!: number;
   parking: Parking | null = null;
   zones: Zone[] = [];
-  
+  schedule: ParkingShiftRate[] = [];
+
   loading = true;
-  errorMessage = '';
+  errorMessage: string | null = null;
+  successMessage: string | null = null;
+
+  showDeletedZones = false;
+  zoneToDelete: Zone | null = null;
+  zoneToRestore: Zone | null = null;
+  showDeleteParking = false;
+
+  readonly status = locationStatus;
+  private destroyRef = inject(DestroyRef);
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private parkingService: ParkingService,
     private zoneService: ZoneService,
-  ) {}
+    private authContext: AuthContextService,
+  ) {
+    this.successMessage = takeSuccessMessage();
+  }
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.loadParkingDetail(+id);
-    }
+    this.parkingId = Number(this.route.snapshot.paramMap.get('id'));
+    this.load(false);
+    liveRefresh(5000).pipe(
+      exhaustMap(() => this.request(true).pipe(catchError(() => EMPTY))),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(r => this.apply(r));
   }
 
-  // ==================== CARGA DE DATOS ====================
-
-  loadParkingDetail(id: number): void {
-    this.loading = true;
-    this.errorMessage = '';
-
-    forkJoin({
-      parking: this.parkingService.getById(id),
-      zones: this.zoneService.getByParkingId(id),
-    }).subscribe({
-      next: ({ parking, zones }) => {
-        this.parking = parking;
-        this.zones = zones;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.errorMessage = 'Error al cargar los detalles del parqueo.';
-        this.loading = false;
-        console.error(err);
-      },
+  private request(silent: boolean) {
+    return forkJoin({
+      parking: this.parkingService.getById(this.parkingId, silent),
+      zones: this.showDeletedZones
+        ? this.zoneService.getAll(0, 100, '', '', this.parkingId, true, silent)
+        : this.zoneService.getByParkingId(this.parkingId, silent),
     });
   }
 
-  // ==================== ACCIONES ====================
+  private apply(r: { parking: Parking; zones: Zone[] | { content: Zone[] } }): void {
+    this.parking = r.parking;
+    this.zones = Array.isArray(r.zones) ? r.zones : r.zones.content;
+  }
 
-  onToggleStatus(): void {
-    if (!this.parking?.id) return;
-
-    this.parkingService.toggleStatus(this.parking.id).subscribe({
-      next: (updated) => {
-        this.parking = updated;
-      },
-      error: (err) => {
-        this.errorMessage = 'Error al cambiar el estado del parqueo.';
-        console.error(err);
-      },
+  load(silent: boolean): void {
+    this.request(silent).subscribe({
+      next: r => { this.loading = false; this.apply(r); },
+      error: err => { this.loading = false; this.errorMessage = apiError(err, 'No se pudo cargar el parqueo'); },
     });
   }
 
-  onDelete(): void {
-    if (!this.parking?.id) return;
+  can(permission: string): boolean {
+    return this.authContext.hasPermission(permission);
+  }
 
-    const confirmed = confirm(
-      `¿Estás seguro de eliminar el parqueo "${this.parking.name}"?\n\nEsta acción eliminará también todas sus zonas y espacios.`
-    );
+  /** Zonas vigentes para el bloque de operadores (en la papelera no se asigna) */
+  get activeZones(): Zone[] {
+    return this.showDeletedZones ? [] : this.zones;
+  }
 
-    if (!confirmed) return;
+  setShowDeletedZones(deleted: boolean): void {
+    if (this.showDeletedZones === deleted) return;
+    this.showDeletedZones = deleted;
+    this.zones = [];
+    this.load(false);
+  }
 
-    this.parkingService.delete(this.parking.id).subscribe({
-      next: () => {
-        this.router.navigate(['/parkings']);
-      },
-      error: (err) => {
-        this.errorMessage = 'Error al eliminar el parqueo.';
-        console.error(err);
-      },
+  occupancyClass(pct?: number): string {
+    if ((pct ?? 0) >= 90) return 'bg-danger';
+    if ((pct ?? 0) >= 70) return 'bg-warning';
+    return 'bg-success';
+  }
+
+  // ========================= ZONAS =========================
+
+  createZone(): void {
+    this.router.navigate(['/zones/create'], { queryParams: { parkingId: this.parkingId } });
+  }
+
+  deleteZone(): void {
+    const zone = this.zoneToDelete;
+    if (!zone?.id) return;
+    this.zoneToDelete = null;
+    this.zoneService.delete(zone.id).subscribe({
+      next: () => { this.successMessage = `Zona "${zone.name}" eliminada`; this.load(true); },
+      error: err => (this.errorMessage = apiError(err, 'No se pudo eliminar la zona')),
     });
   }
 
-  goBack(): void {
-    this.router.navigate(['/parkings']);
+  restoreZone(): void {
+    const zone = this.zoneToRestore;
+    if (!zone?.id) return;
+    this.zoneToRestore = null;
+    this.zoneService.restore(zone.id).subscribe({
+      next: () => { this.successMessage = `Zona "${zone.name}" restaurada con sus espacios`; this.load(true); },
+      error: err => (this.errorMessage = apiError(err, 'No se pudo restaurar la zona')),
+    });
   }
 
-  // ==================== UTILIDADES ====================
+  // ========================= PARQUEO =========================
 
-  getStatusBadge(status: string): string {
-    const badges: Record<string, string> = {
-      ACTIVE: 'success',
-      INACTIVE: 'secondary',
-      MAINTENANCE: 'warning',
-      OUT_OF_SERVICE: 'danger',
-    };
-    return badges[status] || 'secondary';
+  deleteParking(): void {
+    this.showDeleteParking = false;
+    this.parkingService.delete(this.parkingId).subscribe({
+      next: () => this.router.navigate(['/parkings'],
+        { state: { successMessage: `Parqueo "${this.parking?.name}" eliminado. Puedes restaurarlo desde Eliminados.` } }),
+      error: err => (this.errorMessage = apiError(err, 'No se pudo eliminar el parqueo')),
+    });
   }
 
-  getStatusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      ACTIVE: 'Activo',
-      INACTIVE: 'Inactivo',
-      MAINTENANCE: 'Mantenimiento',
-      OUT_OF_SERVICE: 'Fuera de Servicio',
-    };
-    return labels[status] || status;
-  }
-
-  getOccupancyColor(percentage: number): string {
-    if (percentage >= 90) return 'danger';
-    if (percentage >= 70) return 'warning';
-    if (percentage >= 50) return 'info';
-    return 'success';
-  }
-
-  getSpaceTypeLabel(type: string): string {
-    const labels: Record<string, string> = {
-      PARALLEL: 'Paralelo',
-      DIAGONAL: 'Diagonal',
-      PERPENDICULAR: 'Perpendicular',
-    };
-    return labels[type] || type;
+  onScheduleChanged(schedule: ParkingShiftRate[]): void {
+    this.schedule = schedule;
   }
 }

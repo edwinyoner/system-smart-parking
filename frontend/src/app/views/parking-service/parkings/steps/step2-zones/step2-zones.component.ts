@@ -8,7 +8,7 @@ import { SPACE_BATCH_MAX } from '../../../../../core/services/parking-service/sp
 import { Zone, ZoneRequest } from '../../../../../core/models/parking-service/zone.model';
 import { Parking } from '../../../../../core/models/parking-service/parking.model';
 import {
-  CAMERA_ID_PATTERN, MAX_CAMERAS_PER_ZONE, ZONE_CODE_PATTERN, apiError,
+  ZONE_CODE_PATTERN, apiError, cameraListValidator, parseCameras, suggestZoneCode,
 } from '../../../../../core/utils/parking.util';
 
 /** Zona creada con la cantidad de espacios que se generarán en el paso 3 */
@@ -120,11 +120,7 @@ export class Step2ZonesComponent implements OnInit {
   suggestCode(i: number): void {
     const codeCtrl = this.group(i).get('code');
     if (codeCtrl?.value) return;
-    const words = (this.group(i).get('name')?.value ?? '')
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .toUpperCase().split(/[^A-Z0-9]+/).filter((w: string) => w && w !== 'ZONA');
-    const code = (words.join('-') || `Z${i + 1}`).substring(0, 20).replace(/-+$/, '');
-    codeCtrl?.setValue(code);
+    codeCtrl?.setValue(suggestZoneCode(this.group(i).get('name')?.value, `Z${i + 1}`));
   }
 
   get totalSpaces(): number {
@@ -184,20 +180,6 @@ export class Step2ZonesComponent implements OnInit {
       cameraIds:   parseCameras(v.cameras),
     };
   }
-}
-
-/** "CAM-01, CAM-02" -> ["CAM-01", "CAM-02"] sin vacíos ni repetidos */
-export function parseCameras(value: string | null | undefined): string[] {
-  return [...new Set((value ?? '').split(',').map(c => c.trim()).filter(Boolean))];
-}
-
-function cameraListValidator(ctrl: AbstractControl): ValidationErrors | null {
-  const cams = parseCameras(ctrl.value);
-  if (cams.length > MAX_CAMERAS_PER_ZONE) {
-    return { cameras: `Máximo ${MAX_CAMERAS_PER_ZONE} cámaras por zona.` };
-  }
-  const bad = cams.find(c => !CAMERA_ID_PATTERN.test(c));
-  return bad ? { cameras: `Identificador de cámara inválido: ${bad}` } : null;
 }
 
 /** Los códigos no se repiten dentro del formulario */

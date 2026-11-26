@@ -1,0 +1,92 @@
+<!-- zones/zone-form/zone-form.component.html -->
+<div class="container-lg py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>{{ isEdit ? 'Editar Zona' : 'Nueva Zona' }}</h2>
+      @if (parking) {
+      <small class="text-muted">Parqueo <a [routerLink]="['/parkings', parking.id]">{{ parking.name }}</a> ({{ parking.code }})</small>
+      }
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancel()"><i class="fas fa-arrow-left me-1"></i>Volver</button>
+  </div>
+
+  @if (loadingData) {
+  <div class="text-center py-5"><span class="spinner-border text-success"></span></div>
+  } @else if (!parking) {
+  <div class="alert alert-danger">{{ errorMessage }}</div>
+  } @else {
+  <div class="card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div class="card-body">
+        @if (errorMessage) {
+        <div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}</div>
+        }
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" formControlName="name" maxlength="100" (blur)="suggestCode()"
+              placeholder="Ej.: Zona Norte" [class.is-invalid]="isInvalid('name')">
+            <div class="invalid-feedback">El nombre es obligatorio (2 a 100 caracteres).</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Código <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" formControlName="code" maxlength="20" (input)="upperCode()"
+              [class.is-invalid]="isInvalid('code')">
+            <div class="invalid-feedback">Hasta 20 caracteres: mayúsculas, números, - y _.</div>
+            <small class="text-muted">{{ isEdit ? 'El código no se puede cambiar.' : 'Único dentro del parqueo.' }}</small>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Dirección</label>
+            <input type="text" class="form-control" formControlName="address" maxlength="255" [placeholder]="parking.address">
+            <small class="text-muted">Vacía = la dirección del parqueo.</small>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea class="form-control" rows="2" formControlName="description" maxlength="500"></textarea>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Latitud</label>
+            <input type="number" class="form-control" formControlName="latitude" step="0.000001"
+              [class.is-invalid]="isInvalid('latitude') || form.errors?.['coordinates']">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Longitud</label>
+            <input type="number" class="form-control" formControlName="longitude" step="0.000001"
+              [class.is-invalid]="isInvalid('longitude') || form.errors?.['coordinates']">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Cámaras</label>
+            <input type="text" class="form-control" formControlName="cameras" placeholder="CAM-01, CAM-02"
+              [class.is-invalid]="!!cameraError">
+            <div class="invalid-feedback">{{ cameraError }}</div>
+            <small class="text-muted">Separadas por comas, máximo {{ maxCameras }}.</small>
+          </div>
+          @if (form.errors?.['coordinates']) {
+          <div class="col-12"><small class="text-danger">Indica la latitud y la longitud juntas, o deja ambas vacías.</small></div>
+          }
+
+          @if (isEdit) {
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Estado</label>
+            <select class="form-select" formControlName="status">
+              @for (o of statusOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+            </select>
+            <small class="text-muted">Solo una zona activa recibe vehículos.</small>
+          </div>
+          }
+        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary" (click)="cancel()">Cancelar</button>
+        <button type="submit" class="btn btn-success" [disabled]="saving">
+          @if (saving) { <span class="spinner-border spinner-border-sm me-2"></span>Guardando... }
+          @else { <i class="fas fa-save me-2"></i>{{ isEdit ? 'Guardar cambios' : 'Crear zona' }} }
+        </button>
+      </div>
+    </form>
+  </div>
+  }
+</div>

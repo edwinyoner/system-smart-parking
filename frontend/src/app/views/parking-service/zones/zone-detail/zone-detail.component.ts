@@ -1,121 +1,85 @@
-// src/app/views/parking-service/zones/zone-detail/zone-detail.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
-
-// Services
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { EMPTY, catchError, exhaustMap } from 'rxjs';
 import { ZoneService } from '../../../../core/services/parking-service/zone.service';
-
-// Models
+import { AuthContextService } from '../../../../core/services/auth-service/auth-context.service';
 import { Zone } from '../../../../core/models/parking-service/zone.model';
-
-// Components
 import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
+import { apiError, locationStatus } from '../../../../core/utils/parking.util';
+import { ZoneSpacesComponent } from './zone-spaces/zone-spaces.component';
 
+/** Detalle de la zona: datos, capacidad en vivo y gestión de sus espacios */
 @Component({
   selector: 'app-zone-detail',
   standalone: true,
-  imports: [
-    CommonModule,
-    AlertMessageComponent
-  ],
+  imports: [CommonModule, RouterLink, AlertMessageComponent, ZoneSpacesComponent],
   templateUrl: './zone-detail.component.html',
-  styleUrls: ['./zone-detail.component.css']
+  styleUrls: ['./zone-detail.component.css'],
 })
 export class ZoneDetailComponent implements OnInit {
 
   zoneId!: number;
   zone: Zone | null = null;
-  isLoading = true;
+  loading = true;
   errorMessage: string | null = null;
-  showDeleteConfirm = false;
+  successMessage: string | null = null;
+  showDelete = false;
+
+  readonly status = locationStatus;
+  private destroyRef = inject(DestroyRef);
 
   constructor(
-    private zoneService: ZoneService,
+    private route: ActivatedRoute,
     private router: Router,
-    private route: ActivatedRoute
-  ) {}
+    private zoneService: ZoneService,
+    private authContext: AuthContextService,
+  ) {
+    this.successMessage = takeSuccessMessage();
+  }
 
   ngOnInit(): void {
     this.zoneId = Number(this.route.snapshot.paramMap.get('id'));
-    this.loadZone();
+    this.load(false);
+    liveRefresh(5000).pipe(
+      exhaustMap(() => this.zoneService.getById(this.zoneId, true).pipe(catchError(() => EMPTY))),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(z => (this.zone = z));
   }
 
-  private loadZone(): void {
-    this.isLoading = true;
-    
-    this.zoneService.getById(this.zoneId).subscribe({
-      next: (zone: Zone) => {
-        this.zone = zone;
-        this.isLoading = false;
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.errorMessage = 'Error al cargar los detalles de la zona';
-        console.error(error);
-      }
+  load(silent: boolean): void {
+    this.zoneService.getById(this.zoneId, silent).subscribe({
+      next: z => { this.loading = false; this.zone = z; },
+      error: err => { this.loading = false; this.errorMessage = apiError(err, 'No se pudo cargar la zona'); },
     });
   }
 
-  editZone(): void {
-    this.router.navigate(['/zones', this.zoneId, 'edit']);
+  can(permission: string): boolean {
+    return this.authContext.hasPermission(permission);
   }
 
-  confirmDelete(): void {
-    this.showDeleteConfirm = true;
+  occupancyClass(pct?: number): string {
+    if ((pct ?? 0) >= 90) return 'bg-danger';
+    if ((pct ?? 0) >= 70) return 'bg-warning';
+    return 'bg-success';
   }
 
-  cancelDelete(): void {
-    this.showDeleteConfirm = false;
+  /** La tabla de espacios avisa cuando cambia algo: la capacidad se recalcula al momento */
+  onSpacesChanged(): void {
+    this.load(true);
   }
 
   deleteZone(): void {
-    if (!this.zone?.id) return;
-
-    this.zoneService.delete(this.zone.id).subscribe({
-      next: () => {
-        this.router.navigate(['/zones'], {
-          state: { successMessage: `Zona "${this.zone?.name}" eliminada exitosamente` }
-        });
-      },
-      error: (error) => {
-        this.errorMessage = error.error?.message || 'No se pudo eliminar la zona';
-        this.showDeleteConfirm = false;
-      }
+    this.showDelete = false;
+    const zone = this.zone;
+    if (!zone?.id) return;
+    this.zoneService.delete(zone.id).subscribe({
+      next: () => this.router.navigate(['/parkings', zone.parkingId],
+        { state: { successMessage: `Zona "${zone.name}" eliminada. Puedes restaurarla desde Eliminadas.` } }),
+      error: err => (this.errorMessage = apiError(err, 'No se pudo eliminar la zona')),
     });
-  }
-
-  goBack(): void {
-    this.router.navigate(['/zones']);
-  }
-
-  getStatusLabel(status: string): string {
-    const labels: { [key: string]: string } = {
-      'ACTIVE': 'Activa',
-      'INACTIVE': 'Inactiva',
-      'MAINTENANCE': 'En Mantenimiento',
-      'OUT_OF_SERVICE': 'Fuera de Servicio'
-    };
-    return labels[status] || status;
-  }
-
-  getStatusClass(status: string): string {
-    const classes: { [key: string]: string } = {
-      'ACTIVE': 'bg-success',
-      'INACTIVE': 'bg-secondary',
-      'MAINTENANCE': 'bg-warning text-dark',
-      'OUT_OF_SERVICE': 'bg-danger'
-    };
-    return classes[status] || 'bg-secondary';
-  }
-
-  getOccupancyClass(percentage: number): string {
-    if (percentage >= 90) return 'text-danger';
-    if (percentage >= 70) return 'text-warning';
-    return 'text-success';
-  }
-
-  dismissError(): void {
-    this.errorMessage = null;
   }
 }
