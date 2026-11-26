@@ -1,27 +1,18 @@
 package com.winnersystems.smartparking.parking.application.dto.command;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 /**
- * Command para actualizar un espacio de estacionamiento existente.
+ * Datos editables de un espacio (la zona y el código no cambian). Es una
+ * actualización completa: medidas o sensor que llegan vacíos se quitan.
  *
- * @author Edwin Yoner - Winner Systems
+ * @param status AVAILABLE, MAINTENANCE u OUT_OF_SERVICE (null = no cambia)
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UpdateSpaceCommand {
-
-   private String type;
-   private String description;
-   private Double width;
-   private Double length;
-   private Boolean hasSensor;
-   private String sensorId;
-   private Boolean hasCameraCoverage;
-   private String status;
+public record UpdateSpaceCommand(
+      String type,
+      String description,
+      Double width,
+      Double length,
+      String sensorId,
+      boolean hasCameraCoverage,
+      String status
+) {
 }

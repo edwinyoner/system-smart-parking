@@ -145,6 +145,7 @@ public class DataSeeder implements CommandLineRunner {
             {"spaces.update", "Actualizar espacios existentes"},
             {"spaces.delete", "Eliminar espacios"},
             {"spaces.bulk-create", "Creación masiva de espacios"},
+            {"spaces.restore", "Ver espacios eliminados y restaurarlos"},
 
             // Tipos de Documento
             {"document-types.create", "Crear nuevos tipos de documento"},
@@ -260,7 +261,7 @@ public class DataSeeder implements CommandLineRunner {
                   // Gestión de Tipos de Espacio
                   "space-types.create", "space-types.read", "space-types.update", "space-types.delete",
                   // Gestión de Espacios
-                  "spaces.create", "spaces.read", "spaces.update", "spaces.delete", "spaces.bulk-create",
+                  "spaces.create", "spaces.read", "spaces.update", "spaces.delete", "spaces.bulk-create", "spaces.restore",
                   // Gestión de Tipos de Documento
                   "document-types.create", "document-types.read", "document-types.update", "document-types.delete",
                   "document-types.restore",

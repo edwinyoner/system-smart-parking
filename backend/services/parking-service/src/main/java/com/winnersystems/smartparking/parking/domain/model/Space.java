@@ -1,677 +1,368 @@
+// domain/model/Space.java
 package com.winnersystems.smartparking.parking.domain.model;
+
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
- * Entidad de dominio que representa un ESPACIO DE ESTACIONAMIENTO individual.
+ * Espacio de estacionamiento para un vehículo, dentro de una zona.
  *
- * Un espacio es la unidad básica donde se estaciona un vehículo. Pertenece a una zona
- * específica y tiene un tipo de espacio asignado.
- *
- * Ejemplos de identificación: "A-001", "B-015", "DISC-01"
- *
- * Estados posibles:
- * - AVAILABLE: libre para ser ocupado
- * - OCCUPIED: actualmente ocupado por un vehículo
- * - MAINTENANCE: en mantenimiento activo (trabajo en curso)
- * - OUT_OF_SERVICE: fuera de servicio (sin trabajo activo)
- *
- * Tipos de espacios según Ordenanza Municipal:
- * - PARALLEL: Estacionamiento paralelo (6.4m x 2.40m)
- * - DIAGONAL: Estacionamiento en diagonal (ángulo respecto a la vía)
- * - PERPENDICULAR: Estacionamiento perpendicular 90° (5.10m x 2.40m)
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Reglas:
+ * - El código es único dentro de su zona (también frente a los eliminados), se guarda
+ *   en mayúsculas y no cambia. Dos zonas pueden tener un espacio "A-001".
+ * - La zona no cambia después de crear el espacio.
+ * - El estado de ocupación (AVAILABLE ↔ OCCUPIED) lo cambian la entrada y salida de
+ *   vehículos, o la detección por cámara o sensor (occupy / release).
+ * - A mano solo se pasa entre AVAILABLE, MAINTENANCE y OUT_OF_SERVICE, y nunca con un
+ *   vehículo dentro: primero debe salir.
+ * - Eliminar es lógico y no se permite con un vehículo dentro.
+ * - "Tiene sensor" se deduce de sensorId.
  */
 public class Space {
 
-   // ========================= CAMPOS DE IDENTIDAD =========================
-
-   private Long id;
-   private Long zoneId;                                   // FK a Zone
-   private String type;                                   // PARALLEL, DIAGONAL, PERPENDICULAR
-   private String code;                                   // Código del espacio (ej: "A-001")
-   private String description;                            // Descripción de ubicación (opcional)
-
-   // ========================= CAMPOS DE CARACTERÍSTICAS =========================
-
-   private Double width;                                  // Ancho en metros (opcional)
-   private Double length;                                 // Largo en metros (opcional)
-
-   // ========================= CAMPOS DE EQUIPAMIENTO IoT =========================
-
-   private Boolean hasSensor;                             // ¿Tiene sensor de ocupación?
-   private String sensorId;                               // ID del sensor (futuro iot-service)
-   private Boolean hasCameraCoverage;                     // ¿Está cubierto por cámara?
-
-   // ========================= CAMPOS DE ESTADO =========================
-
-   private String status;                                 // AVAILABLE, OCCUPIED, MAINTENANCE, OUT_OF_SERVICE
-
-   // ========================= CAMPOS DE AUDITORÍA =========================
-
-   private LocalDateTime createdAt;
-   private Long createdBy;
-   private LocalDateTime updatedAt;
-   private Long updatedBy;
-   private LocalDateTime deletedAt;                       // Soft delete
-   private Long deletedBy;
-
-   // ========================= CONSTANTES DE ESTADO =========================
+   // ========================= CONSTANTES =========================
 
    public static final String STATUS_AVAILABLE = "AVAILABLE";
    public static final String STATUS_OCCUPIED = "OCCUPIED";
    public static final String STATUS_MAINTENANCE = "MAINTENANCE";
    public static final String STATUS_OUT_OF_SERVICE = "OUT_OF_SERVICE";
-
-   // ========================= CONSTANTES DE TIPO =========================
+   public static final Set<String> STATUSES =
+         Set.of(STATUS_AVAILABLE, STATUS_OCCUPIED, STATUS_MAINTENANCE, STATUS_OUT_OF_SERVICE);
 
    public static final String TYPE_PARALLEL = "PARALLEL";
    public static final String TYPE_DIAGONAL = "DIAGONAL";
    public static final String TYPE_PERPENDICULAR = "PERPENDICULAR";
+   public static final Set<String> TYPES = Set.of(TYPE_PARALLEL, TYPE_DIAGONAL, TYPE_PERPENDICULAR);
+
+   public static final int MAX_DESCRIPTION = 255;
+   /** Medidas en metros: un rango razonable para autos, motos y camionetas */
+   public static final double MIN_DIMENSION = 0.5;
+   public static final double MAX_DIMENSION = 20.0;
+   private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9][A-Z0-9_-]{0,19}$");
+   /** ID del sensor en iot-service (ej.: HCSR04-PSM-001) */
+   private static final Pattern SENSOR_PATTERN = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9_.:-]{0,49}$");
+
+   // ========================= CAMPOS =========================
+
+   private Long id;
+   private Long zoneId;
+   private String type;                    // PARALLEL, DIAGONAL, PERPENDICULAR
+   private String code;                    // "A-001"
+   private String description;
+
+   private Double width;                   // metros (opcional)
+   private Double length;                  // metros (opcional)
+
+   private String sensorId;                // HC-SR04 asignado (opcional)
+   private Boolean hasCameraCoverage;      // lo ve una cámara aérea (escenario B)
+
+   private String status;
+
+   private LocalDateTime createdAt;
+   private Long createdBy;
+   private LocalDateTime updatedAt;
+   private Long updatedBy;
+   private LocalDateTime deletedAt;
+   private Long deletedBy;
 
    // ========================= CONSTRUCTORES =========================
 
-   /**
-    * Constructor vacío - Inicializa con valores por defecto.
-    * Espacio empieza DISPONIBLE.
-    */
    public Space() {
       this.status = STATUS_AVAILABLE;
-      this.hasSensor = false;
       this.hasCameraCoverage = false;
       this.createdAt = LocalDateTime.now();
-      this.updatedAt = LocalDateTime.now();
+      this.updatedAt = this.createdAt;
    }
 
-   /**
-    * Constructor con campos básicos.
-    *
-    * @param zoneId ID de la zona a la que pertenece
-    * @param type tipo de espacio (PARALLEL, DIAGONAL, PERPENDICULAR)
-    * @param code código del espacio
-    */
-   public Space(Long zoneId, String type, String code) {
-      this();
-      this.zoneId = zoneId;
-      this.type = type;
-      this.code = code;
+   /** Crea un espacio validado y libre dentro de una zona */
+   public static Space create(Long zoneId, String code, String type, String description,
+                              Double width, Double length, String sensorId, boolean hasCameraCoverage,
+                              Long createdBy) {
+      if (zoneId == null) {
+         throw new ParkingDomainException("El espacio debe pertenecer a una zona");
+      }
+      Space space = new Space();
+      space.zoneId = zoneId;
+      space.code = normalizeCode(code);
+      space.applyInfo(type, description, width, length, sensorId, hasCameraCoverage);
+      space.createdBy = createdBy;
+      space.updatedBy = createdBy;
+      return space;
    }
 
-   /**
-    * Constructor completo.
-    *
-    * @param zoneId ID de la zona
-    * @param type tipo de espacio
-    * @param code código del espacio
-    * @param description descripción de ubicación
-    */
-   public Space(Long zoneId, String type, String code, String description) {
-      this(zoneId, type, code);
-      this.description = description;
+   /** Normaliza un código como lo guarda el dominio (para comparar antes de crear) */
+   public static String normalizeCode(String code) {
+      String value = code == null ? "" : code.trim().toUpperCase();
+      if (!CODE_PATTERN.matcher(value).matches()) {
+         throw new ParkingDomainException("Código de espacio inválido: " + code
+               + ". Usa de 1 a 20 letras, dígitos, guion o guion bajo (ej.: A-001)");
+      }
+      return value;
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - INFORMACIÓN =========================
+   // ========================= DATOS =========================
 
-   /**
-    * Obtiene el identificador completo del espacio.
-    *
-    * @return código del espacio
-    */
-   public String getFullIdentifier() {
-      return code;
+   /** Actualiza los datos editables (la zona y el código no cambian) */
+   public void update(String type, String description, Double width, Double length,
+                      String sensorId, boolean hasCameraCoverage) {
+      applyInfo(type, description, width, length, sensorId, hasCameraCoverage);
+      touch();
    }
 
-   /**
-    * Calcula el área del espacio si tiene dimensiones.
-    *
-    * @return área en m² o null si no tiene dimensiones
-    */
    public Double getArea() {
-      if (width != null && length != null) {
-         return width * length;
-      }
-      return null;
+      return width != null && length != null ? Math.round(width * length * 100.0) / 100.0 : null;
    }
 
-   /**
-    * Obtiene el nombre legible del tipo de espacio.
-    *
-    * @return nombre del tipo o "No especificado"
-    */
    public String getTypeName() {
-      if (type == null) {
-         return "No especificado";
-      }
-      switch (type) {
-         case TYPE_PARALLEL:
-            return "Paralelo";
-         case TYPE_DIAGONAL:
-            return "Diagonal";
-         case TYPE_PERPENDICULAR:
-            return "Perpendicular";
-         default:
-            return type;
-      }
+      return switch (type == null ? "" : type) {
+         case TYPE_PARALLEL -> "Paralelo";
+         case TYPE_DIAGONAL -> "Diagonal";
+         case TYPE_PERPENDICULAR -> "Perpendicular";
+         default -> "No especificado";
+      };
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - GESTIÓN DE ESTADO =========================
-
-   /**
-    * Marca el espacio como OCUPADO.
-    * Solo se puede ocupar si está DISPONIBLE.
-    *
-    * @return true si se ocupó exitosamente
-    */
-   public boolean markAsOccupied() {
-      if (isAvailableForOccupation()) {
-         this.status = STATUS_OCCUPIED;
-         this.updatedAt = LocalDateTime.now();
-         return true;
-      }
-      return false;
+   public boolean hasSensor() {
+      return sensorId != null;
    }
 
-   /**
-    * Marca el espacio como DISPONIBLE.
-    * Libera el espacio para ser usado nuevamente.
-    */
-   public void markAsAvailable() {
-      this.status = STATUS_AVAILABLE;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Pone el espacio en MANTENIMIENTO.
-    * Indica que hay trabajo activo en curso.
-    */
-   public void setInMaintenance() {
-      this.status = STATUS_MAINTENANCE;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Pone el espacio FUERA DE SERVICIO.
-    * Indica que está deshabilitado sin trabajo activo.
-    */
-   public void setOutOfService() {
-      this.status = STATUS_OUT_OF_SERVICE;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Reactiva el espacio.
-    * Lo devuelve al estado DISPONIBLE.
-    */
-   public void activate() {
-      this.status = STATUS_AVAILABLE;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   // ========================= MÉTODOS DE NEGOCIO - CONSULTAS DE ESTADO =========================
-
-   /**
-    * Verifica si el espacio está disponible.
-    *
-    * @return true si status = AVAILABLE
-    */
-   public boolean isAvailable() {
-      return STATUS_AVAILABLE.equals(status);
-   }
-
-   /**
-    * Verifica si el espacio está ocupado.
-    *
-    * @return true si status = OCCUPIED
-    */
-   public boolean isOccupied() {
-      return STATUS_OCCUPIED.equals(status);
-   }
-
-   /**
-    * Verifica si el espacio está en mantenimiento.
-    *
-    * @return true si status = MAINTENANCE
-    */
-   public boolean isInMaintenance() {
-      return STATUS_MAINTENANCE.equals(status);
-   }
-
-   /**
-    * Verifica si el espacio está fuera de servicio.
-    *
-    * @return true si status = OUT_OF_SERVICE
-    */
-   public boolean isOutOfService() {
-      return STATUS_OUT_OF_SERVICE.equals(status);
-   }
-
-   /**
-    * Verifica si el espacio está disponible para ser ocupado.
-    * Debe estar DISPONIBLE y no eliminado.
-    *
-    * @return true si puede ser ocupado ahora
-    */
-   public boolean isAvailableForOccupation() {
-      return isAvailable() && !isDeleted();
-   }
-
-   /**
-    * Verifica si el espacio es operacional.
-    * Debe estar disponible u ocupado (no en mantenimiento ni fuera de servicio).
-    *
-    * @return true si puede operar
-    */
-   public boolean isOperational() {
-      return (isAvailable() || isOccupied()) && !isDeleted();
-   }
-
-   /**
-    * Verifica si el espacio NO está usable.
-    * Está en mantenimiento o fuera de servicio.
-    *
-    * @return true si no se puede usar
-    */
-   public boolean isNotUsable() {
-      return isInMaintenance() || isOutOfService();
-   }
-
-   // ========================= MÉTODOS DE NEGOCIO - CONSULTAS DE TIPO =========================
-
-   /**
-    * Verifica si el tipo de espacio es paralelo.
-    *
-    * @return true si type = PARALLEL
-    */
-   public boolean isParallel() {
-      return TYPE_PARALLEL.equals(type);
-   }
-
-   /**
-    * Verifica si el tipo de espacio es diagonal.
-    *
-    * @return true si type = DIAGONAL
-    */
-   public boolean isDiagonal() {
-      return TYPE_DIAGONAL.equals(type);
-   }
-
-   /**
-    * Verifica si el tipo de espacio es perpendicular.
-    *
-    * @return true si type = PERPENDICULAR
-    */
-   public boolean isPerpendicular() {
-      return TYPE_PERPENDICULAR.equals(type);
-   }
-
-   // ========================= MÉTODOS DE NEGOCIO - CARACTERÍSTICAS IoT =========================
-
-   /**
-    * Configura el sensor de ocupación.
-    *
-    * @param sensorId ID del sensor (iot-service)
-    */
-   public void configureSensor(String sensorId) {
-      this.hasSensor = true;
-      this.sensorId = sensorId;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Remueve la configuración del sensor.
-    */
-   public void removeSensor() {
-      this.hasSensor = false;
-      this.sensorId = null;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Marca el espacio como cubierto por cámara.
-    */
-   public void enableCameraCoverage() {
-      this.hasCameraCoverage = true;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Marca el espacio como no cubierto por cámara.
-    */
-   public void disableCameraCoverage() {
-      this.hasCameraCoverage = false;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Verifica si tiene sensor activo.
-    *
-    * @return true si hasSensor = true y tiene sensorId
-    */
-   public boolean hasActiveSensor() {
-      return Boolean.TRUE.equals(hasSensor) && sensorId != null && !sensorId.isEmpty();
-   }
-
-   /**
-    * Verifica si tiene cobertura de cámara.
-    *
-    * @return true si hasCameraCoverage = true
-    */
    public boolean hasCameraMonitoring() {
       return Boolean.TRUE.equals(hasCameraCoverage);
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - SOFT DELETE =========================
+   // ========================= OCUPACIÓN =========================
 
    /**
-    * Marca el espacio como eliminado (soft delete).
-    * También lo pone fuera de servicio automáticamente.
+    * Un vehículo ocupa el espacio (entrada, cámara o sensor).
     *
-    * @param deletedByUserId ID del usuario que elimina
+    * @throws ParkingDomainException si no está libre
     */
-   public void markAsDeleted(Long deletedByUserId) {
-      this.deletedAt = LocalDateTime.now();
-      this.deletedBy = deletedByUserId;
-      this.status = STATUS_OUT_OF_SERVICE;
-      this.updatedAt = LocalDateTime.now();
+   public void occupy() {
+      if (!isAvailableForOccupation()) {
+         throw new ParkingDomainException("El espacio " + code + " no está libre (estado: " + status + ")");
+      }
+      this.status = STATUS_OCCUPIED;
+      touch();
    }
 
+   /** El vehículo dejó el espacio (salida, cámara o sensor). Si ya estaba libre no cambia nada */
+   public void release() {
+      if (isOccupied()) {
+         this.status = STATUS_AVAILABLE;
+         touch();
+      }
+   }
+
+   // ========================= ESTADO MANUAL =========================
+
    /**
-    * Restaura un espacio previamente eliminado.
-    * Queda fuera de servicio, debe ser activado manualmente.
+    * Cambio de estado hecho por una persona: AVAILABLE, MAINTENANCE u OUT_OF_SERVICE.
+    * OCCUPIED no se pone a mano, y un espacio ocupado no cambia hasta que el vehículo salga.
     */
-   public void restore() {
+   public void changeStatus(String newStatus) {
+      String value = newStatus == null ? "" : newStatus.trim().toUpperCase();
+      if (STATUS_OCCUPIED.equals(value)) {
+         throw new ParkingDomainException(
+               "Un espacio pasa a ocupado solo al registrar la entrada de un vehículo o al detectarlo");
+      }
+      if (!STATUSES.contains(value)) {
+         throw new ParkingDomainException(
+               "Estado de espacio inválido: " + newStatus + ". Usa AVAILABLE, MAINTENANCE u OUT_OF_SERVICE");
+      }
+      if (isOccupied() && !STATUS_OCCUPIED.equals(value)) {
+         throw new ParkingDomainException("El espacio " + code
+               + " tiene un vehículo dentro: registra su salida antes de cambiar el estado");
+      }
+      this.status = value;
+      touch();
+   }
+
+   public void setInMaintenance() {
+      changeStatus(STATUS_MAINTENANCE);
+   }
+
+   public void setOutOfService() {
+      changeStatus(STATUS_OUT_OF_SERVICE);
+   }
+
+   public void enable() {
+      changeStatus(STATUS_AVAILABLE);
+   }
+
+   public boolean isAvailable() {
+      return STATUS_AVAILABLE.equals(status);
+   }
+
+   public boolean isOccupied() {
+      return STATUS_OCCUPIED.equals(status);
+   }
+
+   public boolean isInMaintenance() {
+      return STATUS_MAINTENANCE.equals(status);
+   }
+
+   public boolean isOutOfService() {
+      return STATUS_OUT_OF_SERVICE.equals(status);
+   }
+
+   public boolean isAvailableForOccupation() {
+      return isAvailable() && !isDeleted();
+   }
+
+   public boolean belongsTo(Long zoneId) {
+      return this.zoneId != null && this.zoneId.equals(zoneId);
+   }
+
+   // ========================= PAPELERA =========================
+
+   public void markAsDeleted(Long deletedByUserId) {
+      if (isOccupied()) {
+         throw new ParkingDomainException("El espacio " + code + " tiene un vehículo dentro: no se puede eliminar");
+      }
+      LocalDateTime now = LocalDateTime.now();
+      this.deletedAt = now;
+      this.deletedBy = deletedByUserId;
+      this.updatedBy = deletedByUserId;
+      this.status = STATUS_OUT_OF_SERVICE;
+      this.updatedAt = now;
+   }
+
+   /** Sale de la papelera libre */
+   public void restore(Long restoredBy) {
+      if (!isDeleted()) {
+         throw new ParkingDomainException("El espacio no está eliminado");
+      }
       this.deletedAt = null;
       this.deletedBy = null;
-      this.status = STATUS_OUT_OF_SERVICE;               // Requiere activación manual
-      this.updatedAt = LocalDateTime.now();
+      this.status = STATUS_AVAILABLE;
+      this.updatedBy = restoredBy;
+      touch();
    }
 
-   /**
-    * Verifica si el espacio está eliminado.
-    *
-    * @return true si deletedAt no es null
-    */
    public boolean isDeleted() {
       return deletedAt != null;
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - ACTUALIZACIÓN DE DATOS =========================
-
-   /**
-    * Actualiza el tipo de espacio.
-    *
-    * @param newType nuevo tipo (PARALLEL, DIAGONAL, PERPENDICULAR)
-    */
-   public void updateType(String newType) {
-      this.type = newType;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Actualiza las dimensiones del espacio.
-    *
-    * @param width ancho en metros
-    * @param length largo en metros
-    */
-   public void updateDimensions(Double width, Double length) {
-      this.width = width;
-      this.length = length;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Actualiza la descripción de ubicación.
-    *
-    * @param description descripción de ubicación
-    */
-   public void updateDescription(String description) {
-      this.description = description;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Actualiza el código del espacio.
-    *
-    * @param code nuevo código
-    */
-   public void updateCode(String code) {
-      this.code = code;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Actualiza información básica del espacio.
-    *
-    * @param code código del espacio
-    * @param description descripción
-    * @param width ancho en metros
-    * @param length largo en metros
-    */
-   public void updateBasicInfo(String code, String description, Double width, Double length) {
-      this.code = code;
-      this.description = description;
-      this.width = width;
-      this.length = length;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Actualiza el usuario que modificó este registro.
-    *
-    * @param userId ID del usuario que modifica
-    */
    public void updateModifiedBy(Long userId) {
       this.updatedBy = userId;
-      this.updatedAt = LocalDateTime.now();
+      touch();
    }
 
-   /**
-    * Valida que el espacio tenga datos consistentes.
-    */
-   public void validate() {
-      if (code == null || code.trim().isEmpty()) {
-         throw new IllegalArgumentException("El código del espacio es obligatorio");
+   // ========================= VALIDACIONES =========================
+
+   private void applyInfo(String type, String description, Double width, Double length,
+                          String sensorId, boolean hasCameraCoverage) {
+      String t = type == null ? "" : type.trim().toUpperCase();
+      if (!TYPES.contains(t)) {
+         throw new ParkingDomainException("El tipo de espacio debe ser PARALLEL, DIAGONAL o PERPENDICULAR");
       }
-      if (zoneId == null) {
-         throw new IllegalArgumentException("El espacio debe pertenecer a una zona");
+      String desc = blankToNull(description);
+      if (desc != null && desc.length() > MAX_DESCRIPTION) {
+         throw new ParkingDomainException("La descripción no puede exceder " + MAX_DESCRIPTION + " caracteres");
       }
-      if (type == null || type.trim().isEmpty()) {
-         throw new IllegalArgumentException("El tipo de espacio es obligatorio");
+      checkDimension(width, "ancho");
+      checkDimension(length, "largo");
+      String sensor = blankToNull(sensorId);
+      if (sensor != null && !SENSOR_PATTERN.matcher(sensor).matches()) {
+         throw new ParkingDomainException("ID de sensor inválido: " + sensor
+               + ". Usa hasta 50 letras, dígitos, guion, guion bajo, punto o dos puntos");
       }
-      if (!isValidType(type)) {
-         throw new IllegalArgumentException("El tipo de espacio debe ser PARALLEL, DIAGONAL o PERPENDICULAR");
-      }
-   }
-
-   /**
-    * Verifica si el tipo de espacio es válido.
-    *
-    * @param type tipo a validar
-    * @return true si es un tipo válido
-    */
-   private boolean isValidType(String type) {
-      return TYPE_PARALLEL.equals(type) ||
-            TYPE_DIAGONAL.equals(type) ||
-            TYPE_PERPENDICULAR.equals(type);
-   }
-
-   // ========================= GETTERS Y SETTERS =========================
-
-   public Long getId() {
-      return id;
-   }
-
-   public void setId(Long id) {
-      this.id = id;
-   }
-
-   public Long getZoneId() {
-      return zoneId;
-   }
-
-   public void setZoneId(Long zoneId) {
-      this.zoneId = zoneId;
-   }
-
-   public String getType() {
-      return type;
-   }
-
-   public void setType(String type) {
-      this.type = type;
-   }
-
-   public String getCode() {
-      return code;
-   }
-
-   public void setCode(String code) {
-      this.code = code;
-   }
-
-   public String getDescription() {
-      return description;
-   }
-
-   public void setDescription(String description) {
-      this.description = description;
-   }
-
-   public Double getWidth() {
-      return width;
-   }
-
-   public void setWidth(Double width) {
+      this.type = t;
+      this.description = desc;
       this.width = width;
-   }
-
-   public Double getLength() {
-      return length;
-   }
-
-   public void setLength(Double length) {
       this.length = length;
-   }
-
-   public Boolean getHasSensor() {
-      return hasSensor;
-   }
-
-   public void setHasSensor(Boolean hasSensor) {
-      this.hasSensor = hasSensor;
-   }
-
-   public String getSensorId() {
-      return sensorId;
-   }
-
-   public void setSensorId(String sensorId) {
-      this.sensorId = sensorId;
-   }
-
-   public Boolean getHasCameraCoverage() {
-      return hasCameraCoverage;
-   }
-
-   public void setHasCameraCoverage(Boolean hasCameraCoverage) {
+      this.sensorId = sensor;
       this.hasCameraCoverage = hasCameraCoverage;
    }
 
-   public String getStatus() {
-      return status;
+   private static void checkDimension(Double value, String label) {
+      if (value != null && (value < MIN_DIMENSION || value > MAX_DIMENSION)) {
+         throw new ParkingDomainException("El " + label + " debe estar entre " + MIN_DIMENSION
+               + " y " + MAX_DIMENSION + " metros");
+      }
    }
 
-   public void setStatus(String status) {
-      this.status = status;
+   private static String blankToNull(String value) {
+      return value == null || value.isBlank() ? null : value.trim();
    }
 
-   public LocalDateTime getCreatedAt() {
-      return createdAt;
+   private void touch() {
+      this.updatedAt = LocalDateTime.now();
    }
 
-   public void setCreatedAt(LocalDateTime createdAt) {
-      this.createdAt = createdAt;
-   }
+   // ========================= GETTERS Y SETTERS =========================
+   // Los setters los usa el mapper de persistencia; la lógica usa los métodos de negocio
 
-   public Long getCreatedBy() {
-      return createdBy;
-   }
+   public Long getId() { return id; }
+   public void setId(Long id) { this.id = id; }
 
-   public void setCreatedBy(Long createdBy) {
-      this.createdBy = createdBy;
-   }
+   public Long getZoneId() { return zoneId; }
+   public void setZoneId(Long zoneId) { this.zoneId = zoneId; }
 
-   public LocalDateTime getUpdatedAt() {
-      return updatedAt;
-   }
+   public String getType() { return type; }
+   public void setType(String type) { this.type = type; }
 
-   public void setUpdatedAt(LocalDateTime updatedAt) {
-      this.updatedAt = updatedAt;
-   }
+   public String getCode() { return code; }
+   public void setCode(String code) { this.code = code; }
 
-   public Long getUpdatedBy() {
-      return updatedBy;
-   }
+   public String getDescription() { return description; }
+   public void setDescription(String description) { this.description = description; }
 
-   public void setUpdatedBy(Long updatedBy) {
-      this.updatedBy = updatedBy;
-   }
+   public Double getWidth() { return width; }
+   public void setWidth(Double width) { this.width = width; }
 
-   public LocalDateTime getDeletedAt() {
-      return deletedAt;
-   }
+   public Double getLength() { return length; }
+   public void setLength(Double length) { this.length = length; }
 
-   public void setDeletedAt(LocalDateTime deletedAt) {
-      this.deletedAt = deletedAt;
-   }
+   public String getSensorId() { return sensorId; }
+   public void setSensorId(String sensorId) { this.sensorId = sensorId; }
 
-   public Long getDeletedBy() {
-      return deletedBy;
-   }
+   public Boolean getHasCameraCoverage() { return hasCameraCoverage; }
+   public void setHasCameraCoverage(Boolean hasCameraCoverage) { this.hasCameraCoverage = hasCameraCoverage; }
 
-   public void setDeletedBy(Long deletedBy) {
-      this.deletedBy = deletedBy;
-   }
+   public String getStatus() { return status; }
+   public void setStatus(String status) { this.status = status; }
+
+   public LocalDateTime getCreatedAt() { return createdAt; }
+   public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+   public Long getCreatedBy() { return createdBy; }
+   public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
+
+   public LocalDateTime getUpdatedAt() { return updatedAt; }
+   public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+   public Long getUpdatedBy() { return updatedBy; }
+   public void setUpdatedBy(Long updatedBy) { this.updatedBy = updatedBy; }
+
+   public LocalDateTime getDeletedAt() { return deletedAt; }
+   public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+
+   public Long getDeletedBy() { return deletedBy; }
+   public void setDeletedBy(Long deletedBy) { this.deletedBy = deletedBy; }
 
    // ========================= EQUALS, HASHCODE Y TOSTRING =========================
 
-   /**
-    * Dos espacios son iguales si tienen el mismo ID o misma zona + código.
-    */
+   /** Igualdad por ID: dos espacios nuevos (sin ID) no son iguales entre sí */
    @Override
    public boolean equals(Object o) {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
       Space that = (Space) o;
-      return Objects.equals(id, that.id) ||
-            (Objects.equals(zoneId, that.zoneId) && Objects.equals(code, that.code));
+      return id != null && id.equals(that.id);
    }
 
-   /**
-    * HashCode basado en ID, zoneId y code.
-    */
    @Override
    public int hashCode() {
-      return Objects.hash(id, zoneId, code);
+      return Objects.hashCode(id);
    }
 
-   /**
-    * ToString para logging y debugging.
-    */
    @Override
    public String toString() {
-      return "Space{" +
-            "id=" + id +
-            ", zoneId=" + zoneId +
-            ", type='" + type + '\'' +
-            ", code='" + code + '\'' +
-            ", status='" + status + '\'' +
-            ", hasSensor=" + hasSensor +
-            ", hasCameraCoverage=" + hasCameraCoverage +
-            ", deletedAt=" + deletedAt +
-            '}';
+      return "Space{id=" + id + ", zoneId=" + zoneId + ", code='" + code + "', status=" + status + '}';
    }
 }

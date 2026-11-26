@@ -3,22 +3,34 @@ package com.winnersystems.smartparking.parking.application.dto.query;
 import java.time.LocalDateTime;
 
 /**
- * DTO de consulta para Space.
+ * Espacio con los datos de su zona y parqueo.
  *
- * @author Edwin Yoner - Winner Systems
+ * @param receivesVehicles libre y con su zona y parqueo activos: se puede asignar en una entrada
  */
 public record SpaceDto(
       Long id,
       Long zoneId,
+      String zoneName,
+      String zoneCode,
+      Long parkingId,
+      String parkingName,
       String type,
+      String typeName,
       String code,
       String description,
       Double width,
       Double length,
-      Boolean hasSensor,
+      Double area,
+      boolean hasSensor,
       String sensorId,
-      Boolean hasCameraCoverage,
+      boolean hasCameraCoverage,
       String status,
+      boolean receivesVehicles,
       LocalDateTime createdAt,
-      LocalDateTime updatedAt
-) {}
+      Long createdBy,
+      LocalDateTime updatedAt,
+      Long updatedBy,
+      LocalDateTime deletedAt,
+      Long deletedBy
+) {
+}

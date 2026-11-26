@@ -17,6 +17,9 @@ public interface ZonePersistencePort {
    /** Incluye eliminadas (y de parqueos eliminados): para mostrar el historial */
    Optional<Zone> findByIdIncludingDeleted(Long id);
 
+   /** Varias zonas por ID, incluidas las eliminadas (para mostrar nombres en listas) */
+   List<Zone> findAllByIdsIncludingDeleted(java.util.Collection<Long> ids);
+
    /** Solo zonas eliminadas (papelera) */
    Optional<Zone> findDeletedById(Long id);
 

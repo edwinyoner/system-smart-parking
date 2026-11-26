@@ -5,74 +5,71 @@ import com.winnersystems.smartparking.parking.infrastructure.adapter.output.pers
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper para conversión entre Space (dominio) y SpaceEntity (JPA).
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre Space (dominio) y SpaceEntity (JPA).
  */
 @Component
 public class SpacePersistenceMapper {
 
-   public Space toDomain(SpaceEntity entity) {
-      if (entity == null) return null;
+   public Space toDomain(SpaceEntity e) {
+      if (e == null) return null;
 
-      Space space = new Space(entity.getZoneId(), entity.getType(), entity.getCode());
-      space.setId(entity.getId());
-      space.setDescription(entity.getDescription());
-      space.setWidth(entity.getWidth());
-      space.setLength(entity.getLength());
-      space.setHasSensor(entity.getHasSensor());
-      space.setSensorId(entity.getSensorId());
-      space.setHasCameraCoverage(entity.getHasCameraCoverage());
-      space.setStatus(entity.getStatus());
-      space.setCreatedAt(entity.getCreatedAt());
-      space.setCreatedBy(entity.getCreatedBy());
-      space.setUpdatedAt(entity.getUpdatedAt());
-      space.setUpdatedBy(entity.getUpdatedBy());
-      space.setDeletedAt(entity.getDeletedAt());
-      space.setDeletedBy(entity.getDeletedBy());
-      return space;
+      Space s = new Space();
+      s.setId(e.getId());
+      s.setZoneId(e.getZoneId());
+      s.setType(e.getType());
+      s.setCode(e.getCode());
+      s.setDescription(e.getDescription());
+      s.setWidth(e.getWidth());
+      s.setLength(e.getLength());
+      s.setSensorId(e.getSensorId());
+      s.setHasCameraCoverage(Boolean.TRUE.equals(e.getHasCameraCoverage()));
+      s.setStatus(e.getStatus());
+      s.setCreatedAt(e.getCreatedAt());
+      s.setCreatedBy(e.getCreatedBy());
+      s.setUpdatedAt(e.getUpdatedAt());
+      s.setUpdatedBy(e.getUpdatedBy());
+      s.setDeletedAt(e.getDeletedAt());
+      s.setDeletedBy(e.getDeletedBy());
+      return s;
    }
 
-   public SpaceEntity toEntity(Space space) {
-      if (space == null) return null;
+   public SpaceEntity toEntity(Space s) {
+      if (s == null) return null;
 
       return SpaceEntity.builder()
-            .id(space.getId())
-            .zoneId(space.getZoneId())
-            .type(space.getType())
-            .code(space.getCode())
-            .description(space.getDescription())
-            .width(space.getWidth())
-            .length(space.getLength())
-            .hasSensor(space.getHasSensor())
-            .sensorId(space.getSensorId())
-            .hasCameraCoverage(space.getHasCameraCoverage())
-            .status(space.getStatus())
-            .createdAt(space.getCreatedAt())
-            .createdBy(space.getCreatedBy())
-            .updatedAt(space.getUpdatedAt())
-            .updatedBy(space.getUpdatedBy())
-            .deletedAt(space.getDeletedAt())
-            .deletedBy(space.getDeletedBy())
+            .id(s.getId())
+            .zoneId(s.getZoneId())
+            .type(s.getType())
+            .code(s.getCode())
+            .description(s.getDescription())
+            .width(s.getWidth())
+            .length(s.getLength())
+            .sensorId(s.getSensorId())
+            .hasCameraCoverage(Boolean.TRUE.equals(s.getHasCameraCoverage()))
+            .status(s.getStatus())
+            .createdAt(s.getCreatedAt())
+            .createdBy(s.getCreatedBy())
+            .updatedAt(s.getUpdatedAt())
+            .updatedBy(s.getUpdatedBy())
+            .deletedAt(s.getDeletedAt())
+            .deletedBy(s.getDeletedBy())
             .build();
    }
 
-   public void updateEntity(SpaceEntity entity, Space space) {
-      if (entity == null || space == null) return;
+   /** La zona, el código y la creación no cambian después de crear */
+   public void updateEntity(SpaceEntity e, Space s) {
+      if (e == null || s == null) return;
 
-      // zoneId NO se actualiza — un espacio no cambia de zona
-      entity.setType(space.getType());
-      entity.setDescription(space.getDescription());
-      entity.setWidth(space.getWidth());
-      entity.setLength(space.getLength());
-      entity.setHasSensor(space.getHasSensor());
-      entity.setSensorId(space.getSensorId());
-      entity.setHasCameraCoverage(space.getHasCameraCoverage());
-      entity.setStatus(space.getStatus());
-      entity.setUpdatedAt(space.getUpdatedAt());
-      entity.setUpdatedBy(space.getUpdatedBy());
-      entity.setDeletedAt(space.getDeletedAt());
-      entity.setDeletedBy(space.getDeletedBy());
+      e.setType(s.getType());
+      e.setDescription(s.getDescription());
+      e.setWidth(s.getWidth());
+      e.setLength(s.getLength());
+      e.setSensorId(s.getSensorId());
+      e.setHasCameraCoverage(Boolean.TRUE.equals(s.getHasCameraCoverage()));
+      e.setStatus(s.getStatus());
+      e.setUpdatedAt(s.getUpdatedAt());
+      e.setUpdatedBy(s.getUpdatedBy());
+      e.setDeletedAt(s.getDeletedAt());
+      e.setDeletedBy(s.getDeletedBy());
    }
 }

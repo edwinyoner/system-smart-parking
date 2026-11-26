@@ -3,148 +3,121 @@ package com.winnersystems.smartparking.parking.infrastructure.adapter.output.per
 import com.winnersystems.smartparking.parking.application.dto.query.PageRequest;
 import com.winnersystems.smartparking.parking.application.dto.query.PageResult;
 import com.winnersystems.smartparking.parking.application.port.output.SpacePersistencePort;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
 import com.winnersystems.smartparking.parking.domain.model.Space;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.space.entity.SpaceEntity;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.space.mapper.SpacePersistenceMapper;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.space.repository.SpaceRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 /**
- * Adaptador de persistencia para Space.
- * Implementa el puerto de salida SpacePersistencePort.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Adaptador de persistencia de Space (Oracle).
  */
 @Component
-@RequiredArgsConstructor
 public class SpacePersistenceAdapter implements SpacePersistencePort {
+
+   /** Oracle admite como máximo 1000 valores en un IN (...) */
+   private static final int IN_CHUNK = 900;
 
    private final SpaceRepository repository;
    private final SpacePersistenceMapper mapper;
 
-   // ========================= SAVE =========================
+   public SpacePersistenceAdapter(SpaceRepository repository, SpacePersistenceMapper mapper) {
+      this.repository = repository;
+      this.mapper = mapper;
+   }
 
    @Override
    public Space save(Space space) {
       SpaceEntity entity;
-
       if (space.getId() != null) {
+         // findById de JPA incluye eliminados: así también se guarda una restauración
          entity = repository.findById(space.getId())
-               .orElseThrow(() -> new IllegalArgumentException(
-                     "Espacio no encontrado con ID: " + space.getId()
-               ));
+               .orElseThrow(() -> new ResourceNotFoundException("Espacio", space.getId()));
          mapper.updateEntity(entity, space);
       } else {
          entity = mapper.toEntity(space);
       }
-
       return mapper.toDomain(repository.save(entity));
    }
 
-   // ========================= FIND =========================
+   @Override
+   public List<Space> saveAll(List<Space> spaces) {
+      List<SpaceEntity> entities = spaces.stream().map(mapper::toEntity).toList();
+      return repository.saveAll(entities).stream().map(mapper::toDomain).toList();
+   }
 
    @Override
    public Optional<Space> findById(Long id) {
-      return repository.findByIdAndDeletedAtIsNull(id)
-            .map(mapper::toDomain);
+      return repository.findVigentById(id).map(mapper::toDomain);
    }
 
    @Override
-   public Optional<Space> findByCode(String code) {
-      return repository.findByCodeAndDeletedAtIsNull(code)
-            .map(mapper::toDomain);
+   public Optional<Space> findByIdIncludingDeleted(Long id) {
+      return repository.findById(id).map(mapper::toDomain);
    }
-
-   // ========================= LIST SIN PAGINAR =========================
 
    @Override
-   public List<Space> findAllActive() {
-      return repository.findByStatusAndDeletedAtIsNull(Space.STATUS_AVAILABLE)
-            .stream()
-            .map(mapper::toDomain)
-            .toList();
+   public Optional<Space> findDeletedById(Long id) {
+      return repository.findByIdAndDeletedAtIsNotNull(id).map(mapper::toDomain);
    }
-
-   // ========================= LIST PAGINADO =========================
 
    @Override
-   public PageResult<Space> findAll(PageRequest pageRequest, String search, String status) {
-      Page<SpaceEntity> page = repository.findAllWithFilters(
-            search,
-            status,
-            buildPageable(pageRequest)
-      );
-      return toPageResult(page);
+   public Set<String> findExistingCodes(Long zoneId, Collection<String> codes) {
+      Set<String> result = new HashSet<>();
+      List<String> upper = codes.stream().map(c -> c.toUpperCase(Locale.ROOT)).distinct().toList();
+      for (int i = 0; i < upper.size(); i += IN_CHUNK) {
+         result.addAll(repository.findExistingCodes(zoneId, upper.subList(i, Math.min(i + IN_CHUNK, upper.size()))));
+      }
+      return result;
    }
 
-   // ========================= LIST BY ZONE =========================
+   @Override
+   public List<Space> findBySensorIds(Collection<String> sensorIds) {
+      if (sensorIds == null || sensorIds.isEmpty()) {
+         return List.of();
+      }
+      List<String> ids = List.copyOf(new LinkedHashSet<>(sensorIds));
+      List<Space> result = new ArrayList<>();
+      for (int i = 0; i < ids.size(); i += IN_CHUNK) {
+         repository.findBySensorIdInAndDeletedAtIsNull(ids.subList(i, Math.min(i + IN_CHUNK, ids.size())))
+               .forEach(e -> result.add(mapper.toDomain(e)));
+      }
+      return result;
+   }
 
    @Override
    public List<Space> findByZoneId(Long zoneId) {
-      return repository.findByZoneIdAndDeletedAtIsNull(zoneId)
-            .stream()
-            .map(mapper::toDomain)
-            .toList();
+      return repository.findVigentByZoneId(zoneId).stream().map(mapper::toDomain).toList();
    }
 
    @Override
    public List<Space> findAvailableByZoneId(Long zoneId) {
-      return repository.findAvailableByZoneId(zoneId)
-            .stream()
-            .map(mapper::toDomain)
-            .toList();
+      return repository.findAvailableByZoneId(zoneId).stream().map(mapper::toDomain).toList();
    }
 
    @Override
-   public List<Space> findByZoneIdAndType(Long zoneId, String type) {
-      return repository.findByZoneIdAndType(zoneId, type)
-            .stream()
-            .map(mapper::toDomain)
-            .toList();
+   public PageResult<Space> findAll(PageRequest pageRequest, String search, String status, String type,
+                                    Long zoneId, Long parkingId, boolean deleted) {
+      String text = search == null || search.isBlank() ? null : search.trim().toLowerCase();
+      // %, _ y \ escritos por el usuario se buscan como texto, no como comodines
+      if (text != null) {
+         text = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+      }
+      Page<SpaceEntity> page = repository.search(text, status, type, zoneId, parkingId, deleted,
+            buildPageable(pageRequest));
+      return PageResult.of(
+            page.getContent().stream().map(mapper::toDomain).toList(),
+            page.getNumber(),
+            page.getSize(),
+            page.getTotalElements()
+      );
    }
-
-   // ========================= COUNT =========================
-
-   @Override
-   public long countAvailableByZoneId(Long zoneId) {
-      return repository.countAvailableByZoneId(zoneId);
-   }
-
-   @Override
-   public long countByZoneId(Long zoneId) {
-      return repository.countByZoneIdAndDeletedAtIsNull(zoneId);
-   }
-
-   // ========================= EXISTS =========================
-
-   @Override
-   public boolean existsByCode(String code) {
-      return repository.existsByCodeAndDeletedAtIsNull(code);
-   }
-
-   @Override
-   public boolean existsByCodeAndIdNot(String code, Long id) {
-      return repository.findByCodeAndDeletedAtIsNull(code)
-            .map(e -> !e.getId().equals(id))
-            .orElse(false);
-   }
-
-   // ========================= DELETE =========================
-
-   @Override
-   public void delete(Long id) {
-      repository.deleteById(id);
-   }
-
-   // ========================= HELPERS PRIVADOS =========================
 
    private Pageable buildPageable(PageRequest pageRequest) {
       if (pageRequest.hasSorting()) {
@@ -154,16 +127,6 @@ public class SpacePersistenceAdapter implements SpacePersistencePort {
                Sort.by(Sort.Direction.fromString(pageRequest.sortDirection()), pageRequest.sortBy())
          );
       }
-      return org.springframework.data.domain.PageRequest.of(
-            pageRequest.page(),
-            pageRequest.size()
-      );
-   }
-
-   private PageResult<Space> toPageResult(Page<SpaceEntity> page) {
-      List<Space> content = page.getContent().stream()
-            .map(mapper::toDomain)
-            .toList();
-      return PageResult.of(content, page.getNumber(), page.getSize(), page.getTotalElements());
+      return org.springframework.data.domain.PageRequest.of(pageRequest.page(), pageRequest.size());
    }
 }

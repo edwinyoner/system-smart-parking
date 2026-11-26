@@ -85,6 +85,11 @@ public class TransactionPersistenceAdapter implements TransactionPersistencePort
    }
 
    @Override
+   public boolean existsActiveBySpaceId(Long spaceId) {
+      return transactionRepository.existsActiveBySpaceId(spaceId);
+   }
+
+   @Override
    public long countActiveByParkingId(Long parkingId) {
       return transactionRepository.countActiveByParkingId(parkingId);
    }

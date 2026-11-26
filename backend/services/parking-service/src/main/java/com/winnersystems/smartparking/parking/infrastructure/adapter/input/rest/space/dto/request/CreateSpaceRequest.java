@@ -1,51 +1,38 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.space.dto.request;
 
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
- * Request para crear un espacio de estacionamiento.
- *
- * @author Edwin Yoner - Winner Systems
+ * Datos para crear un espacio. "Tiene sensor" se deduce de sensorId.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateSpaceRequest {
+public record CreateSpaceRequest(
+      @NotNull(message = "La zona es obligatoria")
+      @Positive(message = "Zona inválida")
+      Long zoneId,
 
-   @NotNull(message = "El ID de la zona es obligatorio")
-   private Long zoneId;
+      @NotBlank(message = "El código del espacio es obligatorio")
+      @Pattern(regexp = "^[A-Za-z0-9][A-Za-z0-9_-]{0,19}$",
+            message = "El código debe tener de 1 a 20 caracteres: letras, dígitos, guion o guion bajo")
+      String code,
 
-   @NotBlank(message = "El tipo de espacio es obligatorio")
-   @Pattern(regexp = "PARALLEL|DIAGONAL|PERPENDICULAR",
-         message = "Tipo inválido. Debe ser: PARALLEL, DIAGONAL, PERPENDICULAR")
-   private String type;
+      @NotBlank(message = "El tipo de espacio es obligatorio")
+      @Pattern(regexp = "^(PARALLEL|DIAGONAL|PERPENDICULAR)$", message = "El tipo debe ser PARALLEL, DIAGONAL o PERPENDICULAR")
+      String type,
 
-   @NotBlank(message = "El código del espacio es obligatorio")
-   @Size(max = 20, message = "El código no puede exceder 20 caracteres")
-   private String code;
+      @Size(max = 255, message = "La descripción no puede exceder 255 caracteres")
+      String description,
 
-   @Size(max = 255, message = "La descripción no puede exceder 255 caracteres")
-   private String description;
+      @DecimalMin(value = "0.5", message = "El ancho debe estar entre 0.5 y 20 metros")
+      @DecimalMax(value = "20.0", message = "El ancho debe estar entre 0.5 y 20 metros")
+      Double width,
 
-   @DecimalMin(value = "1.0", message = "El ancho debe ser al menos 1.0 metros")
-   @DecimalMax(value = "10.0", message = "El ancho no puede exceder 10.0 metros")
-   private Double width;
+      @DecimalMin(value = "0.5", message = "El largo debe estar entre 0.5 y 20 metros")
+      @DecimalMax(value = "20.0", message = "El largo debe estar entre 0.5 y 20 metros")
+      Double length,
 
-   @DecimalMin(value = "1.0", message = "El largo debe ser al menos 1.0 metros")
-   @DecimalMax(value = "15.0", message = "El largo no puede exceder 15.0 metros")
-   private Double length;
+      @Size(max = 50, message = "El ID del sensor no puede exceder 50 caracteres")
+      String sensorId,
 
-   private Boolean hasSensor;
-
-   @Size(max = 50, message = "El ID del sensor no puede exceder 50 caracteres")
-   private String sensorId;
-
-   private Boolean hasCameraCoverage;
-
-   private Boolean status;
+      Boolean hasCameraCoverage
+) {
 }

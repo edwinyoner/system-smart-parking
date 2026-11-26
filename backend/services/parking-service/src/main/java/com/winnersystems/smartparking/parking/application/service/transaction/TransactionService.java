@@ -111,6 +111,9 @@ public class TransactionService implements
       // 3. Validar y cargar espacio
       Space space = loadSpace(command.spaceId());
       validateSpaceAvailable(space);
+      if (!space.belongsTo(zone.getId())) {
+         throw new ParkingDomainException("El espacio " + space.getCode() + " no pertenece a la zona " + zone.getName());
+      }
 
       // 4. Buscar o crear vehículo
       Vehicle vehicle = findOrCreateVehicle(command);
@@ -132,7 +135,7 @@ public class TransactionService implements
       Transaction saved = transactionPersistencePort.save(transaction);
 
       // 10. Marcar espacio como ocupado
-      space.markAsOccupied();
+      space.occupy();
       spacePersistencePort.save(space);
 
       // 11. Actualizar contadores de vehículo y cliente
@@ -171,7 +174,7 @@ public class TransactionService implements
       Transaction saved = transactionPersistencePort.save(transaction);
 
       // 6. Liberar espacio
-      space.markAsAvailable();
+      space.release();
       spacePersistencePort.save(space);
 
       return buildTransactionDetailDto(saved, vehicle, customer, parking, zone, space, rate);
@@ -304,8 +307,9 @@ public class TransactionService implements
             .orElseThrow(() -> new IllegalArgumentException("Zona no encontrada: " + zoneId));
    }
 
+   /** Incluye eliminados para el historial; una entrada nueva igual exige un espacio libre y vigente */
    private Space loadSpace(Long spaceId) {
-      return spacePersistencePort.findById(spaceId)
+      return spacePersistencePort.findByIdIncludingDeleted(spaceId)
             .orElseThrow(() -> new IllegalArgumentException("Espacio no encontrado: " + spaceId));
    }
 
@@ -340,8 +344,8 @@ public class TransactionService implements
    }
 
    private void validateSpaceAvailable(Space space) {
-      if (!space.isAvailable()) {
-         throw new SpaceNotAvailableException(space.getCode(), space.getStatus());
+      if (!space.isAvailableForOccupation()) {
+         throw new SpaceNotAvailableException(space.getCode(), space.isDeleted() ? "ELIMINADO" : space.getStatus());
       }
    }
 

@@ -9,66 +9,27 @@ import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper para conversión entre DTOs REST y DTOs de aplicación para espacios.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre los DTO REST de espacios y los de la capa de aplicación.
  */
 @Component
 public class SpaceRestMapper {
 
-   /**
-    * Convierte CreateSpaceRequest a CreateSpaceCommand.
-    */
-   public CreateSpaceCommand toCommand(CreateSpaceRequest request) {
-      return CreateSpaceCommand.builder()
-            .zoneId(request.getZoneId())
-            .type(request.getType())
-            .code(request.getCode())
-            .description(request.getDescription())
-            .width(request.getWidth())
-            .length(request.getLength())
-            .hasSensor(request.getHasSensor())
-            .sensorId(request.getSensorId())
-            .hasCameraCoverage(request.getHasCameraCoverage())
-//            .status(request.getStatus())
-            .build();
+   public CreateSpaceCommand toCommand(CreateSpaceRequest r) {
+      return new CreateSpaceCommand(r.zoneId(), r.code(), r.type(), r.description(), r.width(), r.length(),
+            r.sensorId(), Boolean.TRUE.equals(r.hasCameraCoverage()));
    }
 
-   /**
-    * Convierte UpdateSpaceRequest a UpdateSpaceCommand.
-    */
-   public UpdateSpaceCommand toCommand(UpdateSpaceRequest request) {
-      return UpdateSpaceCommand.builder()
-            .type(request.getType())
-            .description(request.getDescription())
-            .width(request.getWidth())
-            .length(request.getLength())
-            .hasSensor(request.getHasSensor())
-            .sensorId(request.getSensorId())
-            .hasCameraCoverage(request.getHasCameraCoverage())
-            .status(request.getStatus())
-            .build();
+   public UpdateSpaceCommand toCommand(UpdateSpaceRequest r) {
+      return new UpdateSpaceCommand(r.type(), r.description(), r.width(), r.length(), r.sensorId(),
+            Boolean.TRUE.equals(r.hasCameraCoverage()), r.status());
    }
 
-   /**
-    * Convierte SpaceDto a SpaceResponse.
-    */
-   public SpaceResponse toResponse(SpaceDto dto) {
+   public SpaceResponse toResponse(SpaceDto d) {
       return new SpaceResponse(
-            dto.id(),
-            dto.zoneId(),
-            dto.type(),
-            dto.code(),
-            dto.description(),
-            dto.width(),
-            dto.length(),
-            dto.hasSensor(),
-            dto.sensorId(),
-            dto.hasCameraCoverage(),
-            dto.status(),
-            dto.createdAt(),
-            dto.updatedAt()
+            d.id(), d.zoneId(), d.zoneName(), d.zoneCode(), d.parkingId(), d.parkingName(),
+            d.type(), d.typeName(), d.code(), d.description(), d.width(), d.length(), d.area(),
+            d.hasSensor(), d.sensorId(), d.hasCameraCoverage(), d.status(), d.receivesVehicles(),
+            d.createdAt(), d.createdBy(), d.updatedAt(), d.updatedBy(), d.deletedAt(), d.deletedBy()
       );
    }
 }

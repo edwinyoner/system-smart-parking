@@ -9,13 +9,18 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Entidad JPA para Space. Configurada para Oracle Database.
+ * Entidad JPA de Space (Oracle).
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * El código es único dentro de cada zona (UK_SPACES_ZONE_CODE), no en todo el sistema.
+ * "Tiene sensor" no se guarda: se deduce de SENSOR_ID.
  */
 @Entity
-@Table(name = "SPACES")
+@Table(name = "SPACES",
+      uniqueConstraints = @UniqueConstraint(name = "UK_SPACES_ZONE_CODE", columnNames = {"ZONE_ID", "CODE"}),
+      indexes = {
+            @Index(name = "IDX_SPACES_ZONE_STATUS", columnList = "ZONE_ID, STATUS"),
+            @Index(name = "IDX_SPACES_SENSOR", columnList = "SENSOR_ID")
+      })
 @Data
 @Builder
 @NoArgsConstructor
@@ -34,7 +39,7 @@ public class SpaceEntity {
    @Column(name = "TYPE", nullable = false, length = 20)
    private String type;
 
-   @Column(name = "CODE", nullable = false, unique = true, length = 20)
+   @Column(name = "CODE", nullable = false, length = 20)
    private String code;
 
    @Column(name = "DESCRIPTION", length = 255)
@@ -46,9 +51,6 @@ public class SpaceEntity {
    @Column(name = "LENGTH")
    private Double length;
 
-   @Column(name = "HAS_SENSOR", nullable = false)
-   private Boolean hasSensor;
-
    @Column(name = "SENSOR_ID", length = 50)
    private String sensorId;
 
@@ -57,8 +59,6 @@ public class SpaceEntity {
 
    @Column(name = "STATUS", nullable = false, length = 20)
    private String status;
-
-   // ========================= AUDITORÍA =========================
 
    @Column(name = "CREATED_AT", nullable = false, updatable = false)
    private LocalDateTime createdAt;
@@ -78,18 +78,10 @@ public class SpaceEntity {
    @Column(name = "DELETED_BY")
    private Long deletedBy;
 
-   // ========================= LIFECYCLE CALLBACKS =========================
-
    @PrePersist
    protected void onCreate() {
-      if (this.createdAt == null)        this.createdAt = LocalDateTime.now();
-      if (this.updatedAt == null)        this.updatedAt = LocalDateTime.now();
-      if (this.hasSensor == null)        this.hasSensor = false;
+      if (this.createdAt == null) this.createdAt = LocalDateTime.now();
+      if (this.updatedAt == null) this.updatedAt = this.createdAt;
       if (this.hasCameraCoverage == null) this.hasCameraCoverage = false;
-   }
-
-   @PreUpdate
-   protected void onUpdate() {
-      if (this.updatedAt == null) this.updatedAt = LocalDateTime.now();
    }
 }

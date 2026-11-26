@@ -38,6 +38,9 @@ public interface TransactionPersistencePort {
 
    long countActiveByZoneId(Long zoneId);
 
+   /** Hay un vehículo registrado dentro de este espacio (transacción ACTIVE) */
+   boolean existsActiveBySpaceId(Long spaceId);
+
    /** Vehículos dentro del parqueo (transacciones ACTIVE) */
    long countActiveByParkingId(Long parkingId);
 

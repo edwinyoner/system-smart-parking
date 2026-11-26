@@ -188,6 +188,30 @@ public class GlobalExceptionHandler {
    // ========================= EXCEPCIONES DE VALIDACIÓN =========================
 
    /**
+    * Validación de una lista en el cuerpo (cada elemento con @Valid).
+    */
+   @ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
+   public ResponseEntity<ValidationErrorResponse> handleMethodValidation(
+         org.springframework.web.method.annotation.HandlerMethodValidationException ex, WebRequest request) {
+      // Validación de listas (ej.: creación de espacios por lote): la clave indica la posición, ej. "[3].code"
+      Map<String, String> errors = new java.util.LinkedHashMap<>();
+      ex.getParameterValidationResults().forEach(result -> result.getResolvableErrors().forEach(error -> {
+         String field = error instanceof FieldError fe ? fe.getField() : "valor";
+         String key = result.getContainerIndex() != null ? "[" + result.getContainerIndex() + "]." + field : field;
+         errors.putIfAbsent(key, error.getDefaultMessage());
+      }));
+      ValidationErrorResponse body = ValidationErrorResponse.builder()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .error("Validation Failed")
+            .message("Los datos enviados no son válidos")
+            .path(request.getDescription(false).replace("uri=", ""))
+            .errors(errors)
+            .build();
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+   }
+
+   /**
     * Maneja errores de validación de Bean Validation (@Valid).
     */
    @ExceptionHandler(MethodArgumentNotValidException.class)

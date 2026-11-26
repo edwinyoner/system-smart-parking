@@ -62,6 +62,10 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
    @Query("SELECT COUNT(t) FROM TransactionEntity t WHERE t.zoneId = :zoneId AND t.status = 'ACTIVE'")
    long countActiveByZoneId(@Param("zoneId") Long zoneId);
 
+   @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END " +
+         "FROM TransactionEntity t WHERE t.spaceId = :spaceId AND t.status = 'ACTIVE'")
+   boolean existsActiveBySpaceId(@Param("spaceId") Long spaceId);
+
    @Query("SELECT COUNT(t) FROM TransactionEntity t WHERE t.parkingId = :parkingId AND t.status = 'ACTIVE'")
    long countActiveByParkingId(@Param("parkingId") Long parkingId);
 
