@@ -106,13 +106,13 @@
 /* Status Toggle Card */
 .status-toggle-card {
   background-color: var(--bs-secondary-bg);
-  /* background-color: white; */
+  /* background-color: var(--cui-body-bg); */
   transition: all 0.3s ease;
 }
 
 .status-toggle-card:hover {
   background-color: var(--bs-tertiary-bg);
-  /* background-color: white; */
+  /* background-color: var(--cui-body-bg); */
 }
 
 /* Toggle Switch */

@@ -1,162 +1,170 @@
-:host::ng-deep {
-  /* ======================================== */
-  /* FONT AWESOME ICONS SUPPORT */
-  /* ======================================== */
-  /* ======================================== */
-  /* ESPACIADO DE ITEMS DE NAVEGACIÓN */
-  /* ======================================== */
-  /* ======================================== */
-  /* TÍTULOS DE SECCIÓN DE NAVEGACIÓN */
-  /* ======================================== */
-  /* ESTILOS ADICIONALES PARA MEJORAR LA NAVEGACIÓN */
-  /* ESTADO ACTIVO - MÁS VISIBLE */
+/*
+ * Menú lateral con la paleta de Edwin. Sigue el tema elegido en la cabecera
+ * (claro, oscuro o automático): CoreUI pone data-coreui-theme en <html>.
+ *   Claro:  fondo blanco, texto #2B2F36, activo en #1F3B5C
+ *   Oscuro: el mismo fondo del panel (var(--cui-body-bg)), texto #E6E9EF, activo en blanco
+ */
+
+/* ============================ COLORES POR TEMA ============================ */
+
+/* Tema claro (por defecto) */
+.sidebar {
+  --cui-sidebar-bg: #FFFFFF;
+  --cui-sidebar-color: #2B2F36;
+  --cui-sidebar-border-color: #D3D8E0;
+  --cui-sidebar-header-bg: #FFFFFF;
+  --cui-sidebar-footer-bg: #F7F8FA;
+
+  /* Propias del proyecto */
+  --sp-side-line: #D3D8E0;
+  --sp-side-brand: #0B1F3A;
+  --sp-side-muted: #5B6573;
+  --sp-side-user-bg: #F7F8FA;
+  --sp-side-user-name: #2B2F36;
+  --sp-side-avatar-bg: #1F3B5C;
+  --sp-side-avatar-border: #A7B1BE;
+  --sp-side-active-bg: rgba(31, 59, 92, 0.10);
+  --sp-side-active-bar: #1F3B5C;
+  --sp-side-active-color: #1F3B5C;
+  --sp-side-group-line: #D3D8E0;
 }
 
-:host::ng-deep .ng-scrollbar {
-  --scrollbar-padding: 1px;
-  --scrollbar-size: 5px;
-  --scrollbar-thumb-color: var(--cui-gray-500, #aab3c5);
-  --scrollbar-thumb-hover-color: var(--cui-gray-400, #cfd4de);
-  --scrollbar-hover-size: calc(var(--scrollbar-size) * 1.5);
-  --scrollbar-border-radius: 5px;
+/* Tema oscuro (también el automático cuando el sistema está en oscuro) */
+:host-context([data-coreui-theme=dark]) .sidebar {
+  --cui-sidebar-bg: var(--cui-body-bg);          /* el mismo fondo que la cabecera y las tarjetas */
+  --cui-sidebar-color: #E6E9EF;
+  --cui-sidebar-border-color: var(--cui-border-color);
+  --cui-sidebar-header-bg: var(--cui-body-bg);
+  --cui-sidebar-footer-bg: var(--cui-body-bg);
+
+  --sp-side-line: var(--cui-border-color);
+  --sp-side-brand: #FFFFFF;
+  --sp-side-muted: #A7B1BE;
+  --sp-side-user-bg: rgba(230, 233, 239, 0.04);
+  --sp-side-user-name: #E6E9EF;
+  --sp-side-avatar-bg: #1F3B5C;
+  --sp-side-avatar-border: #A7B1BE;
+  --sp-side-active-bg: rgba(230, 233, 239, 0.14);
+  --sp-side-active-bar: #E6E9EF;
+  --sp-side-active-color: #FFFFFF;
+  --sp-side-group-line: rgba(167, 177, 190, 0.25);
 }
 
-:host::ng-deep .ng-scroll-content {
-  display: flex;
-  min-height: 100%;
-}
-
+/* CoreUI define los colores de los enlaces en .sidebar-nav (hijo del menú) */
 :host::ng-deep .sidebar-nav {
-  scrollbar-color: var(--cui-gray-500, #444) transparent;
+  --cui-sidebar-nav-title-color: #5B6573;
+  --cui-sidebar-nav-link-color: #2B2F36;
+  --cui-sidebar-nav-link-icon-color: #5B6573;
+  --cui-sidebar-nav-link-hover-color: #0B1F3A;
+  --cui-sidebar-nav-link-hover-bg: #E6E9EF;
+  --cui-sidebar-nav-link-hover-icon-color: #1F3B5C;
+  --cui-sidebar-nav-link-active-color: #1F3B5C;
+  --cui-sidebar-nav-link-active-icon-color: #1F3B5C;
+  --cui-sidebar-nav-group-bg: #F7F8FA;
+  --cui-sidebar-nav-group-toggle-icon-color: #5B6573;
 }
 
-:host::ng-deep .nav-icon {
-  font-family: "Font Awesome 6 Free" !important;
-  font-weight: 900;
-  font-size: 1rem;
+:host-context([data-coreui-theme=dark]) ::ng-deep .sidebar-nav {
+  --cui-sidebar-nav-title-color: #A7B1BE;
+  --cui-sidebar-nav-link-color: rgba(230, 233, 239, 0.85);
+  --cui-sidebar-nav-link-icon-color: #A7B1BE;
+  --cui-sidebar-nav-link-hover-color: #FFFFFF;
+  --cui-sidebar-nav-link-hover-bg: rgba(230, 233, 239, 0.08);
+  --cui-sidebar-nav-link-hover-icon-color: #FFFFFF;
+  --cui-sidebar-nav-link-active-color: #FFFFFF;
+  --cui-sidebar-nav-link-active-icon-color: #FFFFFF;
+  --cui-sidebar-nav-group-bg: rgba(0, 0, 0, 0.15);
+  --cui-sidebar-nav-group-toggle-icon-color: #A7B1BE;
 }
 
-:host::ng-deep .nav-icon::before {
-  font-family: "Font Awesome 6 Free" !important;
-  font-weight: 900;
+/* ============================ NOMBRE DEL SISTEMA ============================ */
+
+.sidebar-brand-header {
+  justify-content: center;
+  border-bottom: 1px solid var(--sp-side-line);
 }
 
-:host::ng-deep .nav-icon svg {
-  display: none;
+.sidebar-brand-link {
+  width: 100%;
+  text-decoration: none;
 }
 
-:host::ng-deep .nav-item {
-  /* Ajustar margen entre items */
-  margin: 0.1rem 0rem !important;
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
 }
 
-:host::ng-deep .nav-item .nav-link {
-  /* Ajustar padding interno de cada item */
-  padding: 0.5rem 0.5rem !important;
-  /* Ajustar espacio entre icono y texto */
+.brand-name {
+  color: var(--sp-side-brand);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  white-space: nowrap;
 }
 
-:host::ng-deep .nav-item .nav-link .nav-icon {
-  margin-right: 0.75rem !important;
-}
-
-:host::ng-deep .nav-title {
-  font-weight: 800 !important;
-  font-size: 0.75rem !important;
-  text-align: center !important;
-  border-radius: 5px !important;
-  padding: 0.5rem 0.25rem !important;
-  margin: 0.5rem 0rem !important;
-  color: #787878 !important;
-}
-
-:host::ng-deep .nav-item {
-  transition: all 0.3s ease;
-}
-
-:host::ng-deep .nav-link.active {
-  /* Más intenso */
-  /* Verde de marca (antes azul) */
-  background: linear-gradient(90deg, rgba(25, 135, 84, 0.3) 0%, rgba(25, 135, 84, 0.08) 100%) !important;
-  border-left: 4px solid var(--cui-primary) !important;
-}
-
-:host::ng-deep .nav-link.active .nav-icon {
-  transform: scale(1.1);
-  /* Icono más brillante cuando está activo */
-  filter: brightness(1.3);
-}
-
-:host::ng-deep .badge {
+.brand-sub {
+  margin-top: 0.2rem;
+  color: var(--sp-side-muted);
+  font-size: 0.6rem;
   font-weight: 600;
-  font-size: 0.65rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
+  letter-spacing: 3px;
 }
 
-:host::ng-deep .nav-group-items {
-  border-left: 2px solid rgba(255, 255, 255, 0.1);
-  margin-left: 1rem;
-  padding-left: 0.5rem;
+/* Iniciales del menú minimizado */
+.brand-initials {
+  color: var(--sp-side-brand);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-align: center;
 }
 
-:host::ng-deep .nav-icon {
-  transition: all 0.3s ease;
-}
-
-:host::ng-deep .nav-item:hover .nav-icon {
-  transform: scale(1.15) rotate(5deg);
-}
-
-:host::ng-deep {
-  /* ======================================== */
-  /* FOOTER ADAPTATIVO */
-  /* ======================================== */
-  /* Cuando el sidebar está visible (desktop) */
-  /* Cuando el sidebar está en modo narrow (colapsado pero visible) */
-  /* Cuando el sidebar está oculto */
-  /* Responsive: En móviles el sidebar es overlay */
-}
-
-:host::ng-deep .footer-custom {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  z-index: 1020 !important;
-  transition: all 0.15s ease-in-out !important;
-}
-
-:host::ng-deep .sidebar.show ~ * .footer-custom,
-:host::ng-deep .sidebar:not(.sidebar-narrow):not(.hide) ~ * .footer-custom {
-  left: 256px !important;
-  width: calc(100% - 256px) !important;
-}
-
-:host::ng-deep .sidebar.sidebar-narrow.show ~ * .footer-custom {
-  left: 64px !important;
-  width: calc(100% - 64px) !important;
-}
-
-:host::ng-deep .sidebar.hide ~ * .footer-custom,
-:host::ng-deep .sidebar:not(.show) ~ * .footer-custom {
-  left: 0 !important;
-  width: 100% !important;
-}
-
-@media (max-width: 991.98px) {
-  :host::ng-deep .footer-custom {
-    left: 0 !important;
-    width: 100% !important;
-  }
-}
+/* ============================ USUARIO ============================ */
 
 .user-info-sidebar {
+  padding: 1rem;
+  border-bottom: 1px solid var(--sp-side-line);
+  background: var(--sp-side-user-bg);
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  object-fit: cover;
+  border: 2px solid var(--sp-side-avatar-border);
+}
+
+.avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  background: var(--sp-side-avatar-bg);
+  border: 2px solid var(--sp-side-avatar-border);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.user-details {
+  min-width: 0;
 }
 
 .user-info-sidebar .user-name {
-  color: #868585;
+  max-width: 150px;
+  font-size: 0.9rem;
+  color: var(--sp-side-user-name);
+}
+
+.role-badge {
+  font-size: 0.7rem;
 }
 
 .user-info-sidebar .badge-admin {
@@ -177,4 +185,210 @@
 .user-info-sidebar .badge-default {
   background: #95a5a6;
   color: white;
+}
+
+/* ============================ MENÚ ============================ */
+
+:host::ng-deep .ng-scrollbar {
+  --scrollbar-padding: 1px;
+  --scrollbar-size: 5px;
+  --scrollbar-thumb-color: #A7B1BE;
+  --scrollbar-thumb-hover-color: #5B6573;
+  --scrollbar-hover-size: calc(var(--scrollbar-size) * 1.5);
+  --scrollbar-border-radius: 5px;
+}
+
+:host::ng-deep .ng-scroll-content {
+  display: flex;
+  min-height: 100%;
+}
+
+:host::ng-deep .sidebar-nav {
+  scrollbar-color: #A7B1BE transparent;
+}
+
+/* Íconos Font Awesome en el menú */
+:host::ng-deep .nav-icon {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900;
+  font-size: 1.15rem;
+  transition: transform 0.2s ease;
+}
+
+:host::ng-deep .nav-icon::before {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900;
+}
+
+:host::ng-deep .nav-icon svg {
+  display: none;
+}
+
+:host::ng-deep .nav-item {
+  margin: 0.1rem 0;
+}
+
+:host::ng-deep .nav-item .nav-link {
+  padding: 0.5rem;
+  border-left: 4px solid transparent;
+}
+
+:host::ng-deep .nav-item .nav-link .nav-icon {
+  margin-right: 0.75rem;
+}
+
+:host::ng-deep .nav-title {
+  font-weight: 800 !important;
+  font-size: 0.75rem !important;
+  text-align: center !important;
+  padding: 0.5rem 0.25rem !important;
+  margin: 0.5rem 0 !important;
+  letter-spacing: 0.6px;
+}
+
+/* Elemento activo: franja a la izquierda con el color de la marca */
+:host::ng-deep .nav-link.active {
+  background: var(--sp-side-active-bg) !important;
+  border-left-color: var(--sp-side-active-bar);
+  color: var(--sp-side-active-color) !important;
+  font-weight: 600;
+}
+
+:host::ng-deep .nav-item:hover .nav-icon {
+  transform: scale(1.12);
+}
+
+:host::ng-deep .badge {
+  font-weight: 600;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+}
+
+:host::ng-deep .nav-group-items {
+  border-left: 2px solid var(--sp-side-group-line);
+  margin-left: 1rem;
+  padding-left: 0.5rem;
+}
+
+.sidebar-footer-toggle {
+  justify-content: center;
+  cursor: pointer;
+  border-top: 1px solid var(--sp-side-line);
+}
+
+/* Botón de minimizar más visible que el de CoreUI */
+.sidebar-footer-toggle .sidebar-toggler {
+  --cui-sidebar-toggler-width: 1.1rem;
+  --cui-sidebar-toggler-height: 1.1rem;
+  --cui-sidebar-toggler-color: var(--sp-side-muted);
+  --cui-sidebar-toggler-hover-color: var(--sp-side-active-color);
+  margin: 0 auto;
+}
+
+/* ============================ MENÚ MINIMIZADO ============================ */
+/* Al minimizar (botón del pie del menú) queda una franja delgada con las iniciales SP,
+   la foto del usuario y los íconos, más grandes y sin texto. Solo en escritorio: en
+   celular el menú se abre y cierra completo (CoreUI aplica el modo delgado desde 992px). */
+
+@media (min-width: 992px) {
+  /* Marca: solo "SP". Hace falta repetirlo porque .brand (display: flex) le gana a la
+     regla de CoreUI que oculta .sidebar-brand-full */
+  .sidebar-narrow .sidebar-brand-full {
+    display: none;
+  }
+
+  .sidebar-narrow .brand-initials {
+    display: block;
+    width: 100%;
+    font-size: 1.3rem;
+  }
+
+  .sidebar-narrow .user-info-sidebar {
+    padding: 0.75rem 0;
+  }
+
+  .sidebar-narrow .user-row {
+    justify-content: center;
+  }
+
+  .sidebar-narrow .user-details {
+    display: none;
+  }
+
+  .sidebar-narrow .avatar-placeholder,
+  .sidebar-narrow .avatar-img {
+    width: 40px;
+    height: 40px;
+    font-size: 0.85rem;
+  }
+
+  /* Enlaces: solo el ícono, centrado y más grande. font-size: 0 oculta el texto del
+     enlace (no tiene etiqueta propia); el ícono conserva su tamaño */
+  :host::ng-deep .sidebar-narrow .nav-link {
+    justify-content: center;
+    padding: 0.7rem 0 !important;
+    font-size: 0;
+  }
+
+  :host::ng-deep .sidebar-narrow .nav-link .nav-icon {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0 !important;
+    font-size: 1.35rem;
+  }
+
+  /* Flecha de los grupos y contadores: no caben */
+  :host::ng-deep .sidebar-narrow .nav-group-toggle::after,
+  :host::ng-deep .sidebar-narrow .nav-link .badge {
+    display: none;
+  }
+
+  :host::ng-deep .sidebar-narrow .nav-group-items {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+  }
+
+  :host::ng-deep .sidebar-narrow .nav-title {
+    visibility: hidden;
+    height: 0;
+    margin: 0.25rem 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* ============================ PIE DE PÁGINA FIJO ============================ */
+/* El pie es fijo: se corre según el ancho que ocupa el menú */
+
+:host::ng-deep .footer-custom {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 1020 !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+:host::ng-deep .sidebar:not(.hide) ~ * .footer-custom {
+  left: 256px !important;
+  width: calc(100% - 256px) !important;
+}
+
+:host::ng-deep .sidebar.sidebar-narrow:not(.hide) ~ * .footer-custom {
+  left: 64px !important;
+  width: calc(100% - 64px) !important;
+}
+
+:host::ng-deep .sidebar.hide ~ * .footer-custom {
+  left: 0 !important;
+  width: 100% !important;
+}
+
+@media (max-width: 991.98px) {
+  :host::ng-deep .footer-custom {
+    left: 0 !important;
+    width: 100% !important;
+  }
 }

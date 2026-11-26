@@ -22,8 +22,8 @@ export class VehicleService {
    */
   getAll(filters: VehicleFilters = {}): Observable<ParkingPagedResponse<Vehicle>> {
     let params = new HttpParams()
-      .set('pageNumber', (filters.pageNumber ?? 0).toString())
-      .set('pageSize', (filters.pageSize ?? 20).toString());
+      .set('page', (filters.pageNumber ?? 0).toString())
+      .set('size', (filters.pageSize ?? 20).toString());
 
     if (filters.search && filters.search.trim()) {
       params = params.set('search', filters.search.trim());
@@ -48,8 +48,8 @@ export class VehicleService {
    */
   getRecurrent(pageNumber: number = 0, pageSize: number = 20): Observable<ParkingPagedResponse<Vehicle>> {
     const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
     
     return this.http.get<ParkingPagedResponse<Vehicle>>(`${this.apiUrl}/recurrent`, { params });
   }

@@ -105,7 +105,7 @@
 
 .status-toggle-card:hover {
   /* background-color: var(--bs-tertiary-bg); */
-  background-color: white;
+  background-color: var(--cui-body-bg);
 }
 
 /* Switch */

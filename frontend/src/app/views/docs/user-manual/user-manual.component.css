@@ -102,7 +102,7 @@
 
 /* === TABS === */
 ul[cNav] {
-  border-bottom: 2px solid #E2E8F0;
+  border-bottom: 2px solid var(--cui-border-color);
   flex-wrap: wrap;
 }
 
@@ -138,7 +138,7 @@ button[cNavLink].active {
 /* === SUBSECTION CONTENT === */
 .subsection-content {
   padding: 1.5rem;
-  background: #F8F9FA;
+  background: var(--cui-tertiary-bg);
   border-radius: 12px;
 }
 
@@ -151,7 +151,7 @@ button[cNavLink].active {
 
 /* === STEPS === */
 .steps-container {
-  background: #FFFFFF;
+  background: var(--cui-body-bg);
   border-left: 4px solid #00E5FF;
   padding: 1.5rem;
   border-radius: 8px;
@@ -252,8 +252,8 @@ button[cAccordionButton] {
   font-weight: 600;
   color: #2C3E50;
   padding: 1.25rem;
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background: var(--cui-body-bg);
+  border: 1px solid var(--cui-border-color);
   transition: all 0.3s ease;
 }
 

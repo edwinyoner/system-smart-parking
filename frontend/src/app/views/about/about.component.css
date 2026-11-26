@@ -188,7 +188,7 @@
 
 .tech-item {
   padding: 1.5rem;
-  background: #F8F9FA;
+  background: var(--cui-tertiary-bg);
   border-radius: 12px;
   height: 100%;
   transition: all 0.3s ease;
@@ -199,7 +199,7 @@
 }
 
 .tech-item:hover {
-  background: #FFFFFF;
+  background: var(--cui-body-bg);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-3px);
 }
@@ -267,7 +267,7 @@
 
 .phase-container {
   padding: 1.5rem;
-  background: #F8F9FA;
+  background: var(--cui-tertiary-bg);
   border-radius: 12px;
   border-left: 4px solid #00E5FF;
 }
@@ -546,7 +546,7 @@
   line-height: 1.6;
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #E2E8F0;
+  border-top: 1px solid var(--cui-border-color);
 }
 
 /* === UPDATED ARCHITECTURE COMPONENTS === */

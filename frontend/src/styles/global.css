@@ -2,6 +2,8 @@
  * Estilos globales propios de Smart Parking (CSS puro).
  * Se cargan después del tema de CoreUI (src/scss/styles.scss), así que pueden ajustarlo.
  * Los colores base (primary, success, info...) se definen en ese tema, no aquí.
+ * Paleta: azul marino #0B1F3A / #1F3B5C, gris #A7B1BE / #E6E9EF, texto #2B2F36.
+ * Acciones: verde crear, rojo eliminar, naranja editar, azul claro ver.
  */
 
 /* Tooltips de Chart.js más compactos */
@@ -67,6 +69,34 @@
   --sp-danger-strong: #ea868f;
 }
 
+/* Tarjetas blancas sobre el fondo #E6E9EF, con borde y sombra suaves */
+[data-coreui-theme=light] .card,
+:root:not([data-coreui-theme=dark]) .card {
+  --cui-card-border-color: #D3D8E0;
+  --cui-card-cap-bg: #F7F8FA;
+  box-shadow: 0 1px 2px rgba(11, 31, 58, 0.04), 0 4px 12px rgba(11, 31, 58, 0.04);
+}
+
+/* Cabecera blanca con una línea inferior */
+[data-coreui-theme=light] .header,
+:root:not([data-coreui-theme=dark]) .header {
+  --cui-header-bg: #FFFFFF;
+  --cui-header-border-color: #D3D8E0;
+}
+
+/* Botones de ver (azul claro) y editar (naranja): texto e ícono blancos al pasar el mouse */
+.btn-outline-info,
+[data-coreui-theme=dark] .btn-outline-info {
+  --cui-btn-hover-color: #fff;
+  --cui-btn-active-color: #fff;
+}
+
+.btn-outline-warning,
+[data-coreui-theme=dark] .btn-outline-warning {
+  --cui-btn-hover-color: #fff;
+  --cui-btn-active-color: #fff;
+}
+
 /* Asegurar que el spinner/preloader use el nuevo color primary */
 .spinner-border {
   border-color: var(--cui-primary);
@@ -113,7 +143,7 @@
   --cui-btn-disabled-border-color: #dc3545;
 }
 
-/* Avisos informativos (.alert-info sueltos): gris neutro en ambos modos, sin azul */
+/* Avisos informativos (.alert-info sueltos): gris neutro en ambos modos (el azul claro queda para "ver") */
 .alert-info,
 [data-coreui-theme=dark] .alert-info {
   --cui-alert-color: var(--cui-body-color);
@@ -126,12 +156,12 @@
 .pagination,
 [data-coreui-theme=dark] .pagination {
   --cui-pagination-color: var(--cui-body-color);
-  --cui-pagination-hover-color: #198754;
-  --cui-pagination-focus-color: #198754;
-  --cui-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+  --cui-pagination-hover-color: #1F3B5C;
+  --cui-pagination-focus-color: #1F3B5C;
+  --cui-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(31, 59, 92, 0.2);
   --cui-pagination-active-color: #fff;
-  --cui-pagination-active-bg: #198754;
-  --cui-pagination-active-border-color: #198754;
+  --cui-pagination-active-bg: #1F3B5C;
+  --cui-pagination-active-border-color: #1F3B5C;
 }
 
 .pagination .page-item:not(.disabled) .page-link,
@@ -202,7 +232,7 @@
 }
 
 .badge.badge-primary {
-  background-color: #198754;
+  background-color: #1F3B5C;
   color: #ffffff;
   border: none;
 }

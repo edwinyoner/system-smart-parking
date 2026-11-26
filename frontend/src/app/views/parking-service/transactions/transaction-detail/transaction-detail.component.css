@@ -7,7 +7,7 @@
 .info-section h5 {
   color: #4f5d73;
   font-weight: 600;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--cui-border-color);
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
 }
@@ -29,7 +29,7 @@ dt {
 }
 
 dd {
-  color: #333;
+  color: var(--cui-body-color);
 }
 
 .photo-preview {
@@ -37,7 +37,7 @@ dd {
 }
 
 .photo-preview img {
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--cui-border-color);
 }
 
 .gap-2 {

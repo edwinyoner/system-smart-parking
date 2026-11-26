@@ -9,8 +9,17 @@
 
 a {
   text-decoration: none;
-  color: var(--sp-success-strong);
+  color: var(--cui-primary);
   font-weight: bold;
+}
+
+.version-badge {
+  background: #1F3B5C;
+  color: #FFFFFF;
+}
+
+[data-coreui-theme=dark] a {
+  color: #A7B1BE;
 }
 
 /* Cuando el sidebar está visible (normal ancho) */

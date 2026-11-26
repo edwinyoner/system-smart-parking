@@ -61,7 +61,7 @@
             </dd>
             <dt class="col-sm-4">Cámaras</dt>
             <dd class="col-sm-8">
-              @for (c of zone.cameraIds ?? []; track c) { <span class="badge bg-light text-dark border me-1">{{ c }}</span> }
+              @for (c of zone.cameraIds ?? []; track c) { <span class="badge bg-body-tertiary text-body border me-1">{{ c }}</span> }
               @empty { <span class="text-muted">Sin cámaras</span> }
             </dd>
             @if (zone.description) {

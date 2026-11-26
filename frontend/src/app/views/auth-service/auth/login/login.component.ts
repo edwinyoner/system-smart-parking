@@ -29,8 +29,7 @@ import { environment } from '../../../../../environments/environment';
     RouterLink,
     AlertMessageComponent
   ],
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  templateUrl: './login.component.html'
 })
 export class LoginComponent implements OnInit {
   

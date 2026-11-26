@@ -94,7 +94,7 @@
 }
 
 .example-card {
-  /* background-color: white; */
+  /* background-color: var(--cui-body-bg); */
   border: 1px solid white;
   border-radius: 0.375rem;
   padding: 1rem;

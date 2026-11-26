@@ -3,22 +3,22 @@
 h5 {
   color: #4f5d73;
   font-weight: 600;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--cui-border-color);
   padding-bottom: 0.5rem;
 }
 
 .search-section {
-  background: #f8f9fa;
+  background: var(--cui-tertiary-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--cui-border-color);
 }
 
 .transaction-details {
-  background: #fff;
+  background: var(--cui-body-bg);
   padding: 1.5rem;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--cui-border-color);
 }
 
 .text-danger {
@@ -39,7 +39,7 @@ dt {
 }
 
 dd {
-  color: #333;
+  color: var(--cui-body-color);
 }
 .payment-step {
   border: 1px solid var(--sp-warning-soft-border);

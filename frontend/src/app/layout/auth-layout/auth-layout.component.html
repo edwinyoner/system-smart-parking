@@ -1,39 +1,23 @@
-<!-- Auth Layout - Diseño para páginas públicas -->
+<!-- Layout de las páginas públicas: login, recuperar y restablecer contraseña, verificar correo -->
 <div class="auth-layout">
-  
-  <!-- Background gradient -->
-  <div class="auth-background"></div>
-
-  <!-- Container principal -->
   <div class="auth-container">
-    
-    <!-- Header con logo -->
+
+    <!-- Cabecera con el nombre del sistema -->
     <div class="auth-header">
-      <div class="logo-container">
-        <div class="brand-text">
-          <h1 class="app-name">{{ appName }}</h1>
-          <p class="company-name">{{ companyName }}</p>
-        </div>
-      </div>
+      <h1 class="app-name">{{ appName }}</h1>
+      <p class="company-name">{{ companyName }}</p>
     </div>
 
-    <!-- Contenido (formularios de auth) -->
-    <div class="auth-content">
+    <!-- Formulario -->
+    <div class="auth-card">
       <router-outlet></router-outlet>
     </div>
 
-    <!-- Footer -->
+    <!-- Pie -->
     <div class="auth-footer">
-      <p class="copyright">
-        &copy; {{ currentYear }} {{ companyName }}
-        <br>
-        Todos los derechos reservados.
-      </p>
-      <p class="location">
-        <i class="fas fa-map-marker-alt"></i> Huaraz, Áncash, Perú
-      </p>
+      <p class="copyright">&copy; {{ currentYear }} {{ companyName }}<br>Todos los derechos reservados.</p>
+      <p class="location"><i class="fas fa-map-marker-alt"></i> Huaraz, Áncash, Perú</p>
     </div>
 
   </div>
-
 </div>

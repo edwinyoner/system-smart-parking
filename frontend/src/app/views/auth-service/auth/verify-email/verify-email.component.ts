@@ -25,8 +25,7 @@ import { environment } from '../../../../../environments/environment';
     RouterLink,
     AlertMessageComponent
   ],
-  templateUrl: './verify-email.component.html',
-  styleUrls: ['./verify-email.component.css']
+  templateUrl: './verify-email.component.html'
 })
 export class VerifyEmailComponent implements OnInit {
   

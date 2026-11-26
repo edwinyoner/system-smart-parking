@@ -24,8 +24,7 @@ import { environment } from '../../../../../environments/environment';
     RouterLink,
     AlertMessageComponent
   ],
-  templateUrl: './forgot-password.component.html',
-  styleUrls: ['./forgot-password.component.css']
+  templateUrl: './forgot-password.component.html'
 })
 export class ForgotPasswordComponent implements OnInit {
   

@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRouteSnapshot, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
@@ -12,7 +12,6 @@ import {
   SidebarFooterComponent,
   SidebarHeaderComponent,
   SidebarNavComponent,
-  SidebarToggleDirective,
   SidebarTogglerDirective
 } from '@coreui/angular';
 
@@ -34,7 +33,6 @@ import { PermissionService } from '../../core/services/auth-service/permission.s
     SidebarBrandComponent,
     SidebarNavComponent,
     SidebarFooterComponent,
-    SidebarToggleDirective,
     SidebarTogglerDirective,
     ContainerComponent,
     DefaultFooterComponent,
@@ -48,6 +46,15 @@ import { PermissionService } from '../../core/services/auth-service/permission.s
 export class DefaultLayoutComponent implements OnInit {
   
   public navItems: INavDataWithPermissions[] = [];
+
+  // Menú minimizado (solo íconos y foto). Se recuerda entre sesiones en este navegador
+  private static readonly COLLAPSED_KEY = 'sp-sidebar-collapsed';
+  public collapsed = signal(localStorage.getItem(DefaultLayoutComponent.COLLAPSED_KEY) === 'true');
+
+  toggleCollapsed(): void {
+    this.collapsed.update(value => !value);
+    localStorage.setItem(DefaultLayoutComponent.COLLAPSED_KEY, String(this.collapsed()));
+  }
 
   // Datos del usuario: se recalculan solos cuando cambia CurrentUserService
   private currentUserService = inject(CurrentUserService);

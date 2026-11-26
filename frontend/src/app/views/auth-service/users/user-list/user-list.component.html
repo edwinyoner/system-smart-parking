@@ -208,7 +208,7 @@
                     <div class="btn-group btn-group-sm" role="group">
                       @if (showDeleted) {
                         <!-- En la papelera: mismos íconos (deshabilitados) y el botón Restaurar -->
-                        <button class="btn btn-outline-secondary" disabled title="No disponible para usuarios eliminados" aria-label="Ver detalles">
+                        <button class="btn btn-outline-info" disabled title="No disponible para usuarios eliminados" aria-label="Ver detalles">
                           <i class="fas fa-eye"></i>
                         </button>
                         <button class="btn btn-outline-warning" disabled title="No disponible para usuarios eliminados" aria-label="Editar">
@@ -219,7 +219,7 @@
                         </button>
                       } @else {
                       @if (hasPermission('users.read')) {
-                        <button class="btn btn-outline-secondary" (click)="viewUser(user.id)" title="Ver detalles" aria-label="Ver detalles">
+                        <button class="btn btn-outline-info" (click)="viewUser(user.id)" title="Ver detalles" aria-label="Ver detalles">
                           <i class="fas fa-eye"></i>
                         </button>
                       }

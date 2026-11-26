@@ -1,533 +1,201 @@
-import { NgStyle, DatePipe, DecimalPipe, CommonModule } from '@angular/common';
-import { Component, DestroyRef, effect, inject, OnInit, signal, WritableSignal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import {
-  ButtonDirective,
-  ButtonGroupComponent,
-  CardBodyComponent,
-  CardComponent,
-  CardFooterComponent,
-  CardHeaderComponent,
-  ColComponent,
-  FormCheckLabelDirective,
-  GutterDirective,
-  ProgressComponent,
-  RowComponent,
-  TableDirective,
-  BadgeComponent,
-  SpinnerComponent
-} from '@coreui/angular';
-import { ChartjsComponent } from '@coreui/angular-chartjs';
-import { IconDirective } from '@coreui/icons-angular';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { 
-  faCar, 
-  faParking, 
-  faCheckCircle,
-  faClock,
-  faExclamationTriangle,
-  faChartLine,
-  faMapMarkerAlt,
-  faMoneyBill,
-  faTools,
-  faBan,
-  faUsers,
-  faCarSide,
-  faTicketAlt,
-  faTachometerAlt,
-  faMapMarked,
-  faSquareParking
-} from '@fortawesome/free-solid-svg-icons';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { CommonModule } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
+import { Observable, catchError, exhaustMap, forkJoin, map, of } from 'rxjs';
 
-import { DashboardChartsData, IChartProps } from './dashboard-charts-data';
 import { ParkingService } from '../../core/services/parking-service/parking.service';
-import { ZoneService } from '../../core/services/parking-service/zone.service';
-import { SpaceService } from '../../core/services/parking-service/space.service';
 import { TransactionService } from '../../core/services/parking-service/transaction.service';
-import { CustomerService } from '../../core/services/parking-service/customer.service';
-import { VehicleService } from '../../core/services/parking-service/vehicle.service';
-import { InfractionService } from '../../core/services/parking-service/infraction.service';
+import { OperatorAssignmentService } from '../../core/services/parking-service/operator-assignment.service';
 import { PaymentService } from '../../core/services/payment-service/payment.service';
-
+import { CurrentUserService } from '../../core/services/auth-service/current-user.service';
+import { AuthContextService } from '../../core/services/auth-service/auth-context.service';
 import { Parking } from '../../core/models/parking-service/parking.model';
-import { Zone } from '../../core/models/parking-service/zone.model';
-import { Space } from '../../core/models/parking-service/space.model';
-import { ActiveTransactionDto, TransactionDto } from '../../core/models/parking-service/transaction.model';
-import { Customer } from '../../core/models/parking-service/customer.model';
-import { Vehicle } from '../../core/models/parking-service/vehicle.model';
-import { Infraction } from '../../core/models/parking-service/infraction.model';
+import { ActiveTransactionDto } from '../../core/models/parking-service/transaction.model';
+import { OperatorAssignment } from '../../core/models/parking-service/operator-assignment.model';
 import { Payment } from '../../core/models/payment-service/payment.model';
-import { paymentStatusLabel } from '../../core/utils/payment.util';
+import { liveRefresh } from '../../core/utils/live-refresh.util';
+import { localDate, locationStatus } from '../../core/utils/parking.util';
+import { hhmm } from '../../core/utils/shift.util';
 
-import { interval, Subscription, forkJoin, Observable } from 'rxjs';
-import { switchMap, startWith, catchError } from 'rxjs/operators';
-import { of, map } from 'rxjs';
-import { Router } from '@angular/router';
+/** Lo que trae cada consulta. null = sin permiso o el servicio no respondió */
+interface DashboardData {
+  parkings: Parking[] | null;
+  active: { list: ActiveTransactionDto[]; total: number } | null;
+  payments: Payment[] | null;
+  shifts: OperatorAssignment[] | null;
+}
 
-/**
- * Datos de respuesta paginados
- */
-interface PaginatedResponse<T> {
-  items: T[];
-  totalElements: number;
-  totalPages: number;
-  pageNumber: number;
-  pageSize: number;
+interface Totals {
+  parkings: number;
+  operational: number;
+  spaces: number;
+  available: number;
+  occupied: number;
+  unavailable: number;
+  occupancy: number;
 }
 
 /**
- * Estadísticas completas del sistema
+ * Panel de inicio con datos reales: disponibilidad por parqueo (calculada desde los
+ * espacios), vehículos dentro, lo cobrado hoy y los turnos del usuario.
+ * Se actualiza solo cada 10 s, sin spinner. Cada bloque aparece si el rol activo tiene
+ * el permiso que exige su endpoint.
  */
-interface SystemStats {
-  // Parkings
-  totalParkings: number;
-  activeParkings: number;
-  inactiveParkings: number;
-  maintenanceParkings: number;
-  
-  // Zones
-  totalZones: number;
-  activeZones: number;
-  
-  // Spaces
-  totalSpaces: number;
-  availableSpaces: number;
-  occupiedSpaces: number;
-  maintenanceSpaces: number;
-  outOfServiceSpaces: number;
-  occupancyRate: number;
-  
-  // Transactions
-  activeTransactions: number;
-  todayTransactions: number;
-  todayCompletedTransactions: number;
-  
-  // Financial
-  todayRevenue: number;
-  monthRevenue: number;
-  averageTicket: number;
-  
-  // Customers & Vehicles
-  totalCustomers: number;
-  recurrentCustomers: number;
-  totalVehicles: number;
-  
-  // Infractions
-  pendingInfractions: number;
-  todayInfractions: number;
-  
-  // Averages
-  averageDuration: string;
-  averageOccupancyRate: number;
-}
-
-/**
- * Estadísticas por parking individual
- */
-interface ParkingStats extends Parking {
-  zonesCount: number;
-  activeZonesCount: number;
-  activeTransactionsCount: number;
-}
-
-/**
- * Estadísticas por zona
- */
-interface ZoneStats extends Zone {
-  spacesCount: number;
-  occupiedCount: number;
-  availableCount: number;
-  occupancyRate: number;
-}
-
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  templateUrl: 'dashboard.component.html',
-  styleUrls: ['dashboard.component.css'],
-  imports: [
-    CommonModule,
-    DatePipe,
-    DecimalPipe,
-    CardComponent, 
-    CardBodyComponent, 
-    RowComponent, 
-    ColComponent, 
-    ButtonDirective, 
-    IconDirective, 
-    ReactiveFormsModule, 
-    ButtonGroupComponent, 
-    FormCheckLabelDirective, 
-    ChartjsComponent, 
-    NgStyle, 
-    CardFooterComponent, 
-    GutterDirective, 
-    ProgressComponent,
-    CardHeaderComponent, 
-    TableDirective,
-    BadgeComponent,
-    FontAwesomeModule,
-    SpinnerComponent
-  ]
+  imports: [CommonModule, RouterLink],
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.css'],
 })
 export class DashboardComponent implements OnInit {
 
-  readonly #destroyRef: DestroyRef = inject(DestroyRef);
-  readonly #chartsData: DashboardChartsData = inject(DashboardChartsData);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #router = inject(Router);
-  
-  // Services
   readonly #parkingService = inject(ParkingService);
-  readonly #zoneService = inject(ZoneService);
-  readonly #spaceService = inject(SpaceService);
   readonly #transactionService = inject(TransactionService);
-  readonly #customerService = inject(CustomerService);
-  readonly #vehicleService = inject(VehicleService);
-  readonly #infractionService = inject(InfractionService);
+  readonly #assignmentService = inject(OperatorAssignmentService);
   readonly #paymentService = inject(PaymentService);
+  readonly #authContext = inject(AuthContextService);
+  readonly #currentUser = toSignal(inject(CurrentUserService).currentUser$, { initialValue: null });
 
-  // ========================= ICONOS =========================
-  icons = {
-    car: faCar,
-    parking: faParking,
-    available: faCheckCircle,
-    occupied: faClock,
-    warning: faExclamationTriangle,
-    chart: faChartLine,
-    location: faMapMarkerAlt,
-    money: faMoneyBill,
-    maintenance: faTools,
-    blocked: faBan,
-    users: faUsers,
-    vehicle: faCarSide,
-    infraction: faTicketAlt,
-    dashboard: faTachometerAlt,
-    zone: faMapMarked,
-    space: faSquareParking
-  };
+  readonly loading = signal(true);
+  readonly refreshing = signal(false);
+  readonly lastUpdate = signal<Date | null>(null);
+  readonly data = signal<DashboardData>({ parkings: null, active: null, payments: null, shifts: null });
 
-  // ========================= ESTADO =========================
-  loading = signal<boolean>(true);
-  error = signal<string | null>(null);
-  lastUpdate = signal<Date>(new Date());
-  
-  // Estadísticas principales
-  systemStats = signal<SystemStats>({
-    totalParkings: 0,
-    activeParkings: 0,
-    inactiveParkings: 0,
-    maintenanceParkings: 0,
-    totalZones: 0,
-    activeZones: 0,
-    totalSpaces: 0,
-    availableSpaces: 0,
-    occupiedSpaces: 0,
-    maintenanceSpaces: 0,
-    outOfServiceSpaces: 0,
-    occupancyRate: 0,
-    activeTransactions: 0,
-    todayTransactions: 0,
-    todayCompletedTransactions: 0,
-    todayRevenue: 0,
-    monthRevenue: 0,
-    averageTicket: 0,
-    totalCustomers: 0,
-    recurrentCustomers: 0,
-    totalVehicles: 0,
-    pendingInfractions: 0,
-    todayInfractions: 0,
-    averageDuration: '0h 0min',
-    averageOccupancyRate: 0
+  readonly status = locationStatus;
+  readonly hhmm = hhmm;
+  /** "jueves, 26 de noviembre de 2026" (la app no registra el locale es de Angular) */
+  readonly todayLabel = new Intl.DateTimeFormat('es-PE',
+    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+
+  // ========================= DATOS DERIVADOS =========================
+
+  readonly firstName = computed(() => this.#currentUser()?.firstName ?? '');
+
+  readonly greeting = computed(() => {
+    const h = new Date().getHours();
+    return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
   });
 
-  // Datos detallados
-  parkings = signal<ParkingStats[]>([]);
-  topZones = signal<ZoneStats[]>([]);
-  activeTransactions = signal<ActiveTransactionDto[]>([]);
-  recentTransactions = signal<TransactionDto[]>([]);
-  recentPayments = signal<Payment[]>([]);
-  topCustomers = signal<Customer[]>([]);
-  topVehicles = signal<Vehicle[]>([]);
-  recentInfractions = signal<Infraction[]>([]);
-
-  // ========================= GRÁFICOS =========================
-  public mainChart: IChartProps = { type: 'line' };
-  public mainChartRef: WritableSignal<any> = signal(undefined);
-  
-  #mainChartRefEffect = effect(() => {
-    if (this.mainChartRef()) {
-      this.setChartStyles();
-    }
+  readonly activeRole = computed(() => {
+    this.#currentUser();
+    return this.#authContext.getActiveRole() || '';
   });
 
-  public trafficRadioGroup = new FormGroup({
-    trafficRadio: new FormControl('Mes')
+  /** Suma de la capacidad de todos los parqueos (el backend la calcula desde cada espacio) */
+  readonly totals = computed<Totals | null>(() => {
+    const parkings = this.data().parkings;
+    if (!parkings) return null;
+    const t = parkings.reduce((acc, p) => ({
+      parkings: acc.parkings + 1,
+      operational: acc.operational + (p.operational ? 1 : 0),
+      spaces: acc.spaces + (p.totalSpaces ?? 0),
+      available: acc.available + (p.availableSpaces ?? 0),
+      occupied: acc.occupied + (p.occupiedSpaces ?? 0),
+      unavailable: acc.unavailable + (p.unavailableSpaces ?? 0),
+      occupancy: 0,
+    }), { parkings: 0, operational: 0, spaces: 0, available: 0, occupied: 0, unavailable: 0, occupancy: 0 });
+    t.occupancy = t.spaces ? Math.round((t.occupied / t.spaces) * 100) : 0;
+    return t;
   });
 
-  // ========================= AUTO-REFRESH =========================
-  private refreshSubscription?: Subscription;
-  private readonly REFRESH_INTERVAL = 30000; // 30 segundos
+  /** Parqueos ordenados: primero los que atienden, luego por ocupación */
+  readonly parkingRows = computed(() => [...(this.data().parkings ?? [])]
+    .sort((a, b) => Number(b.operational) - Number(a.operational)
+      || (b.occupancyPercentage ?? 0) - (a.occupancyPercentage ?? 0)));
 
-  // ========================= LIFECYCLE =========================
+  /** Dona de estados de los espacios (CSS conic-gradient: sin librería de gráficos) */
+  readonly donut = computed(() => {
+    const t = this.totals();
+    if (!t || t.spaces === 0) return null;
+    const pct = (n: number) => (n / t.spaces) * 100;
+    const a = pct(t.available);
+    const o = a + pct(t.occupied);
+    return `conic-gradient(var(--dash-free) 0 ${a}%, var(--dash-busy) ${a}% ${o}%, var(--dash-off) ${o}% 100%)`;
+  });
+
+  readonly paidToday = computed(() => {
+    const list = this.data().payments;
+    if (!list) return null;
+    const amount = list.reduce((sum, p) => sum + (p.amount ?? 0) - (p.refundedAmount ?? 0), 0);
+    return { amount, count: list.length };
+  });
+
+  readonly recentPayments = computed(() => (this.data().payments ?? []).slice(0, 6));
+
+  readonly onDuty = computed(() => (this.data().shifts ?? []).filter(a => a.onDutyNow));
+  readonly upcomingShifts = computed(() => (this.data().shifts ?? []).filter(a => !a.onDutyNow).slice(0, 3));
+
+  // ========================= CICLO DE VIDA =========================
 
   ngOnInit(): void {
-    this.initCharts();
-    this.loadAllData();
-    this.startAutoRefresh();
+    this.load(false);
+    liveRefresh(10000).pipe(
+      exhaustMap(() => this.request(true)),
+      takeUntilDestroyed(this.#destroyRef),
+    ).subscribe(d => this.apply(d));
   }
 
-  ngOnDestroy(): void {
-    this.stopAutoRefresh();
+  refresh(): void {
+    this.load(true);
   }
 
-  // ========================= CARGAR DATOS =========================
+  private load(manual: boolean): void {
+    manual ? this.refreshing.set(true) : this.loading.set(true);
+    this.request(true).subscribe(d => this.apply(d));
+  }
 
-  /**
-   * Carga TODOS los datos del sistema
-   */
-  private loadAllData(): void {
-    this.loading.set(true);
-    this.error.set(null);
+  private apply(d: DashboardData): void {
+    this.data.set(d);
+    this.loading.set(false);
+    this.refreshing.set(false);
+    this.lastUpdate.set(new Date());
+  }
 
-    forkJoin({
-      parkings: this.#parkingService.getAll(0, 100).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      zones: this.#zoneService.getAll(0, 100).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      spaces: this.#spaceService.getAll(0, 100).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      activeTransactions: this.#transactionService.getActiveTransactions(0, 10).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      recentTransactions: this.#transactionService.getAll(0, 10).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      customers: this.#customerService.getAll({ pageNumber: 0, pageSize: 10 }).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      recurrentCustomers: this.#customerService.getRecurrent(0, 10).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      vehicles: this.#vehicleService.getAll({ pageNumber: 0, pageSize: 10 }).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      // Últimos pagos cobrados (payment-service). Sin payments.view, la tarjeta queda vacía
-      payments: this.#paymentService.getAll(0, 10, { status: 'COMPLETED' }, true).pipe(
-        map(page => ({ items: page.content, totalElements: page.totalElements, totalPages: page.totalPages, pageNumber: page.pageNumber, pageSize: page.pageSize })),
-        catchError(() => of({ items: [] as Payment[], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      infractions: this.#infractionService.getAll(0, 10).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 })))
-    }).subscribe({
-      next: (data) => {
-        this.processDashboardData(data);
-        this.loading.set(false);
-        this.lastUpdate.set(new Date());
-      },
-      error: (err) => {
-        console.error('Error cargando datos del dashboard:', err);
-        this.error.set('Error al cargar datos del sistema');
-        this.loading.set(false);
-      }
+  /** Cada consulta falla por separado: un servicio caído no deja el panel en blanco */
+  private request(silent: boolean): Observable<DashboardData> {
+    const safe = <T>(allowed: boolean, source: () => Observable<T>): Observable<T | null> =>
+      allowed ? source().pipe(catchError(() => of(null))) : of(null);
+    const day = localDate();
+    return forkJoin({
+      parkings: safe(this.can('parkings.read'),
+        () => this.#parkingService.getAll(0, 100, '', '', false, silent).pipe(map(r => r.content))),
+      active: safe(this.can('transactions.view'),
+        () => this.#transactionService.getActiveTransactions(0, 8, silent)
+          .pipe(map(r => ({ list: r.content, total: r.totalElements })))),
+      payments: safe(this.can('payments.view'),
+        () => this.#paymentService.getAll(0, 100, { status: 'COMPLETED', from: day, to: day }, silent)
+          .pipe(map(r => r.content))),
+      shifts: safe(true, () => this.#assignmentService.listMine(undefined, silent)
+        .pipe(map(list => list.filter(a => a.status !== 'ENDED')))),
     });
   }
 
-  /**
-   * Procesa y calcula estadísticas
-   */
-  private processDashboardData(data: any): void {
-    const parkings = data.parkings.items || [];
-    const zones = data.zones.items || [];
-    const spaces = data.spaces.items || [];
-    const activeTransactions = data.activeTransactions.items || [];
-    const recentTransactions = data.recentTransactions.items || [];
-    const payments = data.payments.items || [];
-    const infractions = data.infractions.items || [];
+  // ========================= VISTA =========================
 
-    // ========== CALCULAR ESTADÍSTICAS DEL SISTEMA ==========
-    const stats: SystemStats = {
-      // Parkings
-      totalParkings: parkings.length,
-      activeParkings: parkings.filter((p: Parking) => p.status === 'ACTIVE').length,
-      inactiveParkings: parkings.filter((p: Parking) => p.status === 'INACTIVE').length,
-      maintenanceParkings: parkings.filter((p: Parking) => p.status === 'MAINTENANCE').length,
-      
-      // Zones
-      totalZones: zones.length,
-      activeZones: zones.filter((z: Zone) => z.status === 'ACTIVE').length,
-      
-      // Spaces
-      totalSpaces: spaces.length,
-      availableSpaces: spaces.filter((s: Space) => s.status === 'AVAILABLE').length,
-      occupiedSpaces: spaces.filter((s: Space) => s.status === 'OCCUPIED').length,
-      maintenanceSpaces: spaces.filter((s: Space) => s.status === 'MAINTENANCE').length,
-      outOfServiceSpaces: spaces.filter((s: Space) => s.status === 'OUT_OF_SERVICE').length,
-      occupancyRate: 0,
-      
-      // Transactions
-      activeTransactions: activeTransactions.length,
-      todayTransactions: recentTransactions.length,
-      todayCompletedTransactions: recentTransactions.filter((t: TransactionDto) => t.status === 'COMPLETED').length,
-      
-      // Financial
-      todayRevenue: activeTransactions.reduce((sum: number, t: ActiveTransactionDto) => sum + (t.currentAmount || 0), 0),
-      monthRevenue: 0,
-      averageTicket: 0,
-      
-      // Customers & Vehicles
-      totalCustomers: data.customers.totalElements || 0,
-      recurrentCustomers: data.recurrentCustomers.totalElements || 0,
-      totalVehicles: data.vehicles.totalElements || 0,
-      
-      // Infractions
-      pendingInfractions: infractions.filter((i: Infraction) => i.status === 'PENDING').length,
-      todayInfractions: infractions.length,
-      
-      // Averages
-      averageDuration: '2h 30min',
-      averageOccupancyRate: 0
-    };
-
-    // Calcular tasa de ocupación
-    if (stats.totalSpaces > 0) {
-      stats.occupancyRate = Math.round((stats.occupiedSpaces / stats.totalSpaces) * 100);
-    }
-
-    // Calcular ticket promedio
-    if (payments.length > 0) {
-      const totalPayments = payments.reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
-      stats.averageTicket = totalPayments / payments.length;
-    }
-
-    // Calcular ingresos del mes (suma de todos los pagos)
-    stats.monthRevenue = payments.reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
-
-    this.systemStats.set(stats);
-
-    // ========== PROCESAR PARKINGS CON DETALLES ==========
-    const parkingStats: ParkingStats[] = parkings.map((p: Parking) => {
-      const parkingZones = zones.filter((z: Zone) => z.parkingId === p.id);
-      return {
-        ...p,
-        zonesCount: parkingZones.length,
-        activeZonesCount: parkingZones.filter((z: Zone) => z.status === 'ACTIVE').length,
-        activeTransactionsCount: activeTransactions.filter((t: ActiveTransactionDto) => t.parkingId === p.id).length
-      };
-    });
-    this.parkings.set(parkingStats);
-
-    // ========== PROCESAR TOP ZONAS ==========
-    const zoneStats: ZoneStats[] = zones.map((z: Zone) => {
-      const zoneSpaces = spaces.filter((s: Space) => s.zoneId === z.id);
-      const occupied = zoneSpaces.filter((s: Space) => s.status === 'OCCUPIED').length;
-      const available = zoneSpaces.filter((s: Space) => s.status === 'AVAILABLE').length;
-      
-      return {
-        ...z,
-        spacesCount: zoneSpaces.length,
-        occupiedCount: occupied,
-        availableCount: available,
-        occupancyRate: zoneSpaces.length > 0 ? Math.round((occupied / zoneSpaces.length) * 100) : 0
-      };
-    }).sort((a: ZoneStats, b: ZoneStats) => b.occupancyRate - a.occupancyRate).slice(0, 5);
-    
-    this.topZones.set(zoneStats);
-
-    // ========== ASIGNAR DATOS ==========
-    this.activeTransactions.set(activeTransactions);
-    this.recentTransactions.set(recentTransactions);
-    this.recentPayments.set(payments);
-    this.topCustomers.set(data.recurrentCustomers.items || []);
-    this.topVehicles.set(data.vehicles.items || []);
-    this.recentInfractions.set(infractions);
+  can(permission: string): boolean {
+    return this.#authContext.hasPermission(permission);
   }
 
-  /**
-   * Inicia actualización automática
-   */
-  private startAutoRefresh(): void {
-    this.refreshSubscription = interval(this.REFRESH_INTERVAL)
-      .subscribe(() => {
-        this.loadAllData();
-      });
+  open(route: (string | number)[]): void {
+    this.#router.navigate(route);
   }
 
-  /**
-   * Detiene actualización automática
-   */
-  private stopAutoRefresh(): void {
-    this.refreshSubscription?.unsubscribe();
+  /** Porcentaje de cada tramo de la barra de un parqueo */
+  share(p: Parking, value?: number): number {
+    return p.totalSpaces ? ((value ?? 0) / p.totalSpaces) * 100 : 0;
   }
 
-  /**
-   * Refresco manual
-   */
-  refreshData(): void {
-    this.loadAllData();
+  occupancyTone(pct?: number): string {
+    if ((pct ?? 0) >= 90) return 'tone-high';
+    if ((pct ?? 0) >= 70) return 'tone-mid';
+    return 'tone-low';
   }
 
-  // ========================= NAVEGACIÓN =========================
-
-  navigateTo(route: string): void {
-    this.#router.navigate([route]);
-  }
-
-  // ========================= GRÁFICOS =========================
-
-  initCharts(): void {
-    this.mainChartRef()?.stop();
-    this.mainChart = this.#chartsData.mainChart;
-  }
-
-  setTrafficPeriod(value: string): void {
-    this.trafficRadioGroup.setValue({ trafficRadio: value });
-    this.#chartsData.initMainChart(value);
-    this.initCharts();
-  }
-
-  handleChartRef($chartRef: any): void {
-    if ($chartRef) {
-      this.mainChartRef.set($chartRef);
-    }
-  }
-
-  setChartStyles(): void {
-    if (this.mainChartRef()) {
-      setTimeout(() => {
-        const options = { ...this.mainChart.options };
-        const scales = this.#chartsData.getScales();
-        this.mainChartRef().options.scales = { ...options.scales, ...scales };
-        this.mainChartRef().update();
-      });
-    }
-  }
-
-  // ========================= UTILIDADES =========================
-
-  getPercentage(value: number, total: number): number {
-    return total > 0 ? Math.round((value / total) * 100) : 0;
-  }
-
-  paymentStatusLabel = paymentStatusLabel;
-
-  getStatusColor(status: string): string {
-    const colorMap: Record<string, string> = {
-      'ACTIVE': 'success',
-      'OCCUPIED': 'danger',
-      'AVAILABLE': 'success',
-      'MAINTENANCE': 'warning',
-      'COMPLETED': 'info',
-      'CANCELLED': 'secondary',
-      'INACTIVE': 'secondary',
-      'OUT_OF_SERVICE': 'dark',
-      'PENDING': 'warning',
-      'PAID': 'success'
-    };
-    return colorMap[status] || 'secondary';
-  }
-
-  getTransactionBadge(transaction: ActiveTransactionDto): { text: string; color: string } {
-    if (transaction.isOverdue) {
-      return { text: 'SOBREPASADO', color: 'danger' };
-    }
-    if (transaction.requiresAttention) {
-      return { text: 'ATENCIÓN', color: 'warning' };
-    }
-    return { text: 'ACTIVO', color: 'success' };
-  }
-
-  getParkingStatusText(status: string): string {
-    const statusMap: Record<string, string> = {
-      'ACTIVE': 'Activo',
-      'INACTIVE': 'Inactivo',
-      'MAINTENANCE': 'Mantenimiento',
-      'OUT_OF_SERVICE': 'Fuera de Servicio'
-    };
-    return statusMap[status] || status;
+  conceptLabel(p: Payment): string {
+    return p.concept === 'FINE' ? 'Multa' : 'Estadía';
   }
 }

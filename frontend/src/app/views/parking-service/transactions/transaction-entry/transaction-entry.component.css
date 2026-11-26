@@ -3,7 +3,7 @@
 h5 {
   color: #4f5d73;
   font-weight: 600;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--cui-border-color);
   padding-bottom: 0.5rem;
 }
 

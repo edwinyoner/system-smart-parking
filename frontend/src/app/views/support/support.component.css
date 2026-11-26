@@ -137,7 +137,7 @@ input[cFormControl],
 select[cFormSelect],
 textarea[cFormControl] {
   border-radius: 8px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--cui-border-color);
   padding: 0.75rem;
   transition: all 0.3s ease;
 }

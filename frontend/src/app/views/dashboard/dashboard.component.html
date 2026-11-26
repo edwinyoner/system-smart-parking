@@ -1,752 +1,299 @@
-<!-- HEADER PRINCIPAL -->
-<c-row class="dashboard-header mb-4">
-  <c-col>
-    <div class="text-center">
-      <h1 class="display-4 fw-bold mb-2 smart-city-title">
-        SMART CITY
-      </h1>
-      <h2 class="h4 text-subtitle mb-3">System Smart Parking</h2>
-      <div class="d-flex justify-content-center align-items-center gap-4">
-        <div class="text-muted small">
-          <fa-icon [icon]="icons.location" class="me-2"></fa-icon>
-          Municipalidad de Huaraz - Áncash, Perú
-        </div>
-        <div class="text-muted small">
-          <!-- <fa-icon [icon]="icons.clock" class="me-2"></fa-icon> -->
-          Última actualización: {{ lastUpdate() | date:'short' }}
-        </div>
-        <button cButton color="primary" size="sm" (click)="refreshData()">
-          <svg cIcon name="cilReload" class="me-1"></svg> Actualizar
-        </button>
+<!-- Panel de inicio -->
+<div class="dashboard">
+
+  <!-- ===================== BIENVENIDA ===================== -->
+  <section class="dash-hero">
+    <div class="hero-text">
+      <p class="hero-date">{{ todayLabel }}</p>
+      <h1 class="hero-title">{{ greeting() }}{{ firstName() ? ', ' + firstName() : '' }}</h1>
+      <div class="hero-meta">
+        @if (activeRole()) {
+        <span class="hero-chip"><i class="fas fa-shield-alt me-1"></i>{{ activeRole() }}</span>
+        }
+        @for (a of onDuty(); track a.id) {
+        <span class="hero-chip hero-chip-live">
+          <i class="fas fa-circle me-1"></i>De turno: {{ a.parkingName }}{{ a.scope === 'ZONE' ? ' · ' + a.zoneName : '' }}
+          ({{ hhmm(a.shiftStartTime) }} - {{ hhmm(a.shiftEndTime) }})
+        </span>
+        }
       </div>
     </div>
-  </c-col>
-</c-row>
 
-<!-- LOADING STATE -->
-@if (loading()) {
-  <c-row>
-    <c-col class="text-center py-5">
-      <c-spinner color="primary"></c-spinner>
-      <p class="mt-3 text-muted">Cargando datos del sistema completo...</p>
-    </c-col>
-  </c-row>
-}
+    <div class="hero-actions">
+      @if (can('transactions.entry')) {
+      <a routerLink="/transactions/entry" class="hero-btn hero-btn-solid"><i class="fas fa-sign-in-alt"></i>Registrar entrada</a>
+      }
+      @if (can('transactions.exit')) {
+      <a routerLink="/transactions/exit" class="hero-btn"><i class="fas fa-sign-out-alt"></i>Registrar salida</a>
+      }
+      @if (can('parkings.create')) {
+      <a routerLink="/parkings/create" class="hero-btn"><i class="fas fa-plus-circle"></i>Nuevo parqueo</a>
+      }
+    </div>
+  </section>
 
-<!-- ERROR STATE -->
-@if (error()) {
-  <c-row>
-    <c-col>
-      <div class="alert alert-danger" role="alert">
-        <fa-icon [icon]="icons.warning" class="me-2"></fa-icon>
-        {{ error() }}
-        <button class="btn btn-sm btn-outline-danger ms-3" (click)="refreshData()">
-          Reintentar
-        </button>
+  <!-- Estado de la actualización -->
+  <div class="dash-toolbar">
+    <span class="live-dot" [class.is-loading]="loading() || refreshing()"></span>
+    <span class="text-muted small">
+      @if (lastUpdate()) { En vivo · actualizado a las {{ lastUpdate() | date:'HH:mm:ss' }} }
+      @else { Cargando datos... }
+    </span>
+    <button type="button" class="btn btn-sm btn-link refresh-btn" (click)="refresh()" [disabled]="refreshing()" title="Actualizar ahora">
+      <i class="fas fa-sync-alt" [class.fa-spin]="refreshing()"></i>
+    </button>
+  </div>
+
+  <!-- ===================== INDICADORES ===================== -->
+  <section class="kpi-grid">
+    <!-- Espacios libres -->
+    <article class="kpi">
+      <div class="kpi-icon kpi-free"><i class="fas fa-square-parking"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Espacios libres</span>
+        @if (totals(); as t) {
+        <span class="kpi-value">{{ t.available }}<small> / {{ t.spaces }}</small></span>
+        <span class="kpi-hint">{{ t.unavailable ? t.unavailable + ' no disponibles' : 'Todos los espacios habilitados' }}</span>
+        } @else {
+        <span class="kpi-value kpi-empty">-</span><span class="kpi-hint">Sin permiso para ver parqueos</span>
+        }
       </div>
-    </c-col>
-  </c-row>
-}
+    </article>
 
-<!-- DASHBOARD CONTENT -->
-@if (!loading() && !error()) {
-  
-  <!-- ========== SECCIÓN 1: ESTADÍSTICAS PRINCIPALES DEL SISTEMA ========== -->
-  <c-row class="mb-4">
-    <c-col>
-      <h3 class="section-title">
-        <fa-icon [icon]="icons.chart" class="me-2"></fa-icon>
-        Estadísticas Generales del Sistema
-      </h3>
-    </c-col>
-  </c-row>
+    <!-- Ocupación -->
+    <article class="kpi">
+      <div class="kpi-icon kpi-brand"><i class="fas fa-chart-pie"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Ocupación</span>
+        @if (totals(); as t) {
+        <span class="kpi-value">{{ t.occupancy }}<small>%</small></span>
+        <div class="kpi-bar"><div [ngClass]="occupancyTone(t.occupancy)" [style.width.%]="t.occupancy"></div></div>
+        } @else {
+        <span class="kpi-value kpi-empty">-</span>
+        }
+      </div>
+    </article>
 
-  <c-row class="mb-4 stats-cards">
-    <!-- Parkings -->
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-primary h-100" (click)="navigateTo('/parking-service/parkings')" style="cursor: pointer;">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.parking" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Parqueos</div>
-            <div class="stat-value">{{ systemStats().totalParkings }}</div>
-            <div class="stat-footer">
-              <span class="text-success">{{ systemStats().activeParkings }} activos</span>
-              @if (systemStats().maintenanceParkings > 0) {
-                <span class="text-warning ms-2">{{ systemStats().maintenanceParkings }} mantenimiento</span>
-              }
-            </div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
+    <!-- Vehículos dentro -->
+    <article class="kpi">
+      <div class="kpi-icon kpi-busy"><i class="fas fa-car"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Vehículos dentro</span>
+        @if (data().active; as active) {
+        <span class="kpi-value">{{ active.total }}</span>
+        <span class="kpi-hint">Estadías en curso</span>
+        } @else {
+        <span class="kpi-value kpi-empty">-</span><span class="kpi-hint">Sin permiso para ver transacciones</span>
+        }
+      </div>
+    </article>
 
-    <!-- Zonas -->
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-info h-100" (click)="navigateTo('/parking-service/zones')" style="cursor: pointer;">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.zone" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Zonas</div>
-            <div class="stat-value">{{ systemStats().totalZones }}</div>
-            <div class="stat-footer">{{ systemStats().activeZones }} activas</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
+    <!-- Cobrado hoy -->
+    <article class="kpi">
+      <div class="kpi-icon kpi-money"><i class="fas fa-coins"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Cobrado hoy</span>
+        @if (paidToday(); as paid) {
+        <span class="kpi-value"><small>S/ </small>{{ paid.amount | number:'1.2-2' }}</span>
+        <span class="kpi-hint">{{ paid.count }} {{ paid.count === 1 ? 'pago' : 'pagos' }} confirmados</span>
+        } @else {
+        <span class="kpi-value kpi-empty">-</span><span class="kpi-hint">Sin permiso para ver pagos</span>
+        }
+      </div>
+    </article>
+  </section>
 
-    <!-- Espacios Totales -->
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-purple h-100" (click)="navigateTo('/parking-service/spaces')" style="cursor: pointer;">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.space" size="2x"></fa-icon>
+  <!-- ===================== DISPONIBILIDAD ===================== -->
+  @if (data().parkings !== null) {
+  <section class="row g-4 mb-4">
+    <div class="col-xl-8">
+      <div class="card h-100 dash-card">
+        <div class="card-header dash-card-header">
+          <span><i class="fas fa-parking me-2"></i>Disponibilidad por parqueo</span>
+          <a routerLink="/parkings" class="dash-link">Ver parqueos <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+        <div class="card-body p-0">
+          @if (parkingRows().length === 0) {
+          <div class="dash-empty">
+            <i class="fas fa-parking"></i>
+            <p>Aún no hay parqueos registrados.</p>
+            @if (can('parkings.create')) {
+            <a routerLink="/parkings/create" class="btn btn-success btn-sm"><i class="fas fa-plus-circle me-1"></i>Crear parqueo</a>
+            }
           </div>
-          <div class="stat-content">
-            <div class="stat-label">Espacios Totales</div>
-            <div class="stat-value">{{ systemStats().totalSpaces }}</div>
-            <div class="stat-footer">
-              <c-progress class="mt-2" thin color="info" [value]="100" />
-            </div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <!-- Tasa de Ocupación -->
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-warning h-100">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.chart" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Tasa de Ocupación</div>
-            <div class="stat-value">{{ systemStats().occupancyRate }}%</div>
-            <div class="stat-footer">
-              <c-progress class="mt-2" thin color="warning" [value]="systemStats().occupancyRate" />
-            </div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- ========== SECCIÓN 2: ESTADO DE ESPACIOS ========== -->
-  <c-row class="mb-4 stats-cards">
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-success h-100">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.available" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Disponibles</div>
-            <div class="stat-value">{{ systemStats().availableSpaces }}</div>
-            <div class="stat-footer">{{ getPercentage(systemStats().availableSpaces, systemStats().totalSpaces) }}% libres</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-danger h-100">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.car" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Ocupados</div>
-            <div class="stat-value">{{ systemStats().occupiedSpaces }}</div>
-            <div class="stat-footer">{{ getPercentage(systemStats().occupiedSpaces, systemStats().totalSpaces) }}% ocupados</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-warning h-100">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.maintenance" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Mantenimiento</div>
-            <div class="stat-value">{{ systemStats().maintenanceSpaces }}</div>
-            <div class="stat-footer">En reparación</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-dark h-100">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.blocked" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Fuera de Servicio</div>
-            <div class="stat-value">{{ systemStats().outOfServiceSpaces }}</div>
-            <div class="stat-footer">No disponibles</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- ========== SECCIÓN 3: MÉTRICAS FINANCIERAS Y OPERATIVAS ========== -->
-  <c-row class="mb-4">
-    <c-col>
-      <h3 class="section-title">
-        <fa-icon [icon]="icons.money" class="me-2"></fa-icon>
-        Métricas Financieras y Operativas
-      </h3>
-    </c-col>
-  </c-row>
-
-  <c-row class="mb-4 stats-cards">
-    <c-col xs="12" sm="6" lg="4" class="mb-3">
-      <c-card class="stat-card stat-card-gold h-100">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.money" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Ingresos Hoy</div>
-            <div class="stat-value">S/ {{ systemStats().todayRevenue | number:'1.2-2' }}</div>
-            <div class="stat-footer">{{ systemStats().activeTransactions }} transacciones activas</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <c-col xs="12" sm="6" lg="4" class="mb-3">
-      <c-card class="stat-card stat-card-gold h-100" (click)="navigateTo('/payments')" style="cursor: pointer;">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.money" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Ingresos del Mes</div>
-            <div class="stat-value">S/ {{ systemStats().monthRevenue | number:'1.2-2' }}</div>
-            <div class="stat-footer">Ticket promedio: S/ {{ systemStats().averageTicket | number:'1.2-2' }}</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <c-col xs="12" sm="6" lg="4" class="mb-3">
-      <c-card class="stat-card stat-card-info h-100" (click)="navigateTo('/parking-service/transactions')" style="cursor: pointer;">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.occupied" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Transacciones Hoy</div>
-            <div class="stat-value">{{ systemStats().todayTransactions }}</div>
-            <div class="stat-footer">{{ systemStats().todayCompletedTransactions }} completadas</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- ========== SECCIÓN 4: CLIENTES, VEHÍCULOS E INFRACCIONES ========== -->
-  <c-row class="mb-4 stats-cards">
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-primary h-100" (click)="navigateTo('/parking-service/customers')" style="cursor: pointer;">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.users" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Clientes</div>
-            <div class="stat-value">{{ systemStats().totalCustomers }}</div>
-            <div class="stat-footer">{{ systemStats().recurrentCustomers }} recurrentes</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-info h-100" (click)="navigateTo('/parking-service/vehicles')" style="cursor: pointer;">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.vehicle" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Vehículos</div>
-            <div class="stat-value">{{ systemStats().totalVehicles }}</div>
-            <div class="stat-footer">Registrados en el sistema</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-danger h-100" (click)="navigateTo('/parking-service/infractions')" style="cursor: pointer;">
-        <c-card-body>
-          <div class="stat-icon">
-            <fa-icon [icon]="icons.infraction" size="2x"></fa-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Infracciones</div>
-            <div class="stat-value">{{ systemStats().todayInfractions }}</div>
-            <div class="stat-footer">{{ systemStats().pendingInfractions }} pendientes</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <c-col xs="12" sm="6" lg="3" class="mb-3">
-      <c-card class="stat-card stat-card-success h-100">
-        <c-card-body>
-          <div class="stat-icon">
-            <!-- <fa-icon [icon]="icons.clock" size="2x"></fa-icon> -->
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Duración Promedio</div>
-            <div class="stat-value">{{ systemStats().averageDuration }}</div>
-            <div class="stat-footer">Por transacción</div>
-          </div>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- ========== SECCIÓN 5: GRÁFICO DE OCUPACIÓN ========== -->
-  <c-row class="mb-4">
-    <c-col>
-      <c-card class="chart-card">
-        <c-card-body>
-          <c-row>
-            <c-col sm="5">
-              <h4 class="card-title mb-0">
-                <fa-icon [icon]="icons.chart" class="me-2 text-ai"></fa-icon>
-                Tendencia de Ocupación
-              </h4>
-              <div class="small text-secondary">Enero - Diciembre 2025</div>
-            </c-col>
-            <c-col class="d-none d-md-block" sm="7">
-              <button cButton class="float-end" color="primary">
-                <svg cIcon name="cilCloudDownload"></svg>
-              </button>
-              <form [formGroup]="trafficRadioGroup">
-                <c-button-group class="float-end me-3" role="group">
-                  <input class="btn-check" formControlName="trafficRadio" type="radio" value="Día" id="diaRadio" />
-                  <label (click)="setTrafficPeriod('Day')" cButton cFormCheckLabel color="secondary" variant="outline" for="diaRadio">Día</label>
-                  <input class="btn-check" formControlName="trafficRadio" type="radio" value="Mes" id="mesRadio" />
-                  <label (click)="setTrafficPeriod('Month')" cButton cFormCheckLabel color="secondary" variant="outline" for="mesRadio">Mes</label>
-                  <input class="btn-check" formControlName="trafficRadio" type="radio" value="Año" id="anioRadio" />
-                  <label (click)="setTrafficPeriod('Year')" cButton cFormCheckLabel color="secondary" variant="outline" for="anioRadio">Año</label>
-                </c-button-group>
-              </form>
-            </c-col>
-          </c-row>
-          <c-chart [data]="mainChart.data" [height]="300" [ngStyle]="{ 'marginTop.px': 40 }" [options]="mainChart.options" [type]="mainChart.type" (chartRef)="handleChartRef($event)"></c-chart>
-        </c-card-body>
-        <c-card-footer>
-          <c-row class="text-center" [gutter]="4">
-            <c-col>
-              <div class="text-secondary small">Total</div>
-              <strong>{{ systemStats().totalSpaces }}</strong>
-              <c-progress class="mt-2" thin color="info" [value]="100" />
-            </c-col>
-            <c-col>
-              <div class="text-secondary small">Ocupados</div>
-              <strong>{{ systemStats().occupiedSpaces }} ({{ systemStats().occupancyRate }}%)</strong>
-              <c-progress class="mt-2" thin color="danger" [value]="systemStats().occupancyRate" />
-            </c-col>
-            <c-col>
-              <div class="text-secondary small">Disponibles</div>
-              <strong>{{ systemStats().availableSpaces }}</strong>
-              <c-progress class="mt-2" thin color="success" [value]="getPercentage(systemStats().availableSpaces, systemStats().totalSpaces)" />
-            </c-col>
-            <c-col>
-              <div class="text-secondary small">Mantenimiento</div>
-              <strong>{{ systemStats().maintenanceSpaces }}</strong>
-              <c-progress class="mt-2" thin color="warning" [value]="getPercentage(systemStats().maintenanceSpaces, systemStats().totalSpaces)" />
-            </c-col>
-          </c-row>
-        </c-card-footer>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- ========== SECCIÓN 6: PARKINGS Y ZONAS ========== -->
-  <c-row class="mb-4">
-    <!-- PARKINGS ACTIVOS -->
-    <c-col xs="12" lg="6" class="mb-4">
-      <c-card class="h-100">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div>
-            <fa-icon [icon]="icons.parking" class="me-2"></fa-icon>
-            Estacionamientos Activos ({{ parkings().length }})
-          </div>
-          <button cButton size="sm" color="primary" (click)="navigateTo('/parking-service/parkings')">
-            Ver Todos
-          </button>
-        </c-card-header>
-        <c-card-body>
-          @if (parkings().length === 0) {
-            <div class="text-center text-muted py-4">
-              <fa-icon [icon]="icons.parking" size="3x" class="mb-3"></fa-icon>
-              <p>No hay parkings registrados</p>
-            </div>
           } @else {
-            <div class="list-group list-group-flush">
-              @for (parking of parkings(); track parking.id) {
-                <div class="list-group-item d-flex justify-content-between align-items-center" style="cursor: pointer;" (click)="navigateTo('/parking-service/parkings/' + parking.id)">
-                  <div>
-                    <h6 class="mb-1">{{ parking.name }}</h6>
-                    <small class="text-muted">
-                      <fa-icon [icon]="icons.location" class="me-1"></fa-icon>
-                      {{ parking.address }}
-                    </small>
-                    <div class="mt-2">
-                      <c-badge [color]="getStatusColor(parking.status || 'ACTIVE')" class="me-2">
-                        {{ getParkingStatusText(parking.status || 'ACTIVE') }}
-                      </c-badge>
-                      <small class="text-muted">
-                        {{ parking.zonesCount }} zonas | {{ parking.totalSpaces }} espacios
-                      </small>
-                    </div>
-                  </div>
-                  <div class="text-end">
-                    <div class="fw-bold mb-1">{{ parking.occupancyPercentage || 0 }}%</div>
-                    <small class="text-muted">Ocupación</small>
-                    @if (parking.activeTransactionsCount > 0) {
-                      <div class="mt-1">
-                        <c-badge color="danger">{{ parking.activeTransactionsCount }} activas</c-badge>
-                      </div>
-                    }
-                  </div>
+          <ul class="parking-list">
+            @for (p of parkingRows(); track p.id) {
+            <li class="parking-row" (click)="open(['/parkings', p.id!])" (keydown.enter)="open(['/parkings', p.id!])" tabindex="0">
+              <div class="parking-info">
+                <span class="parking-name">{{ p.name }}</span>
+                <span class="parking-meta">
+                  {{ p.code }} · {{ p.totalZones ?? 0 }} {{ p.totalZones === 1 ? 'zona' : 'zonas' }}
+                  <span class="badge ms-1" [ngClass]="status(p.status).badge">{{ status(p.status).label }}</span>
+                </span>
+              </div>
+              <div class="parking-capacity">
+                @if ((p.totalSpaces ?? 0) === 0) {
+                <span class="text-muted small">Sin espacios</span>
+                } @else {
+                <div class="capacity-numbers">
+                  <span><strong>{{ p.availableSpaces }}</strong> libres de {{ p.totalSpaces }}</span>
+                  <span class="text-muted">{{ p.occupancyPercentage }}%</span>
                 </div>
-              }
-            </div>
-          }
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <!-- TOP ZONAS POR OCUPACIÓN -->
-    <c-col xs="12" lg="6" class="mb-4">
-      <c-card class="h-100">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div>
-            <fa-icon [icon]="icons.zone" class="me-2"></fa-icon>
-            Top Zonas por Ocupación
-          </div>
-          <button cButton size="sm" color="primary" (click)="navigateTo('/parking-service/zones')">
-            Ver Todas
-          </button>
-        </c-card-header>
-        <c-card-body>
-          @if (topZones().length === 0) {
-            <div class="text-center text-muted py-4">
-              <fa-icon [icon]="icons.zone" size="3x" class="mb-3"></fa-icon>
-              <p>No hay zonas registradas</p>
-            </div>
-          } @else {
-            <div class="list-group list-group-flush">
-              @for (zone of topZones(); track zone.id) {
-                <div class="list-group-item" style="cursor: pointer;" (click)="navigateTo('/parking-service/zones/' + zone.id)">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0">{{ zone.name }}</h6>
-                    <c-badge [color]="getStatusColor(zone.status || 'ACTIVE')">
-                      {{ zone.occupancyRate }}%
-                    </c-badge>
-                  </div>
-                  <small class="text-muted d-block mb-2">{{ zone.code }} - {{ zone.spacesCount }} espacios</small>
-                  <c-progress class="mb-2" thin [color]="zone.occupancyRate > 80 ? 'danger' : zone.occupancyRate > 50 ? 'warning' : 'success'" [value]="zone.occupancyRate" />
-                  <div class="d-flex justify-content-between">
-                    <small class="text-success">{{ zone.availableCount }} disponibles</small>
-                    <small class="text-danger">{{ zone.occupiedCount }} ocupados</small>
-                  </div>
+                <div class="stacked-bar" [title]="p.occupiedSpaces + ' ocupados, ' + p.availableSpaces + ' libres, ' + p.unavailableSpaces + ' no disponibles'">
+                  <span class="seg seg-busy" [style.width.%]="share(p, p.occupiedSpaces)"></span>
+                  <span class="seg seg-free" [style.width.%]="share(p, p.availableSpaces)"></span>
+                  <span class="seg seg-off" [style.width.%]="share(p, p.unavailableSpaces)"></span>
                 </div>
-              }
-            </div>
+                }
+              </div>
+              <i class="fas fa-chevron-right row-arrow"></i>
+            </li>
+            }
+          </ul>
           }
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
+        </div>
+      </div>
+    </div>
 
-  <!-- ========== SECCIÓN 7: TRANSACCIONES ACTIVAS ========== -->
-  <c-row class="mb-4">
-    <c-col>
-      <c-card class="transactions-card">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div>
-            <fa-icon [icon]="icons.car" class="me-2"></fa-icon>
-            Transacciones Activas en Tiempo Real ({{ activeTransactions().length }})
-          </div>
-          <div>
-            <button cButton color="primary" size="sm" class="me-2" (click)="refreshData()">
-              <svg cIcon name="cilReload"></svg> Actualizar
-            </button>
-            <button cButton size="sm" color="primary" (click)="navigateTo('/parking-service/transactions/active')">
-              Ver Todas
-            </button>
-          </div>
-        </c-card-header>
-        <c-card-body>
-          @if (activeTransactions().length === 0) {
-            <div class="text-center text-muted py-5">
-              <fa-icon [icon]="icons.parking" size="3x" class="mb-3"></fa-icon>
-              <p class="mb-0">No hay transacciones activas en este momento</p>
-              <small class="text-muted">Los vehículos estacionados aparecerán aquí</small>
+    <!-- Estado de los espacios -->
+    <div class="col-xl-4">
+      <div class="card h-100 dash-card">
+        <div class="card-header dash-card-header"><span><i class="fas fa-chart-pie me-2"></i>Estado de los espacios</span></div>
+        <div class="card-body">
+          @if (donut(); as gradient) {
+          <div class="donut-wrap">
+            <div class="donut" [style.background]="gradient">
+              <div class="donut-hole">
+                <span class="donut-value">{{ totals()!.spaces }}</span>
+                <span class="donut-label">espacios</span>
+              </div>
             </div>
+          </div>
+          <ul class="legend">
+            <li><span class="dot seg-free"></span>Libres<strong>{{ totals()!.available }}</strong></li>
+            <li><span class="dot seg-busy"></span>Ocupados<strong>{{ totals()!.occupied }}</strong></li>
+            <li><span class="dot seg-off"></span>No disponibles<strong>{{ totals()!.unavailable }}</strong></li>
+          </ul>
+          <p class="legend-note">
+            {{ totals()!.operational }} de {{ totals()!.parkings }} {{ totals()!.parkings === 1 ? 'parqueo recibe' : 'parqueos reciben' }} vehículos ahora.
+          </p>
           } @else {
-            <table [hover]="true" [responsive]="true" cTable class="mb-0 modern-table">
+          <div class="dash-empty"><i class="fas fa-th"></i><p>Sin espacios configurados.</p></div>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- ===================== OPERACIÓN ===================== -->
+  @if (data().active !== null || data().payments !== null) {
+  <section class="row g-4 mb-4">
+    @if (data().active; as active) {
+    <div [class]="data().payments !== null ? 'col-xl-7' : 'col-12'">
+      <div class="card h-100 dash-card">
+        <div class="card-header dash-card-header">
+          <span><i class="fas fa-car me-2"></i>Vehículos dentro</span>
+          <a routerLink="/transactions/active" class="dash-link">Ver todos <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+        <div class="card-body p-0">
+          @if (active.list.length === 0) {
+          <div class="dash-empty"><i class="fas fa-car"></i><p>No hay vehículos dentro.</p></div>
+          } @else {
+          <div class="table-responsive">
+            <table class="table dash-table mb-0">
               <thead>
-                <tr>
-                  <th width="50"><fa-icon [icon]="icons.car"></fa-icon></th>
-                  <th>Placa</th>
-                  <th>Cliente</th>
-                  <th>Parking / Zona / Espacio</th>
-                  <th>Entrada</th>
-                  <th>Tiempo</th>
-                  <th class="text-end">Monto Actual</th>
-                  <th class="text-center">Estado</th>
-                </tr>
+                <tr><th>Placa</th><th>Ubicación</th><th>Entrada</th><th>Tiempo</th><th class="text-end">Por cobrar</th></tr>
               </thead>
               <tbody>
-                @for (transaction of activeTransactions(); track transaction.id) {
-                  <tr [class.table-warning]="transaction.requiresAttention" [class.table-danger]="transaction.isOverdue">
-                    <td class="text-center">
-                      <fa-icon [icon]="icons.car" [class]="'text-' + (transaction.isOverdue ? 'danger' : 'primary')" size="lg"></fa-icon>
-                    </td>
-                    <td>
-                      <div class="fw-bold">{{ transaction.plateNumber }}</div>
-                    </td>
-                    <td>
-                      <div>{{ transaction.customerName }}</div>
-                      <small class="text-muted">{{ transaction.documentNumber }}</small>
-                    </td>
-                    <td>
-                      <div class="fw-semibold">{{ transaction.parkingName }}</div>
-                      <small class="text-muted">{{ transaction.zoneName }} - {{ transaction.spaceCode }}</small>
-                    </td>
-                    <td>
-                      <small>{{ transaction.entryTime | date:'short' }}</small>
-                    </td>
-                    <td>
-                      <div class="fw-semibold" [class.text-danger]="transaction.isOverdue" [class.text-warning]="transaction.requiresAttention">
-                        {{ transaction.elapsedFormatted }}
-                      </div>
-                      <small class="text-muted">{{ transaction.elapsedMinutes }} min</small>
-                    </td>
-                    <td class="text-end">
-                      <div class="fw-bold text-primary">S/ {{ transaction.currentAmount | number:'1.2-2' }}</div>
-                      <small class="text-muted">S/ {{ transaction.hourlyRate }}/h</small>
-                    </td>
-                    <td class="text-center">
-                      <c-badge [color]="getTransactionBadge(transaction).color">
-                        {{ getTransactionBadge(transaction).text }}
-                      </c-badge>
-                    </td>
-                  </tr>
+                @for (t of active.list; track t.id) {
+                <tr (click)="open(['/transactions', t.id])" class="clickable">
+                  <td><span class="plate">{{ t.plateNumber }}</span></td>
+                  <td>
+                    <span class="d-block">{{ t.parkingName }}</span>
+                    <small class="text-muted">{{ t.zoneName }} · {{ t.spaceCode }}</small>
+                  </td>
+                  <td>{{ t.entryTime | date:'HH:mm' }}</td>
+                  <td>
+                    {{ t.elapsedFormatted }}
+                    @if (t.isOverdue) { <span class="badge bg-danger ms-1">Excedido</span> }
+                    @else if (t.requiresAttention) { <span class="badge bg-warning ms-1">Atención</span> }
+                  </td>
+                  <td class="text-end fw-semibold">S/ {{ t.currentAmount | number:'1.2-2' }}</td>
+                </tr>
                 }
               </tbody>
             </table>
-          }
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- ========== SECCIÓN 8: CLIENTES Y VEHÍCULOS ========== -->
-  <c-row class="mb-4">
-    <!-- TOP CLIENTES RECURRENTES -->
-    <c-col xs="12" lg="6" class="mb-4">
-      <c-card class="h-100">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div>
-            <fa-icon [icon]="icons.users" class="me-2"></fa-icon>
-            Clientes Recurrentes
           </div>
-          <button cButton size="sm" color="primary" (click)="navigateTo('/parking-service/customers')">
-            Ver Todos
-          </button>
-        </c-card-header>
-        <c-card-body>
-          @if (topCustomers().length === 0) {
-            <div class="text-center text-muted py-4">
-              <fa-icon [icon]="icons.users" size="3x" class="mb-3"></fa-icon>
-              <p>No hay clientes recurrentes</p>
-            </div>
-          } @else {
-            <div class="list-group list-group-flush">
-              @for (customer of topCustomers(); track customer.id) {
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="mb-1">{{ customer.fullName }}</h6>
-                    <small class="text-muted">{{ customer.documentNumber }}</small>
-                    @if (customer.email) {
-                      <div><small class="text-muted">{{ customer.email }}</small></div>
-                    }
-                  </div>
-                  <div class="text-end">
-                    <c-badge color="success">{{ customer.totalVisits || 0 }} visitas</c-badge>
-                  </div>
-                </div>
-              }
-            </div>
+          @if (active.total > active.list.length) {
+          <div class="dash-more">y {{ active.total - active.list.length }} más</div>
           }
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <!-- TOP VEHÍCULOS -->
-    <c-col xs="12" lg="6" class="mb-4">
-      <c-card class="h-100">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div>
-            <fa-icon [icon]="icons.vehicle" class="me-2"></fa-icon>
-            Vehículos Frecuentes
-          </div>
-          <button cButton size="sm" color="primary" (click)="navigateTo('/parking-service/vehicles')">
-            Ver Todos
-          </button>
-        </c-card-header>
-        <c-card-body>
-          @if (topVehicles().length === 0) {
-            <div class="text-center text-muted py-4">
-              <fa-icon [icon]="icons.vehicle" size="3x" class="mb-3"></fa-icon>
-              <p>No hay vehículos registrados</p>
-            </div>
-          } @else {
-            <div class="list-group list-group-flush">
-              @for (vehicle of topVehicles(); track vehicle.id) {
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="mb-1">
-                      <fa-icon [icon]="icons.vehicle" class="me-2 text-primary"></fa-icon>
-                      {{ vehicle.licensePlate }}
-                    </h6>
-                    <small class="text-muted">
-                      Primera visita: {{ vehicle.firstSeenDate | date:'short' }}
-                    </small>
-                  </div>
-                  <div class="text-end">
-                    <c-badge color="info">{{ vehicle.totalVisits || 0 }} visitas</c-badge>
-                    @if (vehicle.isRecurrent) {
-                      <div class="mt-1"><c-badge color="success">Recurrente</c-badge></div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
           }
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- ========== SECCIÓN 9: PAGOS E INFRACCIONES ========== -->
-  <c-row class="mb-4">
-    <!-- ÚLTIMOS PAGOS -->
-    <c-col xs="12" lg="6" class="mb-4">
-      <c-card class="h-100">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div>
-            <fa-icon [icon]="icons.money" class="me-2"></fa-icon>
-            Últimos Pagos
-          </div>
-          <button cButton size="sm" color="primary" (click)="navigateTo('/payments')">
-            Ver Todos
-          </button>
-        </c-card-header>
-        <c-card-body>
-          @if (recentPayments().length === 0) {
-            <div class="text-center text-muted py-4">
-              <fa-icon [icon]="icons.money" size="3x" class="mb-3"></fa-icon>
-              <p>No hay pagos recientes</p>
-            </div>
-          } @else {
-            <div class="list-group list-group-flush">
-              @for (payment of recentPayments(); track payment.id) {
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                  <div>
-                    <div class="fw-bold">S/ {{ payment.amount | number:'1.2-2' }}</div>
-                    <small class="text-muted">{{ payment.paymentTypeName }}</small>
-                    @if (payment.operationNumber) {
-                      <div><small class="text-muted">Op. {{ payment.operationNumber }}</small></div>
-                    }
-                  </div>
-                  <div class="text-end">
-                    <c-badge [color]="getStatusColor(payment.status)">{{ paymentStatusLabel(payment.status) }}</c-badge>
-                    <div><small class="text-muted">{{ payment.paidAt | date:'short' }}</small></div>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </c-card-body>
-      </c-card>
-    </c-col>
-
-    <!-- INFRACCIONES RECIENTES -->
-    <c-col xs="12" lg="6" class="mb-4">
-      <c-card class="h-100">
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <div>
-            <fa-icon [icon]="icons.infraction" class="me-2"></fa-icon>
-            Infracciones Recientes
-          </div>
-          <button cButton size="sm" color="primary" (click)="navigateTo('/parking-service/infractions')">
-            Ver Todas
-          </button>
-        </c-card-header>
-        <c-card-body>
-          @if (recentInfractions().length === 0) {
-            <div class="text-center text-muted py-4">
-              <fa-icon [icon]="icons.infraction" size="3x" class="mb-3"></fa-icon>
-              <p>No hay infracciones recientes</p>
-            </div>
-          } @else {
-            <div class="list-group list-group-flush">
-              @for (infraction of recentInfractions(); track infraction.id) {
-                <div class="list-group-item">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0">{{ infraction.infractionCode }}</h6>
-                    <c-badge [color]="getStatusColor(infraction.status)">{{ infraction.status }}</c-badge>
-                  </div>
-                  <div class="mb-1">
-                    <strong>{{ infraction.vehiclePlate }}</strong>
-                    <small class="text-muted ms-2">{{ infraction.infractionType }}</small>
-                  </div>
-                  <small class="text-muted">{{ infraction.parkingName }} - {{ infraction.zoneName }}</small>
-                  @if (infraction.fineAmount) {
-                    <div class="mt-1">
-                      <c-badge color="warning">Multa: S/ {{ infraction.fineAmount | number:'1.2-2' }}</c-badge>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-
-  <!-- FOOTER -->
-  <c-row>
-    <c-col xs="12">
-      <div class="dashboard-footer">
-        <fa-icon [icon]="icons.parking" class="me-2"></fa-icon>
-        Smart Parking © 2025 | Huaraz, Áncash, Perú 
-        <div class="mt-2">
-          <small class="text-muted">Sistema de Estacionamiento Inteligente con IA y IoT</small>
         </div>
       </div>
-    </c-col>
-  </c-row>
-}
+    </div>
+    }
+
+    @if (data().payments !== null) {
+    <div [class]="data().active !== null ? 'col-xl-5' : 'col-12'">
+      <div class="card h-100 dash-card">
+        <div class="card-header dash-card-header">
+          <span><i class="fas fa-receipt me-2"></i>Cobros de hoy</span>
+          <a routerLink="/payments" class="dash-link">Historial <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+        <div class="card-body p-0">
+          @if (recentPayments().length === 0) {
+          <div class="dash-empty"><i class="fas fa-receipt"></i><p>Todavía no hay cobros hoy.</p></div>
+          } @else {
+          <ul class="payment-list">
+            @for (p of recentPayments(); track p.id) {
+            <li (click)="open(['/payments', p.id])" class="clickable">
+              <span class="pay-icon" [class.pay-fine]="p.concept === 'FINE'">
+                <i class="fas" [class.fa-qrcode]="p.paymentTypeCode === 'QR'" [class.fa-money-bill-wave]="p.paymentTypeCode !== 'QR'"></i>
+              </span>
+              <span class="pay-info">
+                <span class="pay-title">{{ conceptLabel(p) }}{{ p.plateNumber ? ' · ' + p.plateNumber : '' }}</span>
+                <small class="text-muted">{{ p.paymentTypeName }} · {{ (p.paidAt || p.createdAt) | date:'HH:mm' }}</small>
+              </span>
+              <span class="pay-amount">S/ {{ p.amount | number:'1.2-2' }}</span>
+            </li>
+            }
+          </ul>
+          }
+        </div>
+      </div>
+    </div>
+    }
+  </section>
+  }
+
+  <!-- ===================== MIS PRÓXIMOS TURNOS ===================== -->
+  @if (upcomingShifts().length) {
+  <section class="card dash-card mb-4">
+    <div class="card-header dash-card-header"><span><i class="fas fa-user-clock me-2"></i>Mis próximos turnos</span></div>
+    <div class="card-body">
+      <div class="row g-3">
+        @for (a of upcomingShifts(); track a.id) {
+        <div class="col-md-4">
+          <div class="shift-tile">
+            <span class="shift-name">{{ a.shiftName }} · {{ hhmm(a.shiftStartTime) }} - {{ hhmm(a.shiftEndTime) }}</span>
+            <span>{{ a.parkingName }}{{ a.scope === 'ZONE' ? ' · ' + a.zoneName : '' }}</span>
+            <small class="text-muted">Desde {{ a.startDate | date:'dd/MM/yyyy' }}</small>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+  </section>
+  }
+
+  @if (!loading() && data().parkings === null && data().active === null && data().payments === null) {
+  <div class="card dash-card">
+    <div class="dash-empty py-5">
+      <i class="fas fa-user-lock"></i>
+      <p>Tu rol no tiene permisos para ver indicadores. Usa el menú para ir a tus módulos.</p>
+    </div>
+  </div>
+  }
+</div>

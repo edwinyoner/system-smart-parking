@@ -21,8 +21,8 @@ export class CustomerVehicleService {
    */
   getAll(filters: CustomerVehicleFilters = {}): Observable<ParkingPagedResponse<CustomerVehicle>> {
     let params = new HttpParams()
-      .set('pageNumber', (filters.pageNumber ?? 0).toString())
-      .set('pageSize', (filters.pageSize ?? 20).toString());
+      .set('page', (filters.pageNumber ?? 0).toString())
+      .set('size', (filters.pageSize ?? 20).toString());
 
     return this.http.get<ParkingPagedResponse<CustomerVehicle>>(this.apiUrl, { params });
   }
@@ -51,8 +51,8 @@ export class CustomerVehicleService {
   ): Observable<ParkingPagedResponse<CustomerVehicle>> {
     const params = new HttpParams()
       .set('minUsageCount', minUsageCount.toString())
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<CustomerVehicle>>(`${this.apiUrl}/frequent`, { params });
   }

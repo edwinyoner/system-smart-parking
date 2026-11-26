@@ -198,7 +198,7 @@
                     <div class="btn-group btn-group-sm" role="group">
                       @if (showDeleted) {
                         <!-- En la papelera: mismos íconos (deshabilitados) y el botón Restaurar -->
-                        <button type="button" class="btn btn-outline-secondary" disabled title="No disponible para roles eliminados" aria-label="Ver detalles">
+                        <button type="button" class="btn btn-outline-info" disabled title="No disponible para roles eliminados" aria-label="Ver detalles">
                           <i class="fas fa-eye"></i>
                         </button>
                         <button type="button" class="btn btn-outline-warning" disabled title="No disponible para roles eliminados" aria-label="Editar">
@@ -210,7 +210,7 @@
                       } @else {
                       @if (hasPermission('roles.read')) {
                         <button 
-                          class="btn btn-outline-secondary" 
+                          class="btn btn-outline-info" 
                           (click)="viewRole(role.id)" 
                           title="Ver detalles">
                           <i class="fas fa-eye"></i>

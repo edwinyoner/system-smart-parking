@@ -1,19 +1,32 @@
 // src/scss/styles.scss
 // Tema de CoreUI. Es lo único que sigue en Sass, porque CoreUI está escrito en Sass
 // y sus colores se configuran con variables Sass. Los estilos propios van en CSS.
-
-// Paleta Smart Parking: sin azules ni morados.
+//
+// Paleta Smart Parking (decisión de Edwin, 2026-11-26):
+//   #0B1F3A azul marino muy oscuro    -> menú lateral, hover del color principal
+//   #1F3B5C azul corporativo oscuro   -> color principal: enlaces, foco, menú activo, paginación
+//   #A7B1BE gris azulado medio        -> bordes fuertes y textos sobre el azul marino
+//   #E6E9EF gris claro / blanco hielo -> fondo de la aplicación
+//   #2B2F36 gris carbón oscuro        -> texto
+//
+// Los botones de acción conservan un color propio que indica qué hacen:
+//   verde = crear, guardar, restaurar     rojo = eliminar
+//   naranja = editar                      azul claro = ver
+//
 // Se define aquí (y no solo con variables CSS) porque CoreUI calcula muchos tonos al
 // compilar: foco de campos, checkbox, enlaces, menús activos y los tonos del modo oscuro.
-// Por defecto CoreUI trae $primary morado (#5856d6) e $info azul (#39f).
 @use "@coreui/coreui/scss/coreui" as * with (
   $enable-deprecation-messages: false,
-  $primary:   #198754,   // Verde: color de marca y de acción
-  $success:   #198754,   // Verde: crear, guardar, activo
-  $info:      #5f6368,   // Gris neutro: avisos informativos
-  $secondary: #6c757d,   // Gris: acciones secundarias
-  $warning:   #ffc107,   // Ámbar: advertencias, editar
-  $danger:    #dc3545    // Rojo: eliminar, errores
+  $primary:          #1F3B5C,   // Azul corporativo: marca, enlaces, foco
+  $success:          #198754,   // Verde: crear, guardar, activo
+  $info:             #2B8FD1,   // Azul claro: ver detalle
+  $warning:          #F57C00,   // Naranja: editar, advertencias
+  $danger:           #DC3545,   // Rojo: eliminar, errores
+  $secondary:        #5B6573,   // Gris azulado legible: acciones secundarias
+  $dark:             #2B2F36,   // Gris carbón
+  $body-color:       #2B2F36,   // Texto
+  $body-tertiary-bg: #E6E9EF,   // Fondo de la aplicación
+  $border-color:     #D3D8E0    // Bordes de tarjetas, tablas y campos
 );
 
 // Estilos de Chart.js de CoreUI

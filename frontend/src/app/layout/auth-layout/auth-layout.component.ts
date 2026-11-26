@@ -5,7 +5,7 @@ import { CommonModule } from "@angular/common";
 /**
  * Layout para páginas de autenticación
  *
- * Sin sidebar, diseño centrado y limpio para:
+ * Sin sidebar: nombre del sistema arriba, formulario en una tarjeta clara y pie, para:
  * - Login
  * - Forgot Password
  * - Reset Password
@@ -16,13 +16,12 @@ import { CommonModule } from "@angular/common";
   standalone: true,
   imports: [CommonModule, RouterOutlet],
   templateUrl: "./auth-layout.component.html",
-  styleUrls: ["./auth-layout.component.css"],
 })
 export class AuthLayoutComponent {
   currentYear: number = new Date().getFullYear();
 
-  //   companyName: string = 'Winner Systems Corporation S.A.C.';
-  companyName: string = "Municipalidad Provincial De Huaraz";
+  // Es un prototipo académico: no se presenta como sistema oficial de la municipalidad
+  companyName: string = "Winner Systems Corporation S.A.C.";
   appName: string = "Smart Parking System";
 
   constructor() {}

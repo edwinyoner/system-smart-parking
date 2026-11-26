@@ -6,7 +6,7 @@
    CONTENEDOR PRINCIPAL
    ============================================ */
 .data-table-container {
-  background: #ffffff;
+  background: var(--cui-body-bg);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -21,13 +21,13 @@
 }
 
 .table thead {
-  background-color: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
+  background-color: var(--cui-tertiary-bg);
+  border-bottom: 2px solid var(--cui-border-color);
 }
 
 .table thead th {
   font-weight: 600;
-  color: #475569;
+  color: var(--cui-secondary-color);
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.5px;
@@ -42,7 +42,7 @@
 }
 
 .table tbody tr:hover {
-  background-color: #f8fafc;
+  background-color: var(--cui-tertiary-bg);
 }
 
 .table tbody tr:last-child {
@@ -52,7 +52,7 @@
 .table tbody td {
   padding: 0.875rem 0.75rem;
   vertical-align: middle;
-  color: #334155;
+  color: var(--cui-body-color);
 }
 
 /* ============================================
@@ -64,7 +64,7 @@
 }
 
 .sortable:hover {
-  background-color: #f1f5f9;
+  background-color: var(--cui-tertiary-bg);
 }
 
 .th-content {
@@ -130,9 +130,9 @@
 }
 
 .badge-secondary {
-  background-color: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  background-color: var(--cui-tertiary-bg);
+  color: var(--cui-secondary-color);
+  border: 1px solid var(--cui-border-color);
 }
 
 .badge-primary {
@@ -178,9 +178,9 @@
 }
 
 .action-buttons .btn-primary:hover {
-  background-color: #0b5ed7;
+  background-color: #0B1F3A;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
+  box-shadow: 0 2px 8px rgba(31, 59, 92, 0.3);
 }
 
 .action-buttons .btn-info {
@@ -230,8 +230,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  background-color: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+  background-color: var(--cui-tertiary-bg);
+  border-top: 1px solid var(--cui-border-color);
   flex-wrap: wrap;
   gap: 1rem;
 }
@@ -252,7 +252,7 @@
 .page-size-selector label {
   margin-bottom: 0;
   font-weight: 500;
-  color: #64748b;
+  color: var(--cui-secondary-color);
 }
 
 .page-size-selector .form-select {
@@ -266,16 +266,16 @@
 
 .pagination .page-link {
   color: var(--cui-primary);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--cui-border-color);
   padding: 0.375rem 0.75rem;
   transition: all 0.2s ease;
   font-size: 0.875rem;
 }
 
 .pagination .page-link:hover {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #0b5ed7;
+  background-color: var(--cui-tertiary-bg);
+  border-color: var(--cui-border-color);
+  color: #0B1F3A;
 }
 
 .pagination .page-item.active .page-link {
@@ -288,78 +288,8 @@
 .pagination .page-item.disabled .page-link {
   color: #cbd5e1;
   cursor: not-allowed;
-  background-color: #ffffff;
-  border-color: #e2e8f0;
+  background-color: var(--cui-body-bg);
+  border-color: var(--cui-border-color);
 }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-@media (max-width: 768px) {
-  .pagination-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .pagination-info {
-    justify-content: space-between;
-  }
-  
-  .pagination {
-    justify-content: center;
-  }
-  
-  .table {
-    font-size: 0.8rem;
-  }
-  
-  .table thead th,
-  .table tbody td {
-    padding: 0.5rem 0.375rem;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .action-buttons .btn {
-    width: 100%;
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-  }
-}
-
-/* ============================================
-   MODO OSCURO (OPCIONAL)
-   ============================================ */
-@media (prefers-color-scheme: dark) {
-  .data-table-container {
-    background: #1e293b;
-  }
-  
-  .table thead {
-    background-color: #0f172a;
-  }
-  
-  .table thead th {
-    color: #cbd5e1;
-  }
-  
-  .table tbody tr {
-    border-bottom: 1px solid #334155;
-  }
-  
-  .table tbody tr:hover {
-    background-color: #1e293b;
-  }
-  
-  .table tbody td {
-    color: #e2e8f0;
-  }
-  
-  .pagination-container {
-    background-color: #0f172a;
-    border-top: 1px solid #334155;
-  }
-}
+/* El modo oscuro sale de las variables de CoreUI (--cui-*), que siguen el tema elegido */

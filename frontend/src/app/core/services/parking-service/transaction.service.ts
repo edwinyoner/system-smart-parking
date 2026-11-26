@@ -77,19 +77,21 @@ export class TransactionService {
   /**
    * Lista TODAS las transacciones activas.
    * 
-   * GET /transactions/active?pageNumber=0&pageSize=20
+   * GET /transactions/active?page=0&size=20 (el backend usa page y size)
+   * silent = sin spinner global (refresco en vivo)
    */
   getActiveTransactions(
     pageNumber: number = 0,
-    pageSize: number = 20
+    pageSize: number = 20,
+    silent = false
   ): Observable<ParkingPagedResponse<ActiveTransactionDto>> {
     const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<ActiveTransactionDto>>(
       `${this.apiUrl}/active`,
-      { params }
+      { params, context: new HttpContext().set(SKIP_LOADING, silent) }
     );
   }
 
@@ -104,8 +106,8 @@ export class TransactionService {
     pageSize: number = 20
   ): Observable<ParkingPagedResponse<ActiveTransactionDto>> {
     const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<ActiveTransactionDto>>(
       `${this.apiUrl}/active/zone/${zoneId}`,
@@ -125,8 +127,8 @@ export class TransactionService {
   ): Observable<ParkingPagedResponse<ActiveTransactionDto>> {
     const params = new HttpParams()
       .set('plateNumber', plateNumber)
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<ActiveTransactionDto>>(
       `${this.apiUrl}/active/search`,
@@ -144,8 +146,8 @@ export class TransactionService {
     pageSize: number = 20
   ): Observable<ParkingPagedResponse<ActiveTransactionDto>> {
     const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<ActiveTransactionDto>>(
       `${this.apiUrl}/active/overdue`,
@@ -158,7 +160,7 @@ export class TransactionService {
   /**
    * Lista TODAS las transacciones.
    * 
-   * GET /transactions?pageNumber=0&pageSize=20&sortBy=...&sortDirection=...
+   * GET /transactions?page=0&size=20&sortBy=...&sortDirection=...
    */
   getAll(
     pageNumber: number = 0,
@@ -167,8 +169,8 @@ export class TransactionService {
     sortDirection: string = 'DESC'
   ): Observable<ParkingPagedResponse<TransactionDto>> {
     const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString())
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString())
       .set('sortBy', sortBy)
       .set('sortDirection', sortDirection);
 
@@ -192,8 +194,8 @@ export class TransactionService {
     const params = new HttpParams()
       .set('startDate', startDate)
       .set('endDate', endDate)
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<TransactionDto>>(
       `${this.apiUrl}/date-range`,
@@ -212,8 +214,8 @@ export class TransactionService {
     pageSize: number = 20
   ): Observable<ParkingPagedResponse<TransactionDto>> {
     const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<TransactionDto>>(
       `${this.apiUrl}/status/${status}`,
@@ -232,8 +234,8 @@ export class TransactionService {
     pageSize: number = 20
   ): Observable<ParkingPagedResponse<TransactionDto>> {
     const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<TransactionDto>>(
       `${this.apiUrl}/payment-status/${paymentStatus}`,
@@ -252,8 +254,8 @@ export class TransactionService {
     pageSize: number = 20
   ): Observable<ParkingPagedResponse<TransactionDto>> {
     const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<TransactionDto>>(
       `${this.apiUrl}/zone/${zoneId}`,
@@ -273,8 +275,8 @@ export class TransactionService {
   ): Observable<ParkingPagedResponse<TransactionDto>> {
     const params = new HttpParams()
       .set('plateNumber', plateNumber)
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+      .set('page', pageNumber.toString())
+      .set('size', pageSize.toString());
 
     return this.http.get<ParkingPagedResponse<TransactionDto>>(
       `${this.apiUrl}/search`,

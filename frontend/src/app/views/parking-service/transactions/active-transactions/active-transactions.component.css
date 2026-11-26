@@ -4,7 +4,7 @@
 .stat-card {
   padding: 1.25rem;
   border-radius: 10px;
-  background: #f8f9fa;
+  background: var(--cui-tertiary-bg);
   border: 2px solid #e0e0e0;
   margin-bottom: 1rem;
   transition: transform 0.2s ease;

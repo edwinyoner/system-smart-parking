@@ -1,4 +1,4 @@
-<!-- Verify Email Component - Diseño Futurista -->
+<!-- Verify Email Component -->
 <div class="verify-container">
   
   <!-- Header -->
@@ -11,17 +11,16 @@
       } @else {
         <i class="fas fa-envelope-circle-check"></i>
       }
-      <div class="icon-glow"></div>
     </div>
     
     @if (isVerifying) {
-      <h2>Verificando Email...</h2>
-      <p class="subtitle">Por favor espera mientras verificamos tu email</p>
+      <h2>Verificando tu correo</h2>
+      <p class="subtitle">Espera un momento</p>
     } @else if (verificationSuccess) {
-      <h2>Email Verificado</h2>
+      <h2>Correo verificado</h2>
       <p class="subtitle">Tu cuenta ha sido activada exitosamente</p>
     } @else {
-      <h2>Verificar Email</h2>
+      <h2>Verifica tu correo</h2>
       <p class="subtitle">Activa tu cuenta para acceder al sistema</p>
     }
   </div>
@@ -54,7 +53,7 @@
         <div class="spinner-circle"></div>
         <div class="spinner-circle"></div>
       </div>
-      <p>Verificando tu email...</p>
+      <p>Comprobando el enlace...</p>
     </div>
   }
 
@@ -64,12 +63,12 @@
       <div class="success-icon">
         <i class="fas fa-check"></i>
       </div>
-      <h3>¡Verificación Exitosa!</h3>
-      <p>Tu cuenta ha sido activada. Serás redirigido al login en unos segundos...</p>
+      <h3>Listo</h3>
+      <p>Tu cuenta está activa. En unos segundos irás al inicio de sesión.</p>
       
       <div class="info-box">
         <i class="fas fa-info-circle"></i>
-        <span>Ya puedes iniciar sesión con tu email y contraseña.</span>
+        <span>Ya puedes iniciar sesión con tu correo y contraseña.</span>
       </div>
     </div>
   }
@@ -80,17 +79,17 @@
       <div class="error-icon">
         <i class="fas fa-exclamation-circle"></i>
       </div>
-      <h3>Verificación Fallida</h3>
-      <p>Ingresa tu email para recibir un nuevo link de verificación.</p>
+      <h3>No se pudo verificar</h3>
+      <p>Escribe tu correo y te enviaremos un nuevo enlace de verificación.</p>
 
       <!-- Resend Form -->
       <form [formGroup]="resendForm" (ngSubmit)="onResend()">
         
         <!-- Email Field -->
         <div class="form-group">
-          <label for="email" style="color: white;">
+          <label for="email">
             <i class="fas fa-envelope"></i>
-            Correo Electrónico
+            Correo electrónico
           </label>
           <div class="input-wrapper">
             <input
@@ -101,7 +100,6 @@
               formControlName="email"
               placeholder="correo@ejemplo.com"
               autocomplete="email">
-            <div class="input-border"></div>
           </div>
           @if (hasError('email', 'required') || hasError('email', 'email')) {
             <span class="error-message">{{ getErrorMessage('email') }}</span>
@@ -116,7 +114,7 @@
           @if (!isLoading) {
             <span class="btn-content">
               <i class="fas fa-paper-plane"></i>
-              <span>Reenviar Email</span>
+              <span>Reenviar correo</span>
             </span>
           } @else {
             <span class="btn-content">
@@ -124,7 +122,6 @@
               <span>Enviando...</span>
             </span>
           }
-          <div class="btn-glow"></div>
         </button>
 
       </form>
@@ -134,13 +131,13 @@
   <!-- Al verificar con éxito la redirección es automática: no se muestran botones -->
   @if (!isVerifying && !verificationSuccess) {
     <div class="divider">
-      <span>¿Ya verificaste tu email?</span>
+      <span>¿Ya verificaste tu correo?</span>
     </div>
 
     <!-- Back to Login Link -->
     <a routerLink="/login" class="link-back">
       <i class="fas fa-arrow-left"></i>
-      <span>Volver al Login</span>
+      <span>Volver al inicio de sesión</span>
     </a>
   }
 

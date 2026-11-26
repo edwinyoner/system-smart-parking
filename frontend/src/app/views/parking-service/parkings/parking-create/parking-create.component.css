@@ -22,7 +22,7 @@
 
 .step-skipped {
   background-color: var(--cui-warning);
-  color: #212529;
+  color: var(--cui-body-color);
   border: 2px solid var(--cui-warning);
 }
 
