@@ -1,41 +1,28 @@
-// ============================================================
-// parking-edit/parking-edit.component.ts
-// ============================================================
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  CardModule,
-  ButtonModule,
-  FormModule,
-  GridModule,
-  AlertModule,
-  SpinnerModule,
-} from '@coreui/angular';
-import { IconModule } from '@coreui/icons-angular';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ParkingService } from '../../../../core/services/parking-service/parking.service';
-import { Parking, ParkingRequest } from '../../../../core/models/parking-service/parking.model';
+import { UserService } from '../../../../core/services/auth-service/user.service';
+import { Parking, ParkingStatus, ParkingUpdateRequest } from '../../../../core/models/parking-service/parking.model';
+import { LOCATION_STATUS_OPTIONS, apiError } from '../../../../core/utils/parking.util';
+import {
+  ManagerOption, buildParkingForm, fieldError, loadManagerOptions, numberOrUndefined,
+} from '../shared/parking-form.util';
 
+/**
+ * Editar los datos de un parqueo. El código no cambia. El backend reemplaza todo el
+ * registro, así que se envía también el responsable actual (si no, se quitaría).
+ */
 @Component({
   selector: 'app-parking-edit',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    ReactiveFormsModule,
-    CardModule,
-    ButtonModule,
-    FormModule,
-    GridModule,
-    AlertModule,
-    SpinnerModule,
-    IconModule,
-  ],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './parking-edit.component.html',
   styleUrl: './parking-edit.component.css',
 })
 export class ParkingEditComponent implements OnInit {
+
   form!: FormGroup;
   parking: Parking | null = null;
   parkingId!: number;
@@ -43,147 +30,105 @@ export class ParkingEditComponent implements OnInit {
   loading = false;
   loadingData = true;
   errorMessage = '';
-  successMessage = '';
+  managers: ManagerOption[] | null = [];
+  readonly statusOptions = LOCATION_STATUS_OPTIONS;
 
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
     private parkingService: ParkingService,
+    private userService: UserService,
   ) {}
 
   ngOnInit(): void {
-    this.initForm();
-    
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.parkingId = +id;
-      this.loadParking();
-    }
-  }
-
-  // ==================== FORMULARIO ====================
-
-  initForm(): void {
-    this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(3)]],
-      code: ['', [Validators.required, Validators.pattern(/^[A-Z0-9_-]+$/)]],
-      address: ['', [Validators.required, Validators.minLength(5)]],
-      description: [''],
-      latitude: [null, [Validators.min(-90), Validators.max(90)]],
-      longitude: [null, [Validators.min(-180), Validators.max(180)]],
+    this.form = buildParkingForm(this.fb, false);
+    this.form.addControl('status', this.fb.control<ParkingStatus>('ACTIVE'));
+    this.parkingId = Number(this.route.snapshot.paramMap.get('id'));
+    this.loadParking();
+    loadManagerOptions(this.userService).subscribe(list => {
+      this.managers = list;
+      if (list === null) {
+        // Sin permiso para ver usuarios: se conserva el responsable actual sin poder cambiarlo
+        this.form.get('managerId')?.disable();
+      }
     });
   }
 
   loadParking(): void {
     this.loadingData = true;
     this.errorMessage = '';
-
     this.parkingService.getById(this.parkingId).subscribe({
-      next: (parking) => {
+      next: parking => {
         this.parking = parking;
-        this.populateForm(parking);
+        this.form.patchValue({
+          name: parking.name,
+          address: parking.address,
+          description: parking.description ?? '',
+          latitude: parking.latitude ?? null,
+          longitude: parking.longitude ?? null,
+          managerId: parking.managerId ?? null,
+          status: parking.status,
+        });
         this.loadingData = false;
       },
-      error: (err) => {
-        this.errorMessage = 'Error al cargar el parqueo. Intente nuevamente.';
+      error: err => {
+        this.errorMessage = apiError(err, 'No se pudo cargar el parqueo');
         this.loadingData = false;
-        console.error(err);
       },
     });
   }
 
-  populateForm(parking: Parking): void {
-    this.form.patchValue({
-      name: parking.name,
-      code: parking.code,
-      address: parking.address,
-      description: parking.description || '',
-      latitude: parking.latitude,
-      longitude: parking.longitude,
-    });
+  /** El responsable actual puede no estar en la lista (desactivado): se muestra igual */
+  get currentManagerMissing(): boolean {
+    const id = this.parking?.managerId;
+    return !!id && !(this.managers ?? []).some(m => m.id === id);
   }
-
-  // ==================== VALIDACIONES ====================
 
   isInvalid(field: string): boolean {
-    const control = this.form.get(field);
-    return !!(control && control.invalid && control.touched);
+    const ctrl = this.form.get(field);
+    return !!(ctrl && ctrl.invalid && ctrl.touched);
   }
 
   getError(field: string): string {
-    const control = this.form.get(field);
-    if (!control || !control.errors || !control.touched) return '';
-
-    const errors = control.errors;
-    
-    if (errors['required']) return 'Este campo es obligatorio';
-    if (errors['minlength']) {
-      return `Mínimo ${errors['minlength'].requiredLength} caracteres`;
-    }
-    if (errors['pattern']) return 'Solo mayúsculas, números y guiones (-)';
-    if (errors['min']) return `Valor mínimo: ${errors['min'].min}`;
-    if (errors['max']) return `Valor máximo: ${errors['max'].max}`;
-
-    return 'Campo inválido';
+    return fieldError(this.form, field);
   }
 
-  // ==================== UTILIDADES ====================
-
-  onCodeInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const uppercased = input.value.toUpperCase();
-    this.form.patchValue({ code: uppercased }, { emitEvent: false });
+  get coordinatesError(): boolean {
+    return !!this.form.errors?.['coordinates'];
   }
-
-  // ==================== SUBMIT ====================
 
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
     this.loading = true;
     this.errorMessage = '';
-    this.successMessage = '';
-
-    const request: ParkingRequest = {
-      name: this.form.value.name.trim(),
-      code: this.form.value.code.trim(),
-      address: this.form.value.address.trim(),
-      description: this.form.value.description?.trim() || undefined,
-      latitude: this.form.value.latitude || undefined,
-      longitude: this.form.value.longitude || undefined,
+    const v = this.form.getRawValue();
+    const request: ParkingUpdateRequest = {
+      name: v.name.trim(),
+      address: v.address.trim(),
+      description: v.description?.trim() || undefined,
+      latitude: numberOrUndefined(v.latitude),
+      longitude: numberOrUndefined(v.longitude),
+      managerId: v.managerId ? Number(v.managerId) : null,
+      status: v.status,
     };
-
     this.parkingService.update(this.parkingId, request).subscribe({
-      next: (updated) => {
-        this.successMessage = 'Parqueo actualizado correctamente';
-        this.parking = updated;
-        
-        // Redirigir al detalle después de 1 segundo
-        setTimeout(() => {
-          this.router.navigate(['/parkings', this.parkingId]);
-        }, 1000);
-      },
-      error: (err) => {
+      next: parking => {
         this.loading = false;
-        
-        if (err.error?.message) {
-          this.errorMessage = err.error.message;
-        } else if (err.status === 409) {
-          this.errorMessage = 'Ya existe un parqueo con ese código';
-        } else {
-          this.errorMessage = 'Error al actualizar el parqueo. Intente nuevamente.';
-        }
-        
-        console.error(err);
+        this.router.navigate(['/parkings', parking.id],
+          { state: { successMessage: `Parqueo "${parking.name}" actualizado` } });
+      },
+      error: err => {
+        this.loading = false;
+        this.errorMessage = apiError(err, 'No se pudo actualizar el parqueo');
       },
     });
   }
 
-  onCancel(): void {
+  cancel(): void {
     this.router.navigate(['/parkings', this.parkingId]);
   }
 }

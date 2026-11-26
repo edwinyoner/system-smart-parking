@@ -1,192 +1,255 @@
-// ============================================================
-// parking-list/parking-list.component.ts
-// ============================================================
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import {
-  CardModule,
-  TableModule,
-  ButtonModule,
-  FormModule,
-  BadgeModule,
-  DropdownModule,
-  PaginationModule,
-  SpinnerModule,
-  AlertModule,
-} from '@coreui/angular';
-import { IconModule } from '@coreui/icons-angular';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { EMPTY, catchError, exhaustMap, filter } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+
 import { ParkingService } from '../../../../core/services/parking-service/parking.service';
 import { Parking } from '../../../../core/models/parking-service/parking.model';
-import { debounceTime, Subject } from 'rxjs';
+import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
+import { AlertMessageComponent } from '../../../../shared/components/alert-message/alert-message.component';
+import { takeSuccessMessage } from '../../../../core/utils/flash-message.util';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
+import { LOCATION_STATUS_OPTIONS, apiError, locationStatus } from '../../../../core/utils/parking.util';
+import { AuthContextService } from '../../../../core/services/auth-service/auth-context.service';
 
+/**
+ * Lista de parqueos con su capacidad calculada (se actualiza en vivo cada 5 s),
+ * filtros, papelera y acciones según los permisos del rol activo.
+ */
 @Component({
   selector: 'app-parking-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    FormsModule,
-    CardModule,
-    TableModule,
-    ButtonModule,
-    FormModule,
-    BadgeModule,
-    DropdownModule,
-    PaginationModule,
-    SpinnerModule,
-    AlertModule,
-    IconModule,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, AlertMessageComponent],
   templateUrl: './parking-list.component.html',
-  styleUrl: './parking-list.component.css',
+  styleUrls: ['./parking-list.component.css']
 })
 export class ParkingListComponent implements OnInit {
+
+  filterForm!: FormGroup;
   parkings: Parking[] = [];
-  
-  // Paginación
-  currentPage = 0;
+  isLoading = false;
+  successMessage: string | null = null;
+  errorMessage: string | null = null;
+
+  currentPage = 1;
   pageSize = 10;
-  totalElements = 0;
+  totalItems = 0;
   totalPages = 0;
+  pageSizeOptions = [5, 10, 15, 20, 25, 50];
 
-  // Filtros
-  searchTerm = '';
-  statusFilter = '';
-  private searchSubject = new Subject<string>();
+  showDeleteConfirm = false;
+  parkingToDelete: Parking | null = null;
 
-  // Estado
-  loading = false;
-  errorMessage = '';
+  showDeleted = false;
+  showRestoreConfirm = false;
+  parkingToRestore: Parking | null = null;
 
-  constructor(private parkingService: ParkingService) {
-    // Debounce para el buscador
-    this.searchSubject.pipe(debounceTime(400)).subscribe(term => {
-      this.searchTerm = term;
-      this.currentPage = 0;
-      this.loadParkings();
-    });
+  readonly statusOptions = LOCATION_STATUS_OPTIONS;
+  readonly status = locationStatus;
+  Math = Math;
+
+  private destroyRef = inject(DestroyRef);
+  /** Identifica la última consulta: una respuesta vieja no pisa una página o filtro nuevos */
+  private lastRequestId = 0;
+
+  constructor(
+    private fb: FormBuilder,
+    private parkingService: ParkingService,
+    private router: Router,
+    private authContext: AuthContextService
+  ) {
+    this.successMessage = takeSuccessMessage();
+    if (this.successMessage) {
+      setTimeout(() => (this.successMessage = null), 5000);
+    }
   }
 
   ngOnInit(): void {
+    this.filterForm = this.fb.group({ search: [''], status: [''] });
     this.loadParkings();
+    this.filterForm.get('search')?.valueChanges
+      .pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => { this.currentPage = 1; this.loadParkings(); });
+    this.filterForm.get('status')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => { this.currentPage = 1; this.loadParkings(); });
+    this.startLiveRefresh();
   }
 
-  // ==================== CARGA DE DATOS ====================
+  /** Cada 5 s (y al volver a la ventana) recarga la página sin spinner: ocupación en vivo */
+  private startLiveRefresh(): void {
+    liveRefresh(5000).pipe(
+      filter(() => !this.isLoading),
+      exhaustMap(() => {
+        const requestId = this.lastRequestId;
+        return this.request(true).pipe(
+          filter(() => requestId === this.lastRequestId),
+          catchError(() => EMPTY)
+        );
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(response => this.showPage(response));
+  }
+
+  private request(silent: boolean) {
+    const search = this.filterForm.get('search')?.value ?? '';
+    const status = this.filterForm.get('status')?.value ?? '';
+    return this.parkingService.getAll(this.currentPage - 1, this.pageSize, search,
+      this.showDeleted ? '' : status, this.showDeleted, silent);
+  }
+
+  private showPage(response: ParkingPagedResponse<Parking>): void {
+    this.parkings    = response.content;
+    this.totalItems  = response.totalElements;
+    this.totalPages  = response.totalPages;
+    this.currentPage = response.pageNumber + 1;
+    this.pageSize    = response.pageSize;
+    if (this.parkings.length === 0 && this.currentPage > 1 && this.currentPage > this.totalPages) {
+      this.currentPage = Math.max(this.totalPages, 1);
+      this.loadParkings();
+    }
+  }
 
   loadParkings(): void {
-    this.loading = true;
-    this.errorMessage = '';
-
-    this.parkingService
-      .getAll(this.currentPage, this.pageSize, this.searchTerm, this.statusFilter)
-      .subscribe({
-        next: (response) => {
-          this.parkings = response.content;
-          this.totalElements = response.totalElements;
-          this.totalPages = response.totalPages;
-          this.loading = false;
-        },
-        error: (err) => {
-          this.errorMessage = 'Error al cargar los parqueos. Intente nuevamente.';
-          this.loading = false;
-          console.error(err);
-        },
-      });
+    this.isLoading = true;
+    const requestId = ++this.lastRequestId;
+    this.request(false).subscribe({
+      next: response => {
+        if (requestId !== this.lastRequestId) return;
+        this.isLoading = false;
+        this.showPage(response);
+      },
+      error: error => {
+        this.isLoading = false;
+        this.errorMessage = apiError(error, 'Error al cargar los parqueos');
+      }
+    });
   }
 
-  // ==================== FILTROS ====================
-
-  onSearchChange(term: string): void {
-    this.searchSubject.next(term);
-  }
-
-  onStatusChange(): void {
-    this.currentPage = 0;
+  setShowDeleted(deleted: boolean): void {
+    if (this.showDeleted === deleted) return;
+    this.showDeleted = deleted;
+    const status = this.filterForm.get('status');
+    deleted ? status?.disable({ emitEvent: false }) : status?.enable({ emitEvent: false });
+    this.currentPage = 1;
+    this.parkings = [];
     this.loadParkings();
   }
 
   clearFilters(): void {
-    this.searchTerm = '';
-    this.statusFilter = '';
-    this.currentPage = 0;
+    this.filterForm.reset({ search: '', status: '' }, { emitEvent: false });
+    this.currentPage = 1;
     this.loadParkings();
   }
 
-  // ==================== PAGINACIÓN ====================
-
-  onPageChange(page: number): void {
-    this.currentPage = page;
+  onPageSizeChange(event: Event): void {
+    this.pageSize = Number((event.target as HTMLSelectElement).value);
+    this.currentPage = 1;
     this.loadParkings();
   }
 
-  get pages(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i);
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.loadParkings();
+    }
   }
 
-  // ==================== ACCIONES ====================
-
-  onToggleStatus(parking: Parking): void {
-    if (!parking.id) return;
-
-    this.parkingService.toggleStatus(parking.id).subscribe({
-      next: () => {
-        this.loadParkings();
-      },
-      error: (err) => {
-        this.errorMessage = `Error al cambiar el estado del parqueo "${parking.name}".`;
-        console.error(err);
-      },
-    });
+  getPages(): number[] {
+    const pages = [];
+    const max = 5;
+    let start = Math.max(1, this.currentPage - Math.floor(max / 2));
+    const end = Math.min(this.totalPages, start + max - 1);
+    if (end - start + 1 < max) start = Math.max(1, end - max + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
   }
 
-  onDelete(parking: Parking): void {
-    if (!parking.id) return;
+  createParking(): void { this.router.navigate(['/parkings/create']); }
+  viewParking(id: number): void { this.router.navigate(['/parkings', id]); }
+  editParking(id: number): void { this.router.navigate(['/parkings', id, 'edit']); }
 
-    const confirmed = confirm(
-      `¿Estás seguro de eliminar el parqueo "${parking.name}"?\n\nEsta acción no se puede deshacer.`
-    );
+  // ========================= ELIMINAR Y RESTAURAR =========================
 
-    if (!confirmed) return;
+  confirmDelete(parking: Parking): void {
+    this.parkingToDelete = parking;
+    this.showDeleteConfirm = true;
+  }
 
+  cancelDelete(): void {
+    this.showDeleteConfirm = false;
+    this.parkingToDelete = null;
+  }
+
+  deleteParking(): void {
+    const parking = this.parkingToDelete;
+    if (!parking?.id) return;
+    this.isLoading = true;
     this.parkingService.delete(parking.id).subscribe({
       next: () => {
+        this.isLoading = false;
+        this.successMessage = `Parqueo "${parking.name}" eliminado. Puedes restaurarlo desde Eliminados.`;
+        this.cancelDelete();
         this.loadParkings();
       },
-      error: (err) => {
-        this.errorMessage = `Error al eliminar el parqueo "${parking.name}".`;
-        console.error(err);
-      },
+      error: error => {
+        this.isLoading = false;
+        this.errorMessage = apiError(error, 'No se pudo eliminar el parqueo');
+        this.cancelDelete();
+      }
     });
   }
 
-  // ==================== UTILIDADES ====================
-
-  getStatusBadge(status: string): string {
-    const badges: Record<string, string> = {
-      ACTIVE: 'success',
-      INACTIVE: 'secondary',
-      MAINTENANCE: 'warning',
-      OUT_OF_SERVICE: 'danger',
-    };
-    return badges[status] || 'secondary';
+  confirmRestore(parking: Parking): void {
+    this.parkingToRestore = parking;
+    this.showRestoreConfirm = true;
   }
 
-  getStatusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      ACTIVE: 'Activo',
-      INACTIVE: 'Inactivo',
-      MAINTENANCE: 'Mantenimiento',
-      OUT_OF_SERVICE: 'Fuera de Servicio',
-    };
-    return labels[status] || status;
+  cancelRestore(): void {
+    this.showRestoreConfirm = false;
+    this.parkingToRestore = null;
   }
 
-  getOccupancyColor(percentage: number): string {
-    if (percentage >= 90) return 'danger';
-    if (percentage >= 70) return 'warning';
-    if (percentage >= 50) return 'info';
-    return 'success';
+  restoreParking(): void {
+    const parking = this.parkingToRestore;
+    if (!parking?.id) return;
+    this.isLoading = true;
+    this.parkingService.restore(parking.id).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.successMessage = `Parqueo "${parking.name}" restaurado con sus zonas, espacios y horario.`;
+        this.cancelRestore();
+        this.loadParkings();
+      },
+      error: error => {
+        this.isLoading = false;
+        this.errorMessage = apiError(error, 'No se pudo restaurar el parqueo');
+        this.cancelRestore();
+      }
+    });
   }
+
+  // ========================= VISTA =========================
+
+  hasPermission(permission: string): boolean {
+    return this.authContext.hasPermission(permission);
+  }
+
+  /** Un parqueo con vehículos dentro no se elimina (409) */
+  hasVehiclesInside(p: Parking): boolean {
+    return (p.occupiedSpaces ?? 0) > 0;
+  }
+
+  occupancyClass(p: Parking): string {
+    const pct = p.occupancyPercentage ?? 0;
+    if (pct >= 90) return 'bg-danger';
+    if (pct >= 70) return 'bg-warning';
+    return 'bg-success';
+  }
+
+  dismissSuccess(): void { this.successMessage = null; }
+  dismissError(): void   { this.errorMessage = null; }
 }

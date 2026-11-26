@@ -1,47 +1,50 @@
-//src/app/core/models/parking-service/operator-assignment.model.ts
+// src/app/core/models/parking-service/operator-assignment.model.ts
+
+export type AssignmentScope = 'PARKING' | 'ZONE';
+export type AssignmentStatus = 'PENDING' | 'ACTIVE' | 'ENDED';
+
 /**
- * Modelo para la asignación de operadores a zonas
- * Representa la relación entre un operador, una zona y un turno
+ * Asignación de un operador a un parqueo (o a una zona) en un turno.
+ * Fechas inclusivas "yyyy-MM-dd"; sin fin = indefinida.
  */
 export interface OperatorAssignment {
   id: number;
-  zoneId: number;
-  zoneName: string;
-  userId: number;
-  userName: string;
-  userEmail: string;
+  operatorId: number;
+  operatorName?: string;
+  parkingId: number;
+  parkingName?: string;
+  parkingCode?: string;
+  scope: AssignmentScope;
+  zoneId?: number;
+  zoneName?: string;
+  zoneCode?: string;
   shiftId: number;
-  shiftName: string;
-  assignedAt: Date;
-  startDate: Date;
-  endDate?: Date;
-  isActive: boolean;
-}
-
-/**
- * Request para asignar un operador a una zona
- */
-export interface AssignOperatorRequest {
-  userId: number;
-  shiftId: number;
-  startDate: string; // Formato ISO: "2025-02-28"
-  endDate?: string;  // Formato ISO: "2025-12-31" (opcional)
-}
-
-/**
- * Response con información completa de la asignación
- */
-export interface AssignOperatorResponse {
-  id: number;
-  zoneId: number;
-  zoneName: string;
-  userId: number;
-  userName: string;
-  userEmail: string;
-  shiftId: number;
-  shiftName: string;
+  shiftName?: string;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
+  shiftCrossesMidnight?: boolean;
   startDate: string;
   endDate?: string;
-  assignedAt: string;
-  isActive: boolean;
+  status: AssignmentStatus;
+  onDutyNow: boolean;            // en este momento le toca atender
+  createdAt?: string;
+  createdBy?: number;
+  updatedAt?: string;
+  updatedBy?: number;
+}
+
+/** zoneId vacío = todo el parqueo; startDate vacío = hoy; endDate vacío = indefinida */
+export interface AssignOperatorRequest {
+  operatorId: number;
+  parkingId: number;
+  zoneId?: number | null;
+  shiftId: number;
+  startDate?: string;
+  endDate?: string | null;
+}
+
+/** Cambiar fechas: el inicio solo cambia si aún no empezó; endDate null = indefinida */
+export interface UpdateOperatorAssignmentRequest {
+  startDate?: string;
+  endDate?: string | null;
 }

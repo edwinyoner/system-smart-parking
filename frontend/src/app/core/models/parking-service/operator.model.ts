@@ -1,23 +1,11 @@
-//src/app/core/models/parking-service/operator.model.ts
-/**
- * Modelo simplificado para operadores
- * Proviene del auth-service endpoint /users/operators
- */
+// src/app/core/models/parking-service/operator.model.ts
+
+/** Usuario con el rol OPERADOR activo (GET /users/operators de auth-service) */
 export interface Operator {
   id: number;
   firstName: string;
   lastName: string;
-  username: string;
   email: string;
-  isActive: boolean;
-}
-
-/**
- * Modelo extendido con información completa del operador
- * (Opcional - si necesitas más detalles en el futuro)
- */
-export interface OperatorDetail extends Operator {
   phoneNumber?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  status?: boolean;
 }

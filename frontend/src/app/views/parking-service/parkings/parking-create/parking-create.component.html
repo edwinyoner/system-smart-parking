@@ -1,95 +1,81 @@
 <!-- parking-create/parking-create.component.html -->
-
 <div class="container-lg py-4">
 
-  <!-- HEADER -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-      <h2 class="mb-0">Nuevo Parqueo</h2>
-      <small class="text-muted">Paso {{ currentStep }} de {{ totalSteps }}</small>
+      <h2 class="mb-0"><i class="fas fa-parking me-2"></i>Nuevo Parqueo</h2>
+      <small class="text-muted">
+        Paso {{ currentStep }} de {{ totalSteps }}
+        @if (parking) { &middot; {{ parking.name }} ({{ parking.code }}) }
+      </small>
     </div>
-    <button cButton color="secondary" variant="outline" size="sm" (click)="onCancel()">
-      <c-icon name="cilX" class="me-1"></c-icon>Cancelar
+    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="onCancel()">
+      @if (parking) {
+        <i class="fas fa-door-open me-1"></i>Salir y terminar después
+      } @else {
+        <i class="fas fa-times me-1"></i>Cancelar
+      }
     </button>
   </div>
 
-  <!-- STEPPER INDICADORES -->
-  <c-card class="mb-4">
-    <c-card-body class="py-3">
-
-      <!-- Barra de progreso -->
-      <c-progress class="mb-3" [value]="progressValue" color="primary" height="6px"></c-progress>
-
-      <!-- Pasos -->
-      <div class="d-flex justify-content-between">
-        @for (step of steps; track step.number) {
-          <div class="d-flex flex-column align-items-center" style="flex: 1">
-
-            <!-- Círculo del paso -->
-            <div class="step-circle mb-1"
-                 [class.step-completed]="isStepCompleted(step.number)"
-                 [class.step-active]="isStepActive(step.number)"
-                 [class.step-pending]="!isStepCompleted(step.number) && !isStepActive(step.number)">
-              @if (isStepCompleted(step.number)) {
-                <c-icon name="cilCheckAlt" size="sm"></c-icon>
-              } @else {
-                <span>{{ step.number }}</span>
-              }
-            </div>
-
-            <!-- Etiqueta -->
-            <small class="text-center"
-                   [class.text-primary]="isStepActive(step.number)"
-                   [class.fw-semibold]="isStepActive(step.number)"
-                   [class.text-muted]="!isStepActive(step.number)">
-              {{ step.label }}
-            </small>
-
-          </div>
-        }
-      </div>
-
-    </c-card-body>
-  </c-card>
-
-  <!-- CONTENIDO DEL PASO ACTIVO -->
-  @switch (currentStep) {
-
-    @case (1) {
-      <app-step1-info
-        (parkingCreated)="onParkingCreated($event)">
-      </app-step1-info>
-    }
-
-    @case (2) {
-      <app-step2-zones
-        [parkingId]="parkingId!"
-        (zonesCreated)="onZonesCreated($event)">
-      </app-step2-zones>
-    }
-
-    @case (3) {
-      <app-step3-spaces
-        [zones]="createdZones"
-        (spacesCreated)="onSpacesCreated()">
-      </app-step3-spaces>
-    }
-
-    @case (4) {
-      <app-step4-config
-        [parkingId]="parkingId!"
-        (configSaved)="onConfigSaved()">
-      </app-step4-config>
-    }
-
-    @case (5) {
-      <app-step5-operators
-        [parkingId]="parkingId!"
-        [createdZones]="createdZones"
-        (completed)="onCompleted()">
-      </app-step5-operators>
-    }
-
+  @if (parking && currentStep > 1) {
+  <div class="alert alert-info py-2 small">
+    <i class="fas fa-info-circle me-2"></i>
+    El parqueo ya está guardado. Lo que completes en cada paso también se guarda; si sales ahora
+    puedes terminar desde el detalle del parqueo.
+  </div>
   }
 
+  <!-- Indicador de pasos -->
+  <div class="card mb-4">
+    <div class="card-body py-3">
+      <div class="progress mb-3" style="height: 6px;" role="progressbar" [attr.aria-valuenow]="progressValue"
+        aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar bg-success" [style.width.%]="progressValue"></div>
+      </div>
+      <div class="d-flex justify-content-between">
+        @for (step of steps; track step.number) {
+        <div class="d-flex flex-column align-items-center step-item">
+          <div class="step-circle mb-1"
+            [class.step-completed]="isStepCompleted(step.number)"
+            [class.step-skipped]="isStepSkipped(step.number)"
+            [class.step-active]="isStepActive(step.number)"
+            [class.step-pending]="step.number > currentStep">
+            @if (isStepCompleted(step.number)) {
+              <i class="fas fa-check"></i>
+            } @else if (isStepSkipped(step.number)) {
+              <i class="fas fa-forward" title="Pendiente"></i>
+            } @else {
+              <i class="fas" [ngClass]="step.icon"></i>
+            }
+          </div>
+          <small class="text-center" [class.fw-semibold]="isStepActive(step.number)"
+            [class.text-success]="isStepActive(step.number)" [class.text-muted]="!isStepActive(step.number)">
+            {{ step.label }}
+            @if (isStepSkipped(step.number)) { <span class="d-block">(pendiente)</span> }
+          </small>
+        </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  @switch (currentStep) {
+    @case (1) {
+      <app-step1-info (parkingCreated)="onParkingCreated($event)"></app-step1-info>
+    }
+    @case (2) {
+      <app-step2-zones [parking]="parking!" (zonesCreated)="onZonesCreated($event)"></app-step2-zones>
+    }
+    @case (3) {
+      <app-step3-spaces [zones]="zones" (spacesCreated)="onSpacesCreated()"></app-step3-spaces>
+    }
+    @case (4) {
+      <app-step4-config [parkingId]="parking!.id!" (configSaved)="onConfigSaved($event)"></app-step4-config>
+    }
+    @case (5) {
+      <app-step5-operators [parking]="parking!" [zones]="zones" [schedule]="schedule"
+        (completed)="onCompleted($event)"></app-step5-operators>
+    }
+  }
 </div>

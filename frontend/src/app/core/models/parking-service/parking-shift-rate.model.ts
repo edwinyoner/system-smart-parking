@@ -1,33 +1,45 @@
-//src/app/core/models/parking-service/parking-shift-rate.model.ts
+// src/app/core/models/parking-service/parking-shift-rate.model.ts
+
 /**
- * Modelo para la configuración de tarifas por turno en un parqueo.
- * Esta configuración se aplica a TODAS las zonas del parqueo.
- * 
- * Un parqueo puede tener 1, 2 o 3 turnos (Mañana, Tarde, Noche).
- * Cada turno tiene UNA tarifa asignada.
+ * Un turno del horario de un parqueo con su tarifa (vale para todas sus zonas).
+ * usable = activo y con turno y tarifa activos: en ese horario el parqueo atiende.
  */
 export interface ParkingShiftRate {
   id?: number;
   parkingId: number;
   shiftId: number;
-  shiftName?: string;      // Expandido desde backend
-  shiftCode?: string;      // Expandido desde backend
+  shiftName?: string;
+  shiftCode?: string;
+  startTime?: string;            // "HH:mm"
+  endTime?: string;
+  crossesMidnight?: boolean;
+  shiftUsable?: boolean;
   rateId: number;
-  rateName?: string;       // Expandido desde backend
-  rateAmount?: number;     // Expandido desde backend
-  rateCurrency?: string;   // Expandido desde backend
-  status: boolean;         // Activo/Inactivo
+  rateName?: string;
+  rateAmount?: number;
+  rateCurrency?: string;
+  rateUsable?: boolean;
+  status: boolean;
+  usable?: boolean;
   createdAt?: string;
+  createdBy?: number;
   updatedAt?: string;
+  updatedBy?: number;
 }
 
-/**
- * Request para configurar tarifas por turno.
- */
+/** Reemplaza todo el horario del parqueo (lista vacía = no atiende en ningún horario) */
 export interface ConfigureParkingShiftRatesRequest {
   configurations: {
     shiftId: number;
     rateId: number;
     status?: boolean;
   }[];
+}
+
+/** ¿Atiende ahora? current es null si no atiende */
+export interface ParkingScheduleStatus {
+  parkingId: number;
+  at: string;
+  open: boolean;
+  current: ParkingShiftRate | null;
 }

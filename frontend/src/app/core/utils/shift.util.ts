@@ -44,3 +44,26 @@ export const shiftTimeValidator: ValidatorFn = (form: AbstractControl): Validati
   }
   return null;
 };
+
+/** Tramos [inicio, fin] en minutos del día; un turno que cruza medianoche se parte en dos */
+function minuteRanges(start: string, end: string): [number, number][] {
+  const s = toMinutes(start);
+  const e = toMinutes(end);
+  return e >= s ? [[s, e]] : [[s, 1439], [0, e]];
+}
+
+/**
+ * Dos turnos comparten al menos un minuto. Misma regla que Shift.overlapsWith del backend:
+ * 06:00-13:59 y 14:00-21:59 no se solapan; 06:00-14:00 y 14:00-21:59 sí.
+ */
+export function shiftsOverlap(aStart?: string | null, aEnd?: string | null,
+                              bStart?: string | null, bEnd?: string | null): boolean {
+  if (!aStart || !aEnd || !bStart || !bEnd) return false;
+  return minuteRanges(aStart, aEnd).some(([a0, a1]) =>
+    minuteRanges(bStart, bEnd).some(([b0, b1]) => a0 <= b1 && b0 <= a1));
+}
+
+/** "06:00:00" -> "06:00" */
+export function hhmm(time?: string | null): string {
+  return time ? time.substring(0, 5) : '';
+}

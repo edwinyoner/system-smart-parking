@@ -68,6 +68,7 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Parqueos",
     url: "/parkings",
     icon: "fa-solid fa-parking",
+    requiredPermissions: ["parkings.read"],
   },
     //   name: "Zonas",
   //   url: "/zones",

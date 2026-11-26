@@ -1,125 +1,74 @@
 <!-- steps/step3-spaces/step3-spaces.component.html -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <strong><i class="fas fa-th me-2"></i>Espacios por zona</strong>
+    <span class="badge bg-secondary">{{ totalSpacesToCreate }} espacios en total</span>
+  </div>
 
-<form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Los espacios se numeran con un prefijo (por defecto, el código de la zona). Después podrás
+        editar cada uno, agregar más, indicar medidas o asignarle un sensor desde el detalle de la zona.
+      </p>
 
-  <!-- ERROR GLOBAL -->
-  @if (errorMessage) {
-    <c-alert color="danger" [dismissible]="true">
-      <c-icon name="cilWarning" class="me-2"></c-icon>{{ errorMessage }}
-    </c-alert>
-  }
+      @if (errorMessage) {
+      <div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}</div>
+      }
 
-  <!-- INFO -->
-  <c-alert color="info" class="mb-4">
-    <c-icon name="cilInfo" class="me-2"></c-icon>
-    Configura el tipo y cantidad de espacios por zona.
-    Los códigos se generarán automáticamente: <strong>CÓDIGO_ZONA-001</strong>, <strong>CÓDIGO_ZONA-002</strong>, etc.
-  </c-alert>
-
-  <!-- UNA CARD POR ZONA -->
-  <div formArrayName="zoneConfigs">
-    @for (zone of zones; track zone.id; let i = $index) {
-      <c-card class="mb-3">
-
-        <c-card-header class="d-flex justify-content-between align-items-center">
-          <strong>
-            <c-icon name="cilMap" class="me-2"></c-icon>
-            {{ zone.name }}
-            <c-badge color="secondary" class="ms-2">{{ zone.code }}</c-badge>
-          </strong>
-          <c-badge color="primary">
-            {{ zoneConfigs.at(i).get('totalSpaces')?.value || 0 }} espacios
-          </c-badge>
-        </c-card-header>
-
-        <c-card-body [formGroupName]="i">
-          <div cRow class="align-items-start">
-
-            <!-- Tipo de espacio -->
-            <div cCol sm="4">
-              <label cLabel>Tipo de Espacio <span class="text-danger">*</span></label>
-              <select
-                cSelect
-                formControlName="spaceType"
-                [class.is-invalid]="isInvalid(i, 'spaceType')"
-                (change)="updatePreview(i)">
+      <div formArrayName="zoneConfigs">
+        @for (c of zoneConfigs.controls; track c; let i = $index) {
+        <div class="zone-config mb-3" [formGroupName]="i" [class.zone-saved]="isDone(i)">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>{{ zones[i].zone.name }} <small class="text-muted">({{ zones[i].zone.code }})</small></strong>
+            @if (isDone(i)) {
+            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Espacios creados</span>
+            }
+          </div>
+          <div class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Prefijo</label>
+              <input type="text" class="form-control text-uppercase" formControlName="prefix" maxlength="15"
+                (input)="onPrefixInput($event, i)" [class.is-invalid]="isInvalid(i, 'prefix')">
+              <div class="invalid-feedback">{{ getError(i, 'prefix') }}</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small fw-semibold">Cantidad</label>
+              <input type="number" class="form-control" formControlName="count" min="1" [max]="maxSpaces"
+                [class.is-invalid]="isInvalid(i, 'count')">
+              <div class="invalid-feedback">{{ getError(i, 'count') }}</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small fw-semibold">Desde el N.°</label>
+              <input type="number" class="form-control" formControlName="start" min="1"
+                [class.is-invalid]="isInvalid(i, 'start')">
+              <div class="invalid-feedback">{{ getError(i, 'start') }}</div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Tipo</label>
+              <select class="form-select" formControlName="type">
                 @for (t of spaceTypes; track t.value) {
-                  <option [value]="t.value">{{ t.label }}</option>
+                <option [value]="t.value">{{ t.label }}</option>
                 }
               </select>
-              @if (isInvalid(i, 'spaceType')) {
-                <c-form-feedback [valid]="false">{{ getError(i, 'spaceType') }}</c-form-feedback>
-              }
             </div>
-
-            <!-- Cantidad de espacios -->
-            <div cCol sm="3">
-              <label cLabel>Cantidad <span class="text-danger">*</span></label>
-              <input
-                cFormControl
-                type="number"
-                formControlName="totalSpaces"
-                min="1"
-                max="9999"
-                [class.is-invalid]="isInvalid(i, 'totalSpaces')"
-                (input)="updatePreview(i)"
-              />
-              @if (isInvalid(i, 'totalSpaces')) {
-                <c-form-feedback [valid]="false">{{ getError(i, 'totalSpaces') }}</c-form-feedback>
-              }
-            </div>
-
-            <!-- Preview de códigos -->
-            <div cCol sm="5">
-              <label cLabel>Preview de códigos</label>
-              <div class="preview-box">
-                @for (p of getPreview(i); track p.code) {
-                  <c-badge
-                    color="light"
-                    class="me-1 mb-1 text-dark border preview-badge">
-                    {{ p.code }}
-                  </c-badge>
-                }
-                @if (!getPreview(i).length) {
-                  <span class="text-muted small">Ingresa la cantidad para ver la vista previa</span>
-                }
-              </div>
-            </div>
-
           </div>
-        </c-card-body>
-
-      </c-card>
-    }
-  </div>
-
-  <!-- RESUMEN TOTAL -->
-  <c-card class="mb-4 summary-card">
-    <c-card-body class="py-2">
-      <div class="d-flex justify-content-between align-items-center">
-        <span class="text-muted">
-          <c-icon name="cilGrid" class="me-1"></c-icon>
-          Se crearán <strong>{{ totalSpacesToCreate }}</strong> espacios
-          en <strong>{{ zones.length }}</strong> zona(s)
-        </span>
+          <small class="text-muted d-block mt-2">
+            <i class="fas fa-eye me-1"></i>{{ preview(i) || 'Completa los datos para ver los códigos' }}
+          </small>
+        </div>
+        }
       </div>
-    </c-card-body>
-  </c-card>
+    </div>
 
-  <!-- FOOTER: BOTÓN SIGUIENTE -->
-  <div class="d-flex justify-content-end">
-    <button
-      type="submit"
-      cButton color="primary"
-      [disabled]="loading">
-      @if (loading) {
-        <span class="spinner-border spinner-border-sm me-2"></span>
-        Generando espacios...
-      } @else {
-        <c-icon name="cilArrowRight" class="me-2"></c-icon>
-        Siguiente: Configuración
-      }
-    </button>
-  </div>
-
-</form>
+    <div class="card-footer d-flex justify-content-end">
+      <button type="submit" class="btn btn-success" [disabled]="loading">
+        @if (loading) {
+          <span class="spinner-border spinner-border-sm me-2"></span>Creando espacios...
+        } @else {
+          Crear espacios y continuar<i class="fas fa-arrow-right ms-2"></i>
+        }
+      </button>
+    </div>
+  </form>
+</div>

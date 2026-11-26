@@ -18,9 +18,11 @@ const MODULES: Record<string, ModuleInfo> = {
   roles:            { label: 'Roles',                icon: 'fa-user-shield',         section: 'Seguridad y accesos' },
   permissions:      { label: 'Permisos',             icon: 'fa-key',                 section: 'Seguridad y accesos' },
   // Estacionamientos
+  parkings:         { label: 'Parqueos',             icon: 'fa-parking',             section: 'Estacionamientos' },
   zones:            { label: 'Zonas',                icon: 'fa-map-marked-alt',      section: 'Estacionamientos' },
   'space-types':    { label: 'Tipos de espacio',     icon: 'fa-th-large',            section: 'Estacionamientos' },
   spaces:           { label: 'Espacios',             icon: 'fa-parking',             section: 'Estacionamientos' },
+  'operator-assignments': { label: 'Asignación de operadores', icon: 'fa-user-clock', section: 'Estacionamientos' },
   shifts:           { label: 'Turnos',               icon: 'fa-clock',               section: 'Estacionamientos' },
   rates:            { label: 'Tarifas',              icon: 'fa-tags',                section: 'Estacionamientos' },
   // Operación diaria

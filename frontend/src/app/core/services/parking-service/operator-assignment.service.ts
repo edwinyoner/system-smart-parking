@@ -1,133 +1,74 @@
-//src/app/core/services/parking-service/operator-assignment.service.ts
+// src/app/core/services/parking-service/operator-assignment.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
-  OperatorAssignment,
   AssignOperatorRequest,
-  AssignOperatorResponse,
+  AssignmentStatus,
+  OperatorAssignment,
+  UpdateOperatorAssignmentRequest,
 } from '../../models/parking-service/operator-assignment.model';
+import { SKIP_LOADING } from '../../interceptors/loading.interceptor';
+
+/** Filtros: se exige el parqueo o el operador */
+export interface AssignmentFilters {
+  parkingId?: number;
+  zoneId?: number;
+  operatorId?: number;
+  status?: AssignmentStatus | '';
+}
 
 /**
- * Servicio para gestión de asignación de operadores a zonas
- * Maneja la relación entre operadores, zonas y turnos
+ * Asignación de operadores a parqueos y zonas por turno (permisos operator-assignments.*).
  */
 @Injectable({
   providedIn: 'root',
 })
 export class OperatorAssignmentService {
-  private apiUrl = `${environment.apiUrl}/parking-service/v1/zones`;
+  private apiUrl = `${environment.apiUrl}/parking-service/v1/operator-assignments`;
 
   constructor(private http: HttpClient) {}
 
-  // ========== ASIGNAR OPERADOR A ZONA ==========
-
-  /**
-   * Asigna un operador a una zona específica en un turno
-   * @param zoneId ID de la zona
-   * @param request Datos de la asignación (userId, shiftId, startDate, endDate)
-   * @returns Observable con la asignación creada
-   */
-  assignOperator(
-    zoneId: number,
-    request: AssignOperatorRequest
-  ): Observable<AssignOperatorResponse> {
-    return this.http
-      .post<AssignOperatorResponse>(
-        `${this.apiUrl}/${zoneId}/operators`,
-        request
-      )
-      .pipe(catchError(this.handleError));
+  /** 409 si en ese turno ya hay operador de parqueo/zona o si el operador se cruza de horario */
+  assign(request: AssignOperatorRequest): Observable<OperatorAssignment> {
+    return this.http.post<OperatorAssignment>(this.apiUrl, request);
   }
 
-  // ========== OBTENER ASIGNACIONES DE UNA ZONA ==========
-
-  /**
-   * Obtiene todas las asignaciones activas de una zona
-   * @param zoneId ID de la zona
-   * @returns Observable con lista de asignaciones
-   */
-  getAssignmentsByZone(zoneId: number): Observable<OperatorAssignment[]> {
-    return this.http
-      .get<OperatorAssignment[]>(`${this.apiUrl}/${zoneId}/operators`)
-      .pipe(catchError(this.handleError));
+  list(filters: AssignmentFilters, silent = false): Observable<OperatorAssignment[]> {
+    let params = new HttpParams();
+    if (filters.parkingId) params = params.set('parkingId', filters.parkingId.toString());
+    if (filters.zoneId) params = params.set('zoneId', filters.zoneId.toString());
+    if (filters.operatorId) params = params.set('operatorId', filters.operatorId.toString());
+    if (filters.status) params = params.set('status', filters.status);
+    return this.http.get<OperatorAssignment[]>(this.apiUrl, {
+      params,
+      context: new HttpContext().set(SKIP_LOADING, silent),
+    });
   }
 
-  // ========== OBTENER ASIGNACIONES DE UN PARKING ==========
-
-  /**
-   * Obtiene todas las asignaciones de todas las zonas de un parking
-   * @param parkingId ID del parking
-   * @returns Observable con lista de asignaciones
-   */
-  getAssignmentsByParking(parkingId: number): Observable<OperatorAssignment[]> {
-    return this.http
-      .get<OperatorAssignment[]>(
-        `${environment.apiUrl}/parking-service/v1/parkings/${parkingId}/operators`
-      )
-      .pipe(catchError(this.handleError));
+  /** Asignaciones de quien consulta */
+  listMine(status?: AssignmentStatus, silent = false): Observable<OperatorAssignment[]> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    return this.http.get<OperatorAssignment[]>(`${this.apiUrl}/me`, {
+      params,
+      context: new HttpContext().set(SKIP_LOADING, silent),
+    });
   }
 
-  // ========== OBTENER ASIGNACIÓN POR ID ==========
-
-  /**
-   * Obtiene una asignación específica
-   * @param zoneId ID de la zona
-   * @param assignmentId ID de la asignación
-   * @returns Observable con la asignación
-   */
-  getAssignmentById(
-    zoneId: number,
-    assignmentId: number
-  ): Observable<OperatorAssignment> {
-    return this.http
-      .get<OperatorAssignment>(
-        `${this.apiUrl}/${zoneId}/operators/${assignmentId}`
-      )
-      .pipe(catchError(this.handleError));
+  getById(id: number): Observable<OperatorAssignment> {
+    return this.http.get<OperatorAssignment>(`${this.apiUrl}/${id}`);
   }
 
-  // ========== REMOVER ASIGNACIÓN ==========
-
-  /**
-   * Elimina (desactiva) una asignación de operador
-   * @param zoneId ID de la zona
-   * @param assignmentId ID de la asignación
-   * @returns Observable void
-   */
-  removeAssignment(zoneId: number, assignmentId: number): Observable<void> {
-    return this.http
-      .delete<void>(`${this.apiUrl}/${zoneId}/operators/${assignmentId}`)
-      .pipe(catchError(this.handleError));
+  update(id: number, request: UpdateOperatorAssignmentRequest): Observable<OperatorAssignment> {
+    return this.http.patch<OperatorAssignment>(`${this.apiUrl}/${id}`, request);
   }
 
-  // ========== ACTUALIZAR ASIGNACIÓN ==========
-
   /**
-   * Actualiza las fechas de una asignación existente
-   * @param zoneId ID de la zona
-   * @param assignmentId ID de la asignación
-   * @param request Nuevas fechas
-   * @returns Observable con la asignación actualizada
+   * Termina desde hoy. Si aún no había empezado se cancela: responde sin cuerpo (null).
    */
-  updateAssignment(
-    zoneId: number,
-    assignmentId: number,
-    request: { startDate: string; endDate?: string }
-  ): Observable<AssignOperatorResponse> {
-    return this.http
-      .put<AssignOperatorResponse>(
-        `${this.apiUrl}/${zoneId}/operators/${assignmentId}`,
-        request
-      )
-      .pipe(catchError(this.handleError));
-  }
-
-  // ========== MANEJO DE ERRORES ==========
-
-  private handleError(error: any): Observable<never> {
-    console.error('Error en OperatorAssignmentService:', error);
-    return throwError(() => error);
+  finish(id: number): Observable<OperatorAssignment | null> {
+    return this.http.post<OperatorAssignment | null>(`${this.apiUrl}/${id}/finish`, {});
   }
 }

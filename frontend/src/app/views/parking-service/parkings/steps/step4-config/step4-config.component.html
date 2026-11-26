@@ -1,167 +1,105 @@
-<!-- CARGANDO CATÁLOGOS -->
-@if (loadingCatalogs) {
-  <div class="text-center py-5">
-    <c-spinner color="primary"></c-spinner>
-    <p class="text-muted mt-2">Cargando turnos y tarifas...</p>
+<!-- steps/step4-config/step4-config.component.html -->
+<div class="card">
+  <div class="card-header">
+    <strong><i class="fas fa-clock me-2"></i>Horario y tarifas del parqueo</strong>
   </div>
-}
 
-<!-- ERROR DE CATÁLOGO -->
-@if (catalogError) {
-  <c-alert color="danger">
-    <c-icon name="cilWarning" class="me-2"></c-icon>{{ catalogError }}
-    <button cButton color="danger" variant="outline" size="sm" class="ms-3"
-            (click)="loadCatalogs()">
-      <c-icon name="cilReload" class="me-1"></c-icon>Reintentar
-    </button>
-  </c-alert>
-}
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      Elige en qué turnos atiende el parqueo y qué tarifa cobra en cada uno; vale para todas sus zonas.
+      Los turnos activos no pueden solaparse. Fuera de estos turnos el parqueo no recibe vehículos.
+    </p>
 
-<!-- CONTENIDO PRINCIPAL -->
-@if (!loadingCatalogs && !catalogError) {
+    @if (loadingCatalogs) {
+    <div class="text-center py-4"><span class="spinner-border text-success"></span></div>
+    } @else if (catalogError) {
+    <div class="alert alert-danger d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-exclamation-triangle me-2"></i>{{ catalogError }}</span>
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="loadCatalogs()">Reintentar</button>
+    </div>
+    } @else if (shifts.length === 0 || rates.length === 0) {
+    <div class="alert alert-warning">
+      <i class="fas fa-exclamation-circle me-2"></i>
+      No hay {{ shifts.length === 0 ? 'turnos' : 'tarifas' }} activos. Créalos en
+      {{ shifts.length === 0 ? 'Turnos' : 'Tarifas' }} y configura el horario después desde el detalle del parqueo.
+    </div>
+    } @else {
 
-  <!-- ERROR DE GUARDADO -->
-  @if (errorMessage) {
-    <c-alert color="danger" [dismissible]="true">
-      <c-icon name="cilWarning" class="me-2"></c-icon>{{ errorMessage }}
-    </c-alert>
-  }
+    @if (errorMessage) {
+    <div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}</div>
+    }
 
-  <!-- INFO -->
-  <c-alert color="info" class="mb-4">
-    <c-icon name="cilInfo" class="me-2"></c-icon>
-    Configura los turnos y tarifas del parqueo. Esta configuración se aplicará a
-    <strong>todas las zonas</strong>. Puedes configurar hasta <strong>3 turnos</strong> diferentes.
-  </c-alert>
+    @if (overlaps.length) {
+    <div class="alert alert-warning small">
+      <i class="fas fa-exclamation-circle me-2"></i>Turnos activos que se solapan:
+      <ul class="mb-0">
+        @for (o of overlaps; track o) { <li>{{ o }}</li> }
+      </ul>
+      Desactiva uno o elige turnos que no se crucen.
+    </div>
+    }
 
-  <!-- CARD PRINCIPAL -->
-  <c-card class="mb-4">
-    <c-card-header class="d-flex justify-content-between align-items-center">
-      <strong>
-        <c-icon name="cilClock" class="me-2"></c-icon>
-        Asignación de Turnos y Tarifas Maestras
-      </strong>
-      <c-badge color="primary">
-        {{ configurations.length }} / {{ MAX_CONFIGS }} configuración(es)
-      </c-badge>
-    </c-card-header>
-    
-    <c-card-body [formGroup]="form">
+    <form [formGroup]="form">
       <div formArrayName="configurations">
-        
-        <!-- FILAS DE CONFIGURACIÓN -->
-        @for (config of configurations.controls; track $index; let idx = $index) {
-          <div [formGroupName]="idx" class="config-row mb-3">
-            <div cRow [gutter]="3" class="align-items-center">
-              
-              <!-- TURNO -->
-              <div cCol sm="5">
-                <label class="form-label small text-muted mb-1">Seleccionar Turno</label>
-                <select cFormControl formControlName="shiftId" 
-                        [class.is-invalid]="config.get('shiftId')?.invalid && config.get('shiftId')?.touched">
-                  <option [value]="null">Ej: Mañana (06:00 - 14:00)</option>
-                  @for (shift of getAvailableShifts(idx); track shift.id) {
-                    <option [value]="shift.id">
-                      {{ shift.name }} ({{ shift.startTime | slice:0:5 }} - {{ shift.endTime | slice:0:5 }})
-                    </option>
-                  }
-                </select>
-                @if (config.get('shiftId')?.invalid && config.get('shiftId')?.touched) {
-                  <div class="invalid-feedback d-block small">
-                    Seleccione un turno
-                  </div>
+        @for (c of configurations.controls; track c; let i = $index) {
+        <div class="config-row mb-2" [formGroupName]="i">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Turno</label>
+              <select class="form-select" formControlName="shiftId">
+                <option [ngValue]="null" disabled>Elige un turno</option>
+                @for (s of availableShifts(i); track s.id) {
+                <option [ngValue]="s.id">{{ s.name }} ({{ hhmm(s.startTime) }} - {{ hhmm(s.endTime) }})</option>
                 }
-              </div>
-
-              <!-- TARIFA -->
-              <div cCol sm="5">
-                <label class="form-label small text-muted mb-1">Seleccionar Tarifa</label>
-                <select cFormControl formControlName="rateId"
-                        [class.is-invalid]="config.get('rateId')?.invalid && config.get('rateId')?.touched">
-                  <option [value]="null">Ej: Tarifa Plana Huaraz (S/. 2.00)</option>
-                  @for (rate of rates; track rate.id) {
-                    <option [value]="rate.id">
-                      {{ rate.name }} ({{ rate.currency || 'PEN' }} {{ rate.amount.toFixed(2) }})
-                    </option>
-                  }
-                </select>
-                @if (config.get('rateId')?.invalid && config.get('rateId')?.touched) {
-                  <div class="invalid-feedback d-block small">
-                    Seleccione una tarifa
-                  </div>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Tarifa</label>
+              <select class="form-select" formControlName="rateId">
+                <option [ngValue]="null" disabled>Elige una tarifa</option>
+                @for (r of rates; track r.id) {
+                <option [ngValue]="r.id">{{ rateLabel(r) }}</option>
                 }
+              </select>
+            </div>
+            <div class="col-md-2">
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" formControlName="status" [id]="'st' + i">
+                <label class="form-check-label small" [for]="'st' + i">{{ c.get('status')?.value ? 'Atiende' : 'Inactivo' }}</label>
               </div>
-
-              <!-- TOGGLE ACTIVO -->
-              <div cCol sm="1" class="text-center">
-                <label class="form-label small text-muted mb-1">Activo</label>
-                <div class="form-switch-wrapper">
-                  <div class="form-switch">
-                    <input 
-                      class="form-check-input" 
-                      type="checkbox" 
-                      formControlName="status"
-                      [id]="'status-' + idx">
-                    <label class="form-check-label" [for]="'status-' + idx"></label>
-                  </div>
-                </div>
-              </div>
-
-              <!-- BOTÓN ELIMINAR -->
-              <div cCol sm="1" class="text-end">
-                <label class="form-label small text-muted mb-1">&nbsp;</label>
-                <button 
-                  type="button" 
-                  cButton 
-                  color="danger" 
-                  variant="ghost" 
-                  size="sm"
-                  (click)="removeConfiguration(idx)"
-                  [disabled]="configurations.length === 1"
-                  [cTooltip]="configurations.length === 1 ? 'Debe tener al menos una configuración' : 'Eliminar fila'">
-                  <c-icon name="cilTrash"></c-icon>
-                </button>
-              </div>
-
+            </div>
+            <div class="col-md-1 text-end">
+              <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeConfiguration(i)" title="Quitar">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
           </div>
+          @if (shift(c.get('shiftId')?.value)?.crossesMidnight) {
+          <small class="text-muted"><i class="fas fa-moon me-1"></i>Este turno termina al día siguiente.</small>
+          }
+        </div>
         }
-
-        <!-- BOTÓN AGREGAR FILA -->
-        @if (canAddMore) {
-          <div class="text-center mt-3">
-            <button 
-              type="button" 
-              cButton 
-              color="primary" 
-              variant="outline" 
-              size="sm"
-              (click)="addConfiguration()">
-              <c-icon name="cilPlus" class="me-1"></c-icon>
-              Agregar turno ({{ configurations.length }}/{{ MAX_CONFIGS }})
-            </button>
-          </div>
-        }
-
       </div>
-    </c-card-body>
-  </c-card>
+    </form>
 
-  <!-- FOOTER: BOTÓN SIGUIENTE -->
-  <div class="d-flex justify-content-end">
-    <button
-      cButton 
-      color="primary"
-      [disabled]="!canSubmit || loadingSave"
-      (click)="onSubmit()">
+    @if (canAddMore) {
+    <button type="button" class="btn btn-outline-success btn-sm mt-1" (click)="addConfiguration()">
+      <i class="fas fa-plus me-1"></i>Agregar turno
+    </button>
+    }
+    }
+  </div>
+
+  <div class="card-footer d-flex justify-content-between">
+    <button type="button" class="btn btn-outline-secondary" (click)="skip()" [disabled]="loadingSave">
+      <i class="fas fa-forward me-1"></i>Configurar después
+    </button>
+    <button type="button" class="btn btn-success" (click)="onSubmit()" [disabled]="!canSubmit || loadingSave">
       @if (loadingSave) {
-        <span class="spinner-border spinner-border-sm me-2"></span>
-        Guardando configuración...
+        <span class="spinner-border spinner-border-sm me-2"></span>Guardando...
       } @else {
-        <c-icon name="cilArrowRight" class="me-2"></c-icon>
-        Siguiente: Operadores
+        Guardar horario y continuar<i class="fas fa-arrow-right ms-2"></i>
       }
     </button>
   </div>
-
-}
+</div>

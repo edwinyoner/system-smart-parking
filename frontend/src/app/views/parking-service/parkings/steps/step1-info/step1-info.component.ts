@@ -1,63 +1,50 @@
-// ============================================================
 // steps/step1-info/step1-info.component.ts
-// ============================================================
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  CardModule,
-  ButtonModule,
-  FormModule,
-  GridModule,
-  AlertModule,
-} from '@coreui/angular';
-import { IconModule } from '@coreui/icons-angular';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ParkingService } from '../../../../../core/services/parking-service/parking.service';
-import { ParkingRequest } from '../../../../../core/models/parking-service/parking.model';
+import { UserService } from '../../../../../core/services/auth-service/user.service';
+import { Parking, ParkingRequest } from '../../../../../core/models/parking-service/parking.model';
+import { apiError } from '../../../../../core/utils/parking.util';
+import {
+  ManagerOption, buildParkingForm, fieldError, loadManagerOptions, numberOrUndefined,
+} from '../../shared/parking-form.util';
 
+/**
+ * Paso 1: datos del parqueo. Al guardar, el parqueo ya existe (sin zonas ni horario).
+ */
 @Component({
   selector: 'app-step1-info',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    CardModule,
-    ButtonModule,
-    FormModule,
-    GridModule,
-    AlertModule,
-    IconModule,
-  ],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './step1-info.component.html',
   styleUrl: './step1-info.component.css',
 })
 export class Step1InfoComponent implements OnInit {
 
-  @Output() parkingCreated = new EventEmitter<number>();
+  @Output() parkingCreated = new EventEmitter<Parking>();
 
   form!: FormGroup;
   loading = false;
   errorMessage = '';
+  /** null = sin permiso users.read para elegir responsable */
+  managers: ManagerOption[] | null = [];
 
   constructor(
     private fb: FormBuilder,
     private parkingService: ParkingService,
+    private userService: UserService,
   ) {}
 
   ngOnInit(): void {
-    this.form = this.fb.group({
-      name:        ['', [Validators.required, Validators.maxLength(100)]],
-      code:        ['', [Validators.required, Validators.maxLength(20),
-                         Validators.pattern('^[A-Z0-9_-]+$')]],
-      address:     ['', [Validators.required, Validators.maxLength(255)]],
-      description: ['', Validators.maxLength(500)],
-      latitude:    [null, [Validators.min(-90),  Validators.max(90)]],
-      longitude:   [null, [Validators.min(-180), Validators.max(180)]],
-      managerId:   [null],
+    this.form = buildParkingForm(this.fb, true);
+    loadManagerOptions(this.userService).subscribe(list => {
+      this.managers = list;
+      if (list === null) {
+        this.form.get('managerId')?.disable();
+      }
     });
   }
-
-  // ========================= HELPERS DE VALIDACIÓN =========================
 
   isInvalid(field: string): boolean {
     const ctrl = this.form.get(field);
@@ -65,17 +52,15 @@ export class Step1InfoComponent implements OnInit {
   }
 
   getError(field: string): string {
-    const ctrl = this.form.get(field);
-    if (!ctrl || !ctrl.errors || !ctrl.touched) return '';
-    if (ctrl.errors['required'])    return 'Este campo es obligatorio.';
-    if (ctrl.errors['maxlength'])   return `Máximo ${ctrl.errors['maxlength'].requiredLength} caracteres.`;
-    if (ctrl.errors['pattern'])     return 'Solo mayúsculas, números, guiones y guiones bajos.';
-    if (ctrl.errors['min'])         return 'Valor fuera de rango.';
-    if (ctrl.errors['max'])         return 'Valor fuera de rango.';
-    return 'Campo inválido.';
+    return fieldError(this.form, field);
   }
 
-  // Convierte el código a mayúsculas automáticamente
+  get coordinatesError(): boolean {
+    return !!this.form.errors?.['coordinates'] &&
+      (!!this.form.get('latitude')?.touched || !!this.form.get('longitude')?.touched);
+  }
+
+  /** El código se escribe en mayúsculas, como lo guarda el backend */
   onCodeInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const upper = input.value.toUpperCase();
@@ -83,35 +68,33 @@ export class Step1InfoComponent implements OnInit {
     input.value = upper;
   }
 
-  // ========================= SUBMIT =========================
-
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
     this.loading = true;
     this.errorMessage = '';
 
+    const v = this.form.getRawValue();
     const request: ParkingRequest = {
-      name:        this.form.value.name.trim(),
-      code:        this.form.value.code.trim(),
-      address:     this.form.value.address.trim(),
-      description: this.form.value.description?.trim() || undefined,
-      latitude:    this.form.value.latitude   || undefined,
-      longitude:   this.form.value.longitude  || undefined,
-      managerId:   this.form.value.managerId  || undefined,
+      name:        v.name.trim(),
+      code:        v.code.trim(),
+      address:     v.address.trim(),
+      description: v.description?.trim() || undefined,
+      latitude:    numberOrUndefined(v.latitude),
+      longitude:   numberOrUndefined(v.longitude),
+      managerId:   v.managerId ? Number(v.managerId) : undefined,
     };
 
     this.parkingService.create(request).subscribe({
       next: parking => {
         this.loading = false;
-        this.parkingCreated.emit(parking.id!);
+        this.parkingCreated.emit(parking);
       },
       error: err => {
         this.loading = false;
-        this.errorMessage = err?.error?.message || 'Error al crear el parqueo. Intente nuevamente.';
+        this.errorMessage = apiError(err, 'No se pudo crear el parqueo. Intenta nuevamente.');
       },
     });
   }
