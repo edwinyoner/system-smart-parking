@@ -2,9 +2,9 @@
 Endpoints REST para reconocimiento de placas vehiculares
 API Version 1
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile, File, HTTPException, Form
+from fastapi.concurrency import run_in_threadpool
 from typing import Optional
-import numpy as np
 
 from app.core.logging import logger
 from app.core.constants import MSG_INVALID_IMAGE, MSG_IMAGE_TOO_LARGE
@@ -14,7 +14,14 @@ from app.core.exceptions import (
     OCRException
 )
 from app.schemas.recognition import RecognitionResponse, RecognitionRequest
-from app.services.plate_recognition_service import PlateRecognitionService
+from app.services.plate_recognition_service import (
+    PlateRecognitionService,
+    get_plate_recognition_service
+)
+from app.database.recognition_repository import (
+    RecognitionRepository,
+    get_recognition_repository
+)
 from app.utils.image_utils import (
     read_image_from_bytes,
     validate_image_format,
@@ -27,9 +34,8 @@ router = APIRouter(
     tags=["Plate Recognition"]
 )
 
-# Instancia global del servicio (se carga una sola vez)
-# TODO: Migrar a Dependency Injection con Depends() en futuras versiones
-plate_service = PlateRecognitionService()
+# El servicio (YOLO + EasyOCR) llega por Depends: se carga una sola vez y en las
+# pruebas se reemplaza por uno falso, sin cargar los modelos.
 
 
 @router.post(
@@ -51,6 +57,7 @@ plate_service = PlateRecognitionService()
     """
 )
 async def recognize_plate(
+        background_tasks: BackgroundTasks,
         image: UploadFile = File(..., description="Imagen con placa vehicular"),
         yolo_confidence: Optional[float] = Form(
             default=0.25,
@@ -63,7 +70,14 @@ async def recognize_plate(
             ge=0.0,
             le=1.0,
             description="Umbral de confianza para OCR (0.0 - 1.0)"
-        )
+        ),
+        capture_id: Optional[str] = Form(
+            default=None,
+            max_length=64,
+            description="ID de la captura en iot-service (para el registro en MongoDB)"
+        ),
+        plate_service: PlateRecognitionService = Depends(get_plate_recognition_service),
+        repository: RecognitionRepository = Depends(get_recognition_repository)
 ) -> RecognitionResponse:
     """
     Endpoint principal para reconocer placas vehiculares
@@ -115,8 +129,12 @@ async def recognize_plate(
             ocr_confidence=ocr_confidence
         )
 
-        # Ejecutar reconocimiento
-        result = plate_service.recognize_plate(image_np, request)
+        # YOLO + EasyOCR usan CPU varios segundos: se ejecutan en un hilo aparte para no
+        # bloquear el bucle de eventos (si no, el servicio no atiende otras peticiones)
+        result = await run_in_threadpool(plate_service.recognize_plate, image_np, request)
+
+        # Registro mínimo en MongoDB después de responder: no retrasa a la cámara
+        background_tasks.add_task(repository.save, capture_id, result)
 
         logger.info(
             f"Reconocimiento completado - Status: {result.status}, "
@@ -132,18 +150,16 @@ async def recognize_plate(
 
     except (YOLODetectionException, OCRException) as e:
         logger.error(f"Error en modelos de Deep Learning: {e.message}")
-        raise HTTPException(status_code=500, detail=e.message)
+        raise HTTPException(status_code=500, detail="Error en los modelos de reconocimiento")
 
     except HTTPException:
         # Re-lanzar HTTPExceptions sin modificar
         raise
 
     except Exception as e:
-        logger.error(f"Error inesperado en reconocimiento: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error interno del servidor: {str(e)}"
-        )
+        # El detalle queda en el log; al cliente no se le exponen errores internos
+        logger.exception(f"Error inesperado en reconocimiento: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 
 @router.get(
@@ -155,7 +171,9 @@ async def recognize_plate(
     **Endpoint:** GET /api/v1/recognitions/status
     """
 )
-async def get_recognition_status():
+async def get_recognition_status(
+        plate_service: PlateRecognitionService = Depends(get_plate_recognition_service)
+):
     """
     Obtiene el estado del servicio y los modelos de Deep Learning
 
@@ -171,5 +189,5 @@ async def get_recognition_status():
         logger.error(f"Error obteniendo estado: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error al obtener estado: {str(e)}"
+            detail="Error al obtener el estado de los modelos"
         )

@@ -5,7 +5,6 @@ Configuration settings for IA Service
 Loads environment variables from .env file
 """
 from pydantic_settings import BaseSettings
-from pydantic import Field  # ← ESTO FALTABA
 from typing import List
 
 
@@ -33,6 +32,12 @@ class Settings(BaseSettings):
     MONGODB_DB_NAME: str = "smart_parking_ia"
     MONGODB_MIN_POOL_SIZE: int = 10
     MONGODB_MAX_POOL_SIZE: int = 100
+    # Si es False, el servicio no intenta conectarse (las lecturas no se guardan)
+    MONGODB_ENABLED: bool = True
+    # Tiempo máximo para encontrar el servidor: si MongoDB no responde, no se bloquea el arranque
+    MONGODB_TIMEOUT_MS: int = 2000
+    # Días que se conserva cada reconocimiento (índice TTL): las placas son datos personales
+    MONGODB_RETENTION_DAYS: int = 90
 
     # ====================================
     # Deep Learning - YOLO Configuration
@@ -42,6 +47,8 @@ class Settings(BaseSettings):
     YOLO_IOU_THRESHOLD: float = 0.45
     YOLO_MAX_DETECTIONS: int = 10
     YOLO_DEVICE: str = "cpu"
+    # Cargar YOLO y EasyOCR al arrancar (si no, la primera captura tarda varios segundos más)
+    PRELOAD_MODELS: bool = True
 
     # ====================================
     # Deep Learning - OCR Configuration

@@ -2,6 +2,7 @@
 Servicio principal de reconocimiento de placas vehiculares
 Orquesta YOLO26 (detección) + EasyOCR (lectura) para reconocimiento completo
 """
+import threading
 import numpy as np
 from typing import Optional, Dict
 from datetime import datetime
@@ -189,14 +190,15 @@ class PlateRecognitionService:
             return response
 
         except Exception as e:
-            logger.error(f"Error en reconocimiento: {str(e)}")
+            # El detalle queda en el log; al cliente no se le exponen errores internos
+            logger.exception(f"Error en reconocimiento: {str(e)}")
 
             end_time = datetime.now()
             processing_time = format_processing_time(start_time, end_time)
 
             return RecognitionResponse(
                 status="ERROR",
-                message=f"Error en el proceso de reconocimiento: {str(e)}",
+                message="Error en el proceso de reconocimiento",
                 plate_number=None,
                 detection=None,
                 ocr=None,
@@ -316,3 +318,25 @@ class PlateRecognitionService:
             "yolo_model": self.yolo_detector.get_model_info(),
             "ocr_model": self.ocr_reader.get_model_info()
         }
+
+
+# ============================================================================
+# INSTANCIA ÚNICA (compartida por /recognitions y /parking-vision)
+# ============================================================================
+
+_plate_service: Optional[PlateRecognitionService] = None
+_plate_service_lock = threading.Lock()
+
+
+def get_plate_recognition_service() -> PlateRecognitionService:
+    """
+    Devuelve el servicio con YOLO y EasyOCR cargados una sola vez (cargarlos tarda
+    varios segundos y ocupa cientos de MB). El candado evita que dos peticiones
+    simultáneas los carguen a la vez.
+    """
+    global _plate_service
+    if _plate_service is None:
+        with _plate_service_lock:
+            if _plate_service is None:
+                _plate_service = PlateRecognitionService()
+    return _plate_service

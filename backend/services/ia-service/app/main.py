@@ -9,9 +9,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
+from fastapi.concurrency import run_in_threadpool
+
 from app.core.config import settings
 from app.core.logging import logger
 from app.api.v1 import recognition, parking_vision
+from app.database.mongodb import connect_mongodb, close_mongodb, ping_mongodb
+from app.services.plate_recognition_service import get_plate_recognition_service
 
 
 # ====================================
@@ -32,19 +36,30 @@ async def lifespan(app: FastAPI):
     logger.info(f"Documentación: http://localhost:{settings.APP_PORT}/api/docs")
     logger.info("=" * 60)
 
-    # Los modelos YOLO y OCR se cargan lazy cuando se crea PlateRecognitionService
-    # en el primer request a /api/v1/recognitions
+    # MongoDB: solo para el registro mínimo; si no responde, el servicio arranca igual
+    await connect_mongodb()
+
+    # YOLO + EasyOCR se cargan ahora (en un hilo) para que la primera captura no espere.
+    # Si fallan, el servicio arranca y se reintenta en la primera petición.
+    if settings.PRELOAD_MODELS:
+        try:
+            await run_in_threadpool(get_plate_recognition_service)
+            logger.info("Modelos YOLO y EasyOCR cargados")
+        except Exception as e:
+            logger.error(f"No se pudieron precargar los modelos: {e}")
+
     logger.info("Servicio listo para recibir peticiones")
     logger.info("Endpoints disponibles:")
     logger.info("   - POST /api/v1/recognitions (reconocimiento de placas)")
-    logger.info("   - POST /api/v1/parking-vision (detección de ocupación)")  # ← NUEVO
+    logger.info("   - POST /api/v1/parking-vision (detección de ocupación)")
     logger.info("   - GET  /api/v1/recognitions/status")
-    logger.info("   - GET  /api/v1/parking-vision/health")  # ← NUEVO
+    logger.info("   - GET  /api/v1/parking-vision/health")
 
-    yield  # ← Aquí corre la aplicación
+    yield
 
     # ========== SHUTDOWN ==========
     logger.info("Cerrando IA Service...")
+    await close_mongodb()
     logger.info("Servicio detenido correctamente")
 
 
@@ -53,7 +68,7 @@ async def lifespan(app: FastAPI):
 # ====================================
 app = FastAPI(
     title=settings.APP_NAME,
-    description="AI Service for License Plate Recognition and Parking Vision using Deep Learning (YOLO26 + EasyOCR)",  # ← Actualizado
+    description="AI Service for License Plate Recognition and Parking Vision using Deep Learning (YOLO26 + EasyOCR)",
     version=settings.APP_VERSION,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -77,11 +92,11 @@ app.add_middleware(
 app.include_router(
     recognition.router,
     prefix="/api/v1",
-    tags=["Recognition"]  # ← Tag específico
+    tags=["Recognition"]
 )
 
 app.include_router(
-    parking_vision.router,  # ← NUEVO ROUTER
+    parking_vision.router,
     prefix="/api/v1",
     tags=["Parking Vision"]
 )
@@ -104,9 +119,9 @@ async def root():
         "docs": "/api/docs",
         "endpoints": {
             "plate_recognition": "/api/v1/recognitions",
-            "parking_vision": "/api/v1/parking-vision",  # ← NUEVO
+            "parking_vision": "/api/v1/parking-vision",
             "recognition_status": "/api/v1/recognitions/status",
-            "parking_vision_health": "/api/v1/parking-vision/health",  # ← NUEVO
+            "parking_vision_health": "/api/v1/parking-vision/health",
             "health": "/api/health"
         }
     }
@@ -128,8 +143,10 @@ async def health_check():
         "port": settings.APP_PORT,
         "modules": {
             "plate_recognition": "available",
-            "parking_vision": "available"  # ← NUEVO
-        }
+            "parking_vision": "available"
+        },
+        # El registro en MongoDB es opcional: "unavailable" no impide reconocer placas
+        "mongodb": "connected" if await ping_mongodb() else "unavailable"
     }
 
 

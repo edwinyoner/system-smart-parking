@@ -33,7 +33,7 @@ from app.ml.dl.parking import (
     ParkingDetectionResult,
     create_detector_instance
 )
-from app.services.plate_recognition_service import PlateRecognitionService
+from app.services.plate_recognition_service import PlateRecognitionService, get_plate_recognition_service
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -152,7 +152,8 @@ class ParkingVisionService:
             device=settings.DEVICE
         )
 
-        self.plate_service = plate_service or PlateRecognitionService()
+        # Se reutiliza el mismo YOLO + EasyOCR de /recognitions (no se cargan dos veces)
+        self.plate_service = plate_service or get_plate_recognition_service()
 
         logger.info("ParkingVisionService inicializado")
 
