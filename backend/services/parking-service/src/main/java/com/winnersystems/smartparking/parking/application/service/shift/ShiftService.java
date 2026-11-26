@@ -9,6 +9,8 @@ import com.winnersystems.smartparking.parking.application.dto.query.ShiftDto;
 import com.winnersystems.smartparking.parking.application.port.input.shift.*;
 import com.winnersystems.smartparking.parking.application.port.output.CurrentUserPort;
 import com.winnersystems.smartparking.parking.application.port.output.ParkingShiftRatePersistencePort;
+import com.winnersystems.smartparking.parking.application.service.parkingshiftrate.ParkingScheduleResolver;
+import com.winnersystems.smartparking.parking.domain.model.ParkingShiftRate;
 import com.winnersystems.smartparking.parking.application.port.output.ShiftPersistencePort;
 import com.winnersystems.smartparking.parking.domain.exception.ResourceConflictException;
 import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
@@ -87,6 +89,7 @@ public class ShiftService implements
 
       shift.updateBasicInfo(command.name(), command.description());
       shift.updateSchedule(command.startTime(), command.endTime());
+      ensureScheduleFitsParkings(shift);
 
       if (command.status() != null && command.status() != shift.isActive()) {
          changeStatus(shift, command.status());
@@ -94,6 +97,23 @@ public class ShiftService implements
 
       shift.updateModifiedBy(currentUserPort.requireCurrentUserId());
       return mapToDto(shiftPersistencePort.save(shift));
+   }
+
+   /**
+    * Un nuevo horario no puede solaparse con otro turno activo de los parqueos que usan
+    * este turno: a cada minuto del parqueo le corresponde una sola tarifa (409).
+    */
+   private void ensureScheduleFitsParkings(Shift updated) {
+      for (ParkingShiftRate config : parkingShiftRatePersistencePort.findActiveByShiftId(updated.getId())) {
+         List<Shift> shifts = new java.util.ArrayList<>();
+         shifts.add(updated);
+         parkingShiftRatePersistencePort.findByParkingId(config.getParkingId()).stream()
+               .filter(other -> other.isActive() && !other.getShiftId().equals(updated.getId()))
+               .map(other -> shiftPersistencePort.findById(other.getShiftId()))
+               .flatMap(java.util.Optional::stream)
+               .forEach(shifts::add);
+         ParkingScheduleResolver.ensureNoOverlap(shifts);
+      }
    }
 
    // ========================= DELETE =========================

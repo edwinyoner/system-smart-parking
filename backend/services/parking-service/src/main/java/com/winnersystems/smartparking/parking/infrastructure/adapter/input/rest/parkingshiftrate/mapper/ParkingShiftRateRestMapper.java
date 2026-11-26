@@ -1,69 +1,37 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.parkingshiftrate.mapper;
 
 import com.winnersystems.smartparking.parking.application.dto.command.ConfigureParkingShiftRatesCommand;
+import com.winnersystems.smartparking.parking.application.dto.query.ParkingScheduleStatusDto;
 import com.winnersystems.smartparking.parking.application.dto.query.ParkingShiftRateDto;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.parkingshiftrate.dto.request.ConfigureParkingShiftRatesRequest;
+import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.parkingshiftrate.dto.response.ParkingScheduleStatusResponse;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.parkingshiftrate.dto.response.ParkingShiftRateResponse;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 /**
- * Mapper para conversión entre DTOs REST y DTOs de aplicación para ParkingShiftRate.
- * Convierte Request → Command y Dto → Response.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre los DTO REST de horarios y tarifas del parqueo y los de aplicación.
  */
 @Component
 public class ParkingShiftRateRestMapper {
 
-   /**
-    * Convierte ConfigureParkingShiftRatesRequest a ConfigureParkingShiftRatesCommand.
-    *
-    * @param parkingId ID del parqueo al que se aplica la configuración
-    * @param request datos de configuración desde el frontend
-    * @return comando listo para el caso de uso
-    */
-   public ConfigureParkingShiftRatesCommand toCommand(
-         Long parkingId,
-         ConfigureParkingShiftRatesRequest request
-   ) {
-      List<ConfigureParkingShiftRatesCommand.ShiftRateConfig> configs =
-            request.getConfigurations().stream()
-                  .map(req -> ConfigureParkingShiftRatesCommand.ShiftRateConfig.builder()
-                        .shiftId(req.getShiftId())
-                        .rateId(req.getRateId())
-                        .status(req.getStatus() != null ? req.getStatus() : true)
-                        .build())
-                  .toList();
-
-      return ConfigureParkingShiftRatesCommand.builder()
-            .parkingId(parkingId)
-            .configurations(configs)
-            .build();
+   public ConfigureParkingShiftRatesCommand toCommand(Long parkingId, ConfigureParkingShiftRatesRequest r) {
+      return new ConfigureParkingShiftRatesCommand(parkingId, r.configurations().stream()
+            .map(c -> new ConfigureParkingShiftRatesCommand.Item(c.shiftId(), c.rateId(), c.status()))
+            .toList());
    }
 
-   /**
-    * Convierte ParkingShiftRateDto a ParkingShiftRateResponse.
-    *
-    * @param dto DTO desde el caso de uso
-    * @return respuesta lista para enviar al frontend
-    */
-   public ParkingShiftRateResponse toResponse(ParkingShiftRateDto dto) {
+   public ParkingShiftRateResponse toResponse(ParkingShiftRateDto d) {
+      if (d == null) return null;
       return new ParkingShiftRateResponse(
-            dto.id(),
-            dto.parkingId(),
-            dto.shiftId(),
-            dto.shiftName(),
-            dto.shiftCode(),
-            dto.rateId(),
-            dto.rateName(),
-            dto.rateAmount(),
-            dto.rateCurrency(),
-            dto.status(),
-            dto.createdAt(),
-            dto.updatedAt()
+            d.id(), d.parkingId(), d.shiftId(), d.shiftName(), d.shiftCode(),
+            d.startTime(), d.endTime(), d.crossesMidnight(), d.shiftUsable(),
+            d.rateId(), d.rateName(), d.rateAmount(), d.currency(), d.rateUsable(),
+            d.status(), d.usable(),
+            d.createdAt(), d.createdBy(), d.updatedAt(), d.updatedBy()
       );
+   }
+
+   public ParkingScheduleStatusResponse toResponse(ParkingScheduleStatusDto d) {
+      return new ParkingScheduleStatusResponse(d.parkingId(), d.at(), d.open(), toResponse(d.current()));
    }
 }

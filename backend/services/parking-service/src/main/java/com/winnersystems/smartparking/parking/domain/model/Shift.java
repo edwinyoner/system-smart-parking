@@ -158,6 +158,39 @@ public class Shift {
    }
 
    /**
+    * Verifica si dos turnos comparten al menos un minuto del día.
+    *
+    * Ej.: 06:00-13:59 y 14:00-21:59 no se solapan; 06:00-14:00 y 14:00-21:59 sí (el minuto 14:00).
+    * Un turno que cruza la medianoche se parte en dos tramos (20:00-23:59 y 00:00-05:59).
+    *
+    * @param other otro turno
+    * @return true si se solapan
+    */
+   public boolean overlapsWith(Shift other) {
+      if (other == null || !hasSchedule() || !other.hasSchedule()) {
+         return false;
+      }
+      for (int[] a : minuteRanges()) {
+         for (int[] b : other.minuteRanges()) {
+            if (a[0] <= b[1] && b[0] <= a[1]) {
+               return true;
+            }
+         }
+      }
+      return false;
+   }
+
+   /** Tramos [inicio, fin] en minutos del día (0-1439), ambos incluidos */
+   private int[][] minuteRanges() {
+      int start = minuteOfDay(startTime);
+      int end = minuteOfDay(endTime);
+      if (end >= start) {
+         return new int[][]{{start, end}};
+      }
+      return new int[][]{{start, MINUTES_PER_DAY - 1}, {0, end}};
+   }
+
+   /**
     * @return true si el fin es anterior al inicio (ej: 20:00 - 05:59)
     */
    public boolean crossesMidnight() {

@@ -1,304 +1,147 @@
+// domain/model/ParkingShiftRate.java
 package com.winnersystems.smartparking.parking.domain.model;
+
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Entidad de dominio que representa la CONFIGURACIÓN de Turno y Tarifa para un Parqueo.
+ * Horario y tarifa de un parqueo: en el turno X el parqueo cobra la tarifa Y.
  *
- * Esta tabla intermedia implementa una relación ternaria entre Parking, Shift y Rate,
- * permitiendo configurar qué tarifa se aplica en cada turno para todo el parqueo.
- * La configuración se aplica uniformemente a TODAS las zonas del parqueo.
+ * Vale para TODAS las zonas del parqueo (los turnos y tarifas son del parqueo, no de la zona).
  *
- * Características:
- * - Un parqueo puede tener múltiples configuraciones (una por turno × tarifa)
- * - Cada configuración puede activarse/desactivarse mediante el campo status
- * - Permite cambiar tarifas sin afectar el histórico en Transaction
- * - Todas las zonas del parqueo heredan la configuración del parqueo
- *
- * Ejemplo de uso:
- * Parqueo "Simón Bolívar":
- * - Turno Mañana + Tarifa Auto (S/. 2.00) → status: true
- * - Turno Mañana + Tarifa Moto (S/. 1.00) → status: true
- * - Turno Tarde + Tarifa Auto (S/. 1.50) → status: true
- * - Turno Noche → Sin configurar (no opera en ese horario)
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Reglas:
+ * - Un turno aparece una sola vez por parqueo (UK en PARKING_ID + SHIFT_ID).
+ * - Si a una hora no hay ninguna configuración activa, el parqueo no atiende a esa hora
+ *   (regla de negocio 1): no recibe vehículos.
+ * - Dos configuraciones activas del mismo parqueo no pueden tener turnos que se solapen,
+ *   para que a cada minuto le corresponda una sola tarifa (lo valida el servicio, que
+ *   conoce los horarios de los turnos).
+ * - Es configuración, no historial: una transacción guarda su propia tarifa, así que
+ *   cambiar o quitar una configuración no altera las estadías ya registradas.
  */
 public class ParkingShiftRate {
 
-   // ========================= CAMPOS DE IDENTIDAD =========================
-
    private Long id;
-   private Long parkingId;                                // FK a Parking (NOT NULL)
-   private Long shiftId;                                  // FK a Shift (NOT NULL)
-   private Long rateId;                                   // FK a Rate (NOT NULL)
-
-   // ========================= CAMPOS DE ESTADO =========================
-
-   private boolean status;                                // true = activa, false = inactiva
-
-   // ========================= CAMPOS DE AUDITORÍA =========================
+   private Long parkingId;
+   private Long shiftId;
+   private Long rateId;
+   private boolean status;                 // true = el parqueo atiende en este turno
 
    private LocalDateTime createdAt;
-   private Long createdBy;                                // ID del admin que creó
+   private Long createdBy;
    private LocalDateTime updatedAt;
-   private Long updatedBy;                                // ID del admin que actualizó
+   private Long updatedBy;
 
    // ========================= CONSTRUCTORES =========================
 
-   /**
-    * Constructor vacío - Inicializa con valores por defecto.
-    * Configuración empieza ACTIVA.
-    */
    public ParkingShiftRate() {
       this.status = true;
       this.createdAt = LocalDateTime.now();
-      this.updatedAt = LocalDateTime.now();
+      this.updatedAt = this.createdAt;
    }
 
-   /**
-    * Constructor con campos básicos.
-    *
-    * @param parkingId ID del parqueo
-    * @param shiftId ID del turno
-    * @param rateId ID de la tarifa
-    */
-   public ParkingShiftRate(Long parkingId, Long shiftId, Long rateId) {
-      this();
-      this.parkingId = parkingId;
-      this.shiftId = shiftId;
-      this.rateId = rateId;
+   public static ParkingShiftRate create(Long parkingId, Long shiftId, Long rateId, boolean active, Long createdBy) {
+      if (parkingId == null || shiftId == null || rateId == null) {
+         throw new ParkingDomainException("Indica el parqueo, el turno y la tarifa");
+      }
+      ParkingShiftRate config = new ParkingShiftRate();
+      config.parkingId = parkingId;
+      config.shiftId = shiftId;
+      config.rateId = rateId;
+      config.status = active;
+      config.createdBy = createdBy;
+      config.updatedBy = createdBy;
+      return config;
    }
 
-   /**
-    * Constructor completo con estado.
-    *
-    * @param parkingId ID del parqueo
-    * @param shiftId ID del turno
-    * @param rateId ID de la tarifa
-    * @param status si la configuración está activa
-    */
-   public ParkingShiftRate(Long parkingId, Long shiftId, Long rateId, boolean status) {
-      this(parkingId, shiftId, rateId);
-      this.status = status;
+   // ========================= NEGOCIO =========================
+
+   /** Cambia la tarifa del turno. Las estadías ya registradas conservan la suya */
+   public void changeRate(Long newRateId) {
+      if (newRateId == null) {
+         throw new ParkingDomainException("Indica la tarifa");
+      }
+      this.rateId = newRateId;
+      touch();
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - GESTIÓN DE ESTADO =========================
-
-   /**
-    * Activa la configuración.
-    * El parqueo operará en este turno con esta tarifa en todas sus zonas.
-    */
    public void activate() {
       this.status = true;
-      this.updatedAt = LocalDateTime.now();
+      touch();
    }
 
-   /**
-    * Desactiva la configuración.
-    * El parqueo NO operará en este turno (como si cerrara en ese horario).
-    * Los datos NO se eliminan, solo se desactivan.
-    */
    public void deactivate() {
       this.status = false;
-      this.updatedAt = LocalDateTime.now();
+      touch();
    }
 
-   /**
-    * Alterna el estado activo/inactivo.
-    * Útil para el toggle del dashboard.
-    */
-   public void toggleStatus() {
-      this.status = !this.status;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Verifica si la configuración está activa.
-    *
-    * @return true si status = true
-    */
    public boolean isActive() {
       return status;
    }
 
-   /**
-    * Verifica si la configuración está inactiva.
-    *
-    * @return true si status = false
-    */
-   public boolean isInactive() {
-      return !status;
+   public boolean belongsTo(Long parkingId) {
+      return this.parkingId != null && this.parkingId.equals(parkingId);
    }
 
-   // ========================= MÉTODOS DE NEGOCIO - ACTUALIZACIÓN =========================
-
-   /**
-    * Cambia la tarifa de esta configuración.
-    * Mantiene el parqueo y el turno, solo actualiza la tarifa.
-    *
-    * @param newRateId ID de la nueva tarifa
-    */
-   public void updateRate(Long newRateId) {
-      this.rateId = newRateId;
-      this.updatedAt = LocalDateTime.now();
-   }
-
-   /**
-    * Actualiza el usuario que modificó este registro.
-    *
-    * @param userId ID del usuario que modifica
-    */
    public void updateModifiedBy(Long userId) {
       this.updatedBy = userId;
+      touch();
+   }
+
+   private void touch() {
       this.updatedAt = LocalDateTime.now();
-   }
-
-   // ========================= MÉTODOS DE VALIDACIÓN =========================
-
-   /**
-    * Verifica si la configuración es válida.
-    * Debe tener parqueo, turno y tarifa asignados.
-    *
-    * @return true si tiene todos los IDs necesarios
-    */
-   public boolean isValid() {
-      return parkingId != null && shiftId != null && rateId != null;
-   }
-
-   /**
-    * Verifica si la configuración puede ser usada operativamente.
-    * Debe estar activa y ser válida.
-    *
-    * @return true si puede ser usada
-    */
-   public boolean isUsable() {
-      return isActive() && isValid();
-   }
-
-   // ========================= MÉTODOS DE INFORMACIÓN =========================
-
-   /**
-    * Obtiene una descripción legible de la configuración.
-    *
-    * @return descripción formateada
-    */
-   public String getDescription() {
-      return "Parking:" + parkingId + " Shift:" + shiftId + " Rate:" + rateId +
-            " [" + (status ? "ACTIVA" : "INACTIVA") + "]";
    }
 
    // ========================= GETTERS Y SETTERS =========================
+   // Los setters los usa el mapper de persistencia; la lógica usa los métodos de negocio
 
-   public Long getId() {
-      return id;
-   }
+   public Long getId() { return id; }
+   public void setId(Long id) { this.id = id; }
 
-   public void setId(Long id) {
-      this.id = id;
-   }
+   public Long getParkingId() { return parkingId; }
+   public void setParkingId(Long parkingId) { this.parkingId = parkingId; }
 
-   public Long getParkingId() {
-      return parkingId;
-   }
+   public Long getShiftId() { return shiftId; }
+   public void setShiftId(Long shiftId) { this.shiftId = shiftId; }
 
-   public void setParkingId(Long parkingId) {
-      this.parkingId = parkingId;
-   }
+   public Long getRateId() { return rateId; }
+   public void setRateId(Long rateId) { this.rateId = rateId; }
 
-   public Long getShiftId() {
-      return shiftId;
-   }
+   public boolean getStatus() { return status; }
+   public void setStatus(boolean status) { this.status = status; }
 
-   public void setShiftId(Long shiftId) {
-      this.shiftId = shiftId;
-   }
+   public LocalDateTime getCreatedAt() { return createdAt; }
+   public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-   public Long getRateId() {
-      return rateId;
-   }
+   public Long getCreatedBy() { return createdBy; }
+   public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
 
-   public void setRateId(Long rateId) {
-      this.rateId = rateId;
-   }
+   public LocalDateTime getUpdatedAt() { return updatedAt; }
+   public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-   public boolean getStatus() {
-      return status;
-   }
-
-   // NO HAY setStatus() público - usar activate() o deactivate()
-
-   public LocalDateTime getCreatedAt() {
-      return createdAt;
-   }
-
-   public void setCreatedAt(LocalDateTime createdAt) {
-      this.createdAt = createdAt;
-   }
-
-   public Long getCreatedBy() {
-      return createdBy;
-   }
-
-   public void setCreatedBy(Long createdBy) {
-      this.createdBy = createdBy;
-   }
-
-   public LocalDateTime getUpdatedAt() {
-      return updatedAt;
-   }
-
-   public void setUpdatedAt(LocalDateTime updatedAt) {
-      this.updatedAt = updatedAt;
-   }
-
-   public Long getUpdatedBy() {
-      return updatedBy;
-   }
-
-   public void setUpdatedBy(Long updatedBy) {
-      this.updatedBy = updatedBy;
-   }
+   public Long getUpdatedBy() { return updatedBy; }
+   public void setUpdatedBy(Long updatedBy) { this.updatedBy = updatedBy; }
 
    // ========================= EQUALS, HASHCODE Y TOSTRING =========================
 
-   /**
-    * Dos configuraciones son iguales si tienen el mismo ID o misma combinación parking+turno+rate.
-    * Puede haber múltiples configuraciones para el mismo parking+turno (diferentes tarifas).
-    */
    @Override
    public boolean equals(Object o) {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
       ParkingShiftRate that = (ParkingShiftRate) o;
-      return Objects.equals(id, that.id) ||
-            (Objects.equals(parkingId, that.parkingId) &&
-                  Objects.equals(shiftId, that.shiftId) &&
-                  Objects.equals(rateId, that.rateId));
+      return id != null && id.equals(that.id);
    }
 
-   /**
-    * HashCode basado en ID, parkingId, shiftId y rateId.
-    */
    @Override
    public int hashCode() {
-      return Objects.hash(id, parkingId, shiftId, rateId);
+      return Objects.hashCode(id);
    }
 
-   /**
-    * ToString para logging y debugging.
-    */
    @Override
    public String toString() {
-      return "ParkingShiftRate{" +
-            "id=" + id +
-            ", parkingId=" + parkingId +
-            ", shiftId=" + shiftId +
-            ", rateId=" + rateId +
-            ", status=" + (status ? "ACTIVA" : "INACTIVA") +
-            ", isUsable=" + isUsable() +
-            '}';
+      return "ParkingShiftRate{id=" + id + ", parkingId=" + parkingId + ", shiftId=" + shiftId
+            + ", rateId=" + rateId + ", status=" + status + '}';
    }
 }

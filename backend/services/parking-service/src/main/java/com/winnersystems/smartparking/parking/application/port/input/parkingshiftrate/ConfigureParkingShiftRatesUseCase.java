@@ -1,49 +1,30 @@
 package com.winnersystems.smartparking.parking.application.port.input.parkingshiftrate;
 
 import com.winnersystems.smartparking.parking.application.dto.command.ConfigureParkingShiftRatesCommand;
+import com.winnersystems.smartparking.parking.application.dto.query.ParkingScheduleStatusDto;
 import com.winnersystems.smartparking.parking.application.dto.query.ParkingShiftRateDto;
 
 import java.util.List;
 
 /**
- * Caso de uso para configurar tarifas por turno en un parqueo.
- * Esta configuración se aplica a TODAS las zonas del parqueo.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Horarios y tarifas de un parqueo (valen para todas sus zonas).
  */
 public interface ConfigureParkingShiftRatesUseCase {
 
-   /**
-    * Configura las tarifas por turno para un parqueo.
-    * Reemplaza las configuraciones existentes.
-    * Esta configuración se hereda automáticamente a todas las zonas del parqueo.
-    *
-    * @param command comando con configuraciones
-    * @return lista de configuraciones guardadas
-    */
+   /** Reemplaza toda la configuración del parqueo */
    List<ParkingShiftRateDto> configureShiftRates(ConfigureParkingShiftRatesCommand command);
 
-   /**
-    * Obtiene las configuraciones de un parqueo.
-    *
-    * @param parkingId ID del parqueo
-    * @return lista de configuraciones
-    */
+   /** Configuración del parqueo ordenada por hora de inicio (404 si el parqueo no existe) */
    List<ParkingShiftRateDto> getParkingShiftRates(Long parkingId);
 
-   /**
-    * Elimina una configuración específica.
-    *
-    * @param configId ID de la configuración
-    */
+   /** Si el parqueo atiende ahora, con qué turno y tarifa */
+   ParkingScheduleStatusDto getCurrentSchedule(Long parkingId);
+
+   /** Cambia la tarifa de un turno del parqueo */
+   ParkingShiftRateDto changeRate(Long configId, Long rateId);
+
    void deleteShiftRateConfig(Long configId);
 
-   /**
-    * Activa/desactiva una configuración.
-    *
-    * @param configId ID de la configuración
-    * @return configuración actualizada
-    */
+   /** Activa o desactiva un turno del parqueo (al activar se valida que no se solape) */
    ParkingShiftRateDto toggleShiftRateStatus(Long configId);
 }

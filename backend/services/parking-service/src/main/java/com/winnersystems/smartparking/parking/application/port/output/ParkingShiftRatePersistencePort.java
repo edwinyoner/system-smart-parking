@@ -5,35 +5,22 @@ import com.winnersystems.smartparking.parking.domain.model.ParkingShiftRate;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Puerto de salida para persistencia de ParkingShiftRate.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
- */
 public interface ParkingShiftRatePersistencePort {
 
    ParkingShiftRate save(ParkingShiftRate parkingShiftRate);
+
+   List<ParkingShiftRate> saveAll(List<ParkingShiftRate> configs);
 
    Optional<ParkingShiftRate> findById(Long id);
 
    List<ParkingShiftRate> findByParkingId(Long parkingId);
 
-   /**
-    * Busca configuración por parqueo y turno.
-    * Solo puede haber UNA tarifa por combinación parking+shift.
-    */
-   Optional<ParkingShiftRate> findByParkingIdAndShiftId(Long parkingId, Long shiftId);
+   /** Configuraciones activas que usan el turno (para validar un cambio de horario) */
+   List<ParkingShiftRate> findActiveByShiftId(Long shiftId);
 
    void deleteByParkingId(Long parkingId);
 
    void deleteById(Long id);
-
-   /**
-    * Verifica si ya existe configuración para este parking+shift.
-    * Útil para evitar duplicados.
-    */
-   boolean existsByParkingIdAndShiftId(Long parkingId, Long shiftId);
 
    /**
     * Nombres de los parqueos (no eliminados) que usan el turno en sus tarifas.

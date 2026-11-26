@@ -1,40 +1,37 @@
 package com.winnersystems.smartparking.parking.application.dto.query;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
- * DTO de consulta para configuración de tarifa por turno en un parqueo.
+ * Un turno del parqueo con su tarifa.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * @param shiftUsable el turno está activo y no eliminado
+ * @param rateUsable  la tarifa está activa y no eliminada
+ * @param usable      la configuración está activa y su turno y tarifa se pueden usar:
+ *                    en ese horario el parqueo recibe vehículos y cobra esa tarifa
  */
 public record ParkingShiftRateDto(
       Long id,
       Long parkingId,
       Long shiftId,
-      String shiftName,           // Nombre del turno (ej: "Mañana")
-      String shiftCode,           // Código del turno (ej: "MORNING")
+      String shiftName,
+      String shiftCode,
+      LocalTime startTime,
+      LocalTime endTime,
+      boolean crossesMidnight,
+      boolean shiftUsable,
       Long rateId,
-      String rateName,            // Nombre de la tarifa (ej: "Tarifa Auto")
-      java.math.BigDecimal rateAmount,  // Monto de la tarifa
-      String rateCurrency,        // Moneda (ej: "PEN")
-      Boolean status,             // Activo/Inactivo
+      String rateName,
+      BigDecimal rateAmount,
+      String currency,
+      boolean rateUsable,
+      boolean status,
+      boolean usable,
       LocalDateTime createdAt,
-      LocalDateTime updatedAt
+      Long createdBy,
+      LocalDateTime updatedAt,
+      Long updatedBy
 ) {
-   /**
-    * Factory method para crear sin datos de Shift y Rate.
-    * Útil cuando solo necesitas IDs.
-    */
-   public static ParkingShiftRateDto of(
-         Long id,
-         Long parkingId,
-         Long shiftId,
-         Long rateId,
-         Boolean status
-   ) {
-      return new ParkingShiftRateDto(
-            id, parkingId, shiftId, null, null, rateId, null, null, null, status, null, null
-      );
-   }
 }

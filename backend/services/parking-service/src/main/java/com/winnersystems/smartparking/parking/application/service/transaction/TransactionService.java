@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import com.winnersystems.smartparking.parking.application.service.parkingshiftrate.ParkingScheduleResolver;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -55,7 +56,7 @@ public class TransactionService implements
    private final SpacePersistencePort spacePersistencePort;
    private final ZonePersistencePort zonePersistencePort;
    private final RatePersistencePort ratePersistencePort;
-   private final ParkingShiftRatePersistencePort parkingShiftRatePersistencePort;
+   private final ParkingScheduleResolver scheduleResolver;
    private final DocumentTypePersistencePort documentTypePersistencePort;
    private final Clock clock;
    private final int exitWindowMinutes;
@@ -75,7 +76,7 @@ public class TransactionService implements
          SpacePersistencePort spacePersistencePort,
          ZonePersistencePort zonePersistencePort,
          RatePersistencePort ratePersistencePort,
-         ParkingShiftRatePersistencePort parkingShiftRatePersistencePort,
+         ParkingScheduleResolver scheduleResolver,
          DocumentTypePersistencePort documentTypePersistencePort,
          Clock clock,
          @Value("${parking.payment.exit-window-minutes:15}") int exitWindowMinutes) {
@@ -87,7 +88,7 @@ public class TransactionService implements
       this.spacePersistencePort = spacePersistencePort;
       this.zonePersistencePort = zonePersistencePort;
       this.ratePersistencePort = ratePersistencePort;
-      this.parkingShiftRatePersistencePort = parkingShiftRatePersistencePort;
+      this.scheduleResolver = scheduleResolver;
       this.documentTypePersistencePort = documentTypePersistencePort;
       this.clock = clock;
       this.exitWindowMinutes = exitWindowMinutes;
@@ -128,7 +129,7 @@ public class TransactionService implements
       registerCustomerVehicleRelation(customer.getId(), vehicle.getId());
 
       // 8. Obtener tarifa aplicable
-      Rate rate = findApplicableRate(parking.getId(), zone.getId());
+      Rate rate = findApplicableRate(parking, LocalDateTime.now(clock));
 
       // 9. Crear y guardar transacción
       Transaction transaction = buildEntryTransaction(command, vehicle, customer, zone, space, rate);
@@ -333,7 +334,7 @@ public class TransactionService implements
 
    private void validateParkingOperational(Parking parking) {
       if (!parking.isOperational()) {
-         throw new ParkingNotOperationalException(parking.getName(), "El parking no está operativo");
+         throw new ParkingNotOperationalException(parking.getName(), parking.isDeleted() ? "ELIMINADO" : parking.getStatus());
       }
    }
 
@@ -511,19 +512,16 @@ public class TransactionService implements
     * FASE 1: Usa la primera tarifa activa del sistema.
     * FASE 2: Usará ParkingShiftRate basado en turno actual.
     */
-   private Rate findApplicableRate(Long parkingId, Long zoneId) {
-      // TODO FASE 2: Implementar lógica con ParkingShiftRate
-      // 1. Determinar turno actual basado en hora
-      // 2. Buscar configuración parking + shift
-      // 3. Obtener rate de la configuración
-
-      // FASE 1: Usar primera tarifa activa
-      List<Rate> activeRates = ratePersistencePort.findAllActive();
-      if (activeRates.isEmpty()) {
-         throw new IllegalArgumentException("No hay tarifas activas configuradas en el sistema");
-      }
-
-      return activeRates.get(0);
+   /**
+    * Tarifa del turno vigente del parqueo (ParkingShiftRate). Si a esta hora no hay un turno
+    * activo con tarifa activa, el parqueo no atiende (regla de negocio 1): 409.
+    */
+   private Rate findApplicableRate(Parking parking, LocalDateTime at) {
+      return scheduleResolver.resolve(parking.getId(), at)
+            .map(ParkingScheduleResolver.Resolved::rate)
+            .orElseThrow(() -> new ResourceConflictException("El parqueo " + parking.getName()
+                  + " no atiende a esta hora: no tiene un turno activo con tarifa para las "
+                  + at.toLocalTime().withSecond(0).withNano(0) + ". Revisa sus horarios y tarifas."));
    }
 
    // ========================= HELPERS - CUSTOMER-VEHICLE =========================

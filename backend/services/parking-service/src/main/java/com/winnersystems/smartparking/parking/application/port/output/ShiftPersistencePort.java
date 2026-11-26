@@ -22,6 +22,9 @@ public interface ShiftPersistencePort {
    /** Solo turnos no eliminados */
    Optional<Shift> findByCode(String code);
 
+   /** Incluye eliminados (para mostrar la configuración de un parqueo tal como quedó) */
+   Optional<Shift> findByIdIncludingDeleted(Long id);
+
    /** Solo turnos eliminados (papelera) */
    Optional<Shift> findDeletedById(Long id);
 

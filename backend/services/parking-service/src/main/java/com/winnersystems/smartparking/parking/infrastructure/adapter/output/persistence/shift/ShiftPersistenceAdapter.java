@@ -65,6 +65,11 @@ public class ShiftPersistenceAdapter implements ShiftPersistencePort {
    }
 
    @Override
+   public Optional<Shift> findByIdIncludingDeleted(Long id) {
+      return repository.findById(id).map(mapper::toDomain);
+   }
+
+   @Override
    public Optional<Shift> findDeletedById(Long id) {
       return repository.findByIdAndDeletedAtIsNotNull(id).map(mapper::toDomain);
    }

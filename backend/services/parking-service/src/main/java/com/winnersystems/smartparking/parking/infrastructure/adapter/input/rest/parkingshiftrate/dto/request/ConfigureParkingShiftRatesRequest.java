@@ -1,59 +1,33 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.parkingshiftrate.dto.request;
 
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
 /**
- * Request para configurar tarifas por turno en un parqueo.
- * Esta configuración se aplica a TODAS las zonas del parqueo.
- *
- * Ejemplo de uso en el Paso 4 del Stepper:
- * {
- *   "configurations": [
- *     { "shiftId": 1, "rateId": 1, "status": true },  // Mañana + Auto
- *     { "shiftId": 1, "rateId": 2, "status": true },  // Mañana + Moto
- *     { "shiftId": 2, "rateId": 1, "status": true }   // Tarde + Auto
- *   ]
- * }
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Horarios y tarifas de un parqueo: reemplaza toda su configuración.
+ * Una lista vacía deja al parqueo sin horario (no recibe vehículos).
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ConfigureParkingShiftRatesRequest {
+public record ConfigureParkingShiftRatesRequest(
+      @NotNull(message = "Envía la lista de turnos (puede estar vacía)")
+      @Size(max = 24, message = "Un parqueo admite como máximo 24 turnos")
+      List<@Valid ShiftRateConfigRequest> configurations
+) {
 
-   @NotEmpty(message = "Debe incluir al menos una configuración")
-   private List<ShiftRateConfigRequest> configurations;
+   /** @param status opcional, por defecto activo */
+   public record ShiftRateConfigRequest(
+         @NotNull(message = "El turno es obligatorio")
+         @Positive(message = "Turno inválido")
+         Long shiftId,
 
-   /**
-    * Configuración individual de turno-tarifa.
-    */
-   @Data
-   @Builder
-   @NoArgsConstructor
-   @AllArgsConstructor
-   public static class ShiftRateConfigRequest {
+         @NotNull(message = "La tarifa es obligatoria")
+         @Positive(message = "Tarifa inválida")
+         Long rateId,
 
-      @NotNull(message = "El ID del turno es obligatorio")
-      private Long shiftId;
-
-      @NotNull(message = "El ID de la tarifa es obligatorio")
-      private Long rateId;
-
-      /**
-       * Estado de la configuración.
-       * true = activo, false/null = inactivo
-       * Por defecto: true
-       */
-      private Boolean status;
+         Boolean status
+   ) {
    }
 }

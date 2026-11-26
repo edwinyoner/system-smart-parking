@@ -36,10 +36,7 @@ public interface ParkingShiftRateRepository extends JpaRepository<ParkingShiftRa
     * @param shiftId ID del turno
     * @return configuración si existe
     */
-   Optional<ParkingShiftRateEntity> findByParkingIdAndShiftId(
-         Long parkingId,
-         Long shiftId
-   );
+
 
    /**
     * Elimina todas las configuraciones de un parqueo.
@@ -47,7 +44,7 @@ public interface ParkingShiftRateRepository extends JpaRepository<ParkingShiftRa
     *
     * @param parkingId ID del parqueo
     */
-   @Modifying
+   @Modifying(flushAutomatically = true, clearAutomatically = true)
    @Query("DELETE FROM ParkingShiftRateEntity p WHERE p.parkingId = :parkingId")
    void deleteByParkingId(@Param("parkingId") Long parkingId);
 
@@ -58,7 +55,7 @@ public interface ParkingShiftRateRepository extends JpaRepository<ParkingShiftRa
     * @param shiftId ID del turno
     * @return true si ya existe (evita duplicados)
     */
-   boolean existsByParkingIdAndShiftId(Long parkingId, Long shiftId);
+   List<ParkingShiftRateEntity> findByShiftIdAndStatusTrue(Long shiftId);
 
    /** Nombres de los parqueos no eliminados que usan el turno */
    @Query("""
