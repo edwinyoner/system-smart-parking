@@ -41,10 +41,9 @@ public class JpaAuditingConfig {
             CustomUserDetails userDetails = (CustomUserDetails) principal;
             Long userId = userDetails.getId();
 
-            // Log para debugging (opcional)
-            // log.debug("Auditoría JPA: userId={}", userId);
-
-            return Optional.of(userId);
+            // Un token de servicio (iot-service, payment-service) no trae ID de usuario:
+            // el registro queda sin autor en vez de fallar con NullPointerException
+            return Optional.ofNullable(userId);
          }
 
          // Si no hay CustomUserDetails, no hay auditoría
