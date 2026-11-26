@@ -10,10 +10,17 @@ import com.winnersystems.smartparking.parking.application.dto.query.PublicParkin
 import com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.ScheduleItem;
 import com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.ShiftInfo;
 import com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.ZoneAvailability;
+import com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.SpaceCell;
+import com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.SpaceMap;
+import com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.ZoneSpaces;
+import static com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.CELL_AVAILABLE;
+import static com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.CELL_OCCUPIED;
+import static com.winnersystems.smartparking.parking.application.dto.query.PublicParkingDto.CELL_UNAVAILABLE;
 import com.winnersystems.smartparking.parking.application.dto.query.ZoneCapacity;
 import com.winnersystems.smartparking.parking.application.port.input.publicinfo.GetPublicParkingInfoUseCase;
 import com.winnersystems.smartparking.parking.application.port.output.ParkingCapacityPort;
 import com.winnersystems.smartparking.parking.application.port.output.ParkingPersistencePort;
+import com.winnersystems.smartparking.parking.application.port.output.SpacePersistencePort;
 import com.winnersystems.smartparking.parking.application.port.output.ZonePersistencePort;
 import com.winnersystems.smartparking.parking.application.service.parkingshiftrate.ParkingScheduleResolver;
 import com.winnersystems.smartparking.parking.application.service.parkingshiftrate.ParkingScheduleResolver.Resolved;
@@ -21,6 +28,7 @@ import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundE
 import com.winnersystems.smartparking.parking.domain.model.Parking;
 import com.winnersystems.smartparking.parking.domain.model.Rate;
 import com.winnersystems.smartparking.parking.domain.model.Shift;
+import com.winnersystems.smartparking.parking.domain.model.Space;
 import com.winnersystems.smartparking.parking.domain.model.Zone;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +41,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Información pública de los parqueos.
@@ -53,17 +62,20 @@ public class PublicParkingService implements GetPublicParkingInfoUseCase {
 
    private final ParkingPersistencePort parkingPort;
    private final ZonePersistencePort zonePort;
+   private final SpacePersistencePort spacePort;
    private final ParkingCapacityPort capacityPort;
    private final ParkingScheduleResolver scheduleResolver;
    private final Clock clock;
 
    public PublicParkingService(ParkingPersistencePort parkingPort,
                                ZonePersistencePort zonePort,
+                               SpacePersistencePort spacePort,
                                ParkingCapacityPort capacityPort,
                                ParkingScheduleResolver scheduleResolver,
                                Clock clock) {
       this.parkingPort = parkingPort;
       this.zonePort = zonePort;
+      this.spacePort = spacePort;
       this.capacityPort = capacityPort;
       this.scheduleResolver = scheduleResolver;
       this.clock = clock;
@@ -131,8 +143,57 @@ public class PublicParkingService implements GetPublicParkingInfoUseCase {
             openNow,
             capacity.totalSpaces(),
             receives(parking, openNow) ? capacity.availableSpaces() : 0,
+            capacity.occupiedSpaces(),
+            capacity.availableSpaces() + capacity.occupiedSpaces(),
             zonesOf(parking, openNow),
             now);
+   }
+
+   // ========================= MAPA DE ESPACIOS =========================
+
+   /**
+    * Cuadrícula de espacios por zona. Ocupado se muestra siempre; libre solo si el espacio
+    * recibe vehículos ahora (parqueo operativo y abierto, zona operativa); lo demás es
+    * "no disponible". Así el mapa coincide con los libres del panel. Sin placas ni estadías.
+    */
+   @Override
+   public SpaceMap getSpaceMap(Long parkingId) {
+      Parking parking = loadPublic(parkingId);
+      LocalDateTime now = LocalDateTime.now(clock);
+      boolean openNow = scheduleResolver.resolve(parkingId, now).isPresent();
+      boolean receives = receives(parking, openNow);
+
+      Map<Long, List<Space>> byZone = spacePort.findByParkingId(parkingId).stream()
+            .filter(s -> !s.isDeleted())
+            .collect(Collectors.groupingBy(Space::getZoneId));
+
+      List<ZoneSpaces> zones = zonePort.findByParkingId(parkingId).stream()
+            .filter(z -> !z.isDeleted() && !z.isInactive())
+            .sorted(Comparator.comparing(Zone::getCode))
+            .map(z -> toZoneSpaces(z, byZone.getOrDefault(z.getId(), List.of()), receives && z.isOperational()))
+            .toList();
+
+      return new SpaceMap(parking.getId(), parking.getCode(), parking.getName(), parking.isOperational(), openNow,
+            zones.stream().mapToInt(z -> z.spaces().size()).sum(),
+            zones.stream().mapToInt(ZoneSpaces::available).sum(),
+            zones, now);
+   }
+
+   private static ZoneSpaces toZoneSpaces(Zone zone, List<Space> spaces, boolean zoneReceives) {
+      List<SpaceCell> cells = spaces.stream()
+            .sorted(Comparator.comparing(Space::getCode))
+            .map(s -> new SpaceCell(s.getCode(), s.getType(), publicStatus(s, zoneReceives)))
+            .toList();
+      int available = (int) cells.stream().filter(c -> CELL_AVAILABLE.equals(c.status())).count();
+      int occupied = (int) cells.stream().filter(c -> CELL_OCCUPIED.equals(c.status())).count();
+      return new ZoneSpaces(zone.getCode(), zone.getName(), zone.isOperational(),
+            available, occupied, cells.size() - available - occupied, cells);
+   }
+
+   private static String publicStatus(Space space, boolean zoneReceives) {
+      if (space.isOccupied()) return CELL_OCCUPIED;
+      if (space.isAvailable() && zoneReceives) return CELL_AVAILABLE;
+      return CELL_UNAVAILABLE;
    }
 
    // ========================= AUXILIARES =========================
@@ -167,6 +228,8 @@ public class PublicParkingService implements GetPublicParkingInfoUseCase {
             openNow,
             capacity.totalSpaces(),
             receives(p, openNow) ? capacity.availableSpaces() : 0,
+            capacity.occupiedSpaces(),
+            capacity.availableSpaces() + capacity.occupiedSpaces(),
             capacity.occupancyPercentage(),
             current.map(r -> toShift(r.shift())).orElse(null),
             current.map(r -> toRate(r.rate())).orElse(null));
@@ -182,8 +245,9 @@ public class PublicParkingService implements GetPublicParkingInfoUseCase {
       return zones.stream().map(z -> {
          ZoneCapacity c = capacities.getOrDefault(z.getId(), ZoneCapacity.empty());
          boolean zoneReceives = receives && z.isOperational();
-         return new ZoneAvailability(z.getCode(), z.getName(), z.isOperational(),
-               c.totalSpaces(), zoneReceives ? c.freeSpaces() : 0);
+         return new ZoneAvailability(z.getId(), z.getCode(), z.getName(), z.isOperational(),
+               c.totalSpaces(), zoneReceives ? c.freeSpaces() : 0, c.occupiedSpaces(),
+               c.freeSpaces() + c.occupiedSpaces());
       }).toList();
    }
 

@@ -17,4 +17,7 @@ public interface GetPublicParkingInfoUseCase {
 
    /** Disponibilidad compacta para los paneles. 404 en los mismos casos. */
    PublicParkingDto.Availability getAvailability(Long parkingId);
+
+   /** Mapa de espacios por zona, sin placas. 404 en los mismos casos. */
+   PublicParkingDto.SpaceMap getSpaceMap(Long parkingId);
 }

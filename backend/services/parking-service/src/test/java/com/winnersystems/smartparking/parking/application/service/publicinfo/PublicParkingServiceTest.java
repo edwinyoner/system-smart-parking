@@ -6,6 +6,7 @@ import com.winnersystems.smartparking.parking.application.dto.query.PublicParkin
 import com.winnersystems.smartparking.parking.application.dto.query.ZoneCapacity;
 import com.winnersystems.smartparking.parking.application.port.output.ParkingCapacityPort;
 import com.winnersystems.smartparking.parking.application.port.output.ParkingPersistencePort;
+import com.winnersystems.smartparking.parking.application.port.output.SpacePersistencePort;
 import com.winnersystems.smartparking.parking.application.port.output.ZonePersistencePort;
 import com.winnersystems.smartparking.parking.application.service.parkingshiftrate.ParkingScheduleResolver;
 import com.winnersystems.smartparking.parking.application.service.parkingshiftrate.ParkingScheduleResolver.Resolved;
@@ -14,6 +15,7 @@ import com.winnersystems.smartparking.parking.domain.model.Parking;
 import com.winnersystems.smartparking.parking.domain.model.ParkingShiftRate;
 import com.winnersystems.smartparking.parking.domain.model.Rate;
 import com.winnersystems.smartparking.parking.domain.model.Shift;
+import com.winnersystems.smartparking.parking.domain.model.Space;
 import com.winnersystems.smartparking.parking.domain.model.Zone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,7 @@ class PublicParkingServiceTest {
 
    private final ParkingPersistencePort parkingPort = mock(ParkingPersistencePort.class);
    private final ZonePersistencePort zonePort = mock(ZonePersistencePort.class);
+   private final SpacePersistencePort spacePort = mock(SpacePersistencePort.class);
    private final ParkingCapacityPort capacityPort = mock(ParkingCapacityPort.class);
    private final ParkingScheduleResolver resolver = mock(ParkingScheduleResolver.class);
 
@@ -51,7 +54,7 @@ class PublicParkingServiceTest {
 
    @BeforeEach
    void setUp() {
-      service = new PublicParkingService(parkingPort, zonePort, capacityPort, resolver,
+      service = new PublicParkingService(parkingPort, zonePort, spacePort, capacityPort, resolver,
             Clock.fixed(NOW.atZone(LIMA).toInstant(), LIMA));
       parking = parking(1L, "Parqueo San Martín", "PSM");
 
@@ -83,6 +86,14 @@ class PublicParkingServiceTest {
       // Zonas ordenadas por código; la zona en mantenimiento publica 0 libres
       assertThat(a.zones()).extracting(PublicParkingDto.ZoneAvailability::code).containsExactly("A", "B");
       assertThat(a.zones()).extracting(PublicParkingDto.ZoneAvailability::availableSpaces).containsExactly(3, 0);
+
+      // Lo que muestra el panel: total = disponibles + ocupados (sin mantenimiento ni fuera de servicio)
+      PublicParkingDto.ZoneAvailability zoneA = a.zones().get(0);
+      assertThat(zoneA.id()).isEqualTo(10L);
+      assertThat(zoneA.occupiedSpaces()).isEqualTo(2);
+      assertThat(zoneA.usableSpaces()).isEqualTo(zoneA.availableSpaces() + zoneA.occupiedSpaces());
+      assertThat(a.occupiedSpaces()).isEqualTo(4);
+      assertThat(a.usableSpaces()).isEqualTo(7);
    }
 
    @Test
@@ -150,6 +161,46 @@ class PublicParkingServiceTest {
       Parking p = Parking.create(name, code, null, "Jr. San Martín", null, null, 1L);
       p.setId(id);
       return p;
+   }
+
+   @Test
+   void mapaDeEspaciosSinPlacasYCoherenteConLosLibres() {
+      Space a1 = space(100L, 10L, "A-01");
+      Space a2 = space(101L, 10L, "A-02");
+      Space a3 = space(102L, 10L, "A-03");
+      Space b1 = space(200L, 11L, "B-01");   // zona B en mantenimiento
+      a2.occupy();
+      a3.changeStatus(Space.STATUS_OUT_OF_SERVICE);
+      when(spacePort.findByParkingId(1L)).thenReturn(List.of(a3, a1, b1, a2));
+
+      PublicParkingDto.SpaceMap map = service.getSpaceMap(1L);
+
+      assertThat(map.zones()).extracting(PublicParkingDto.ZoneSpaces::code).containsExactly("A", "B");
+      PublicParkingDto.ZoneSpaces zoneA = map.zones().get(0);
+      assertThat(zoneA.spaces()).extracting(PublicParkingDto.SpaceCell::status)
+            .containsExactly("AVAILABLE", "OCCUPIED", "UNAVAILABLE");
+      assertThat(map.zones().get(1).spaces().get(0).status()).isEqualTo("UNAVAILABLE");
+      assertThat(map.availableSpaces()).isEqualTo(1);
+      assertThat(map.totalSpaces()).isEqualTo(4);
+   }
+
+   @Test
+   void mapaFueraDeHorarioNoMuestraLibres() {
+      Space a1 = space(100L, 10L, "A-01");
+      when(spacePort.findByParkingId(1L)).thenReturn(List.of(a1));
+      when(resolver.resolve(eq(1L), any())).thenReturn(Optional.empty());
+
+      PublicParkingDto.SpaceMap map = service.getSpaceMap(1L);
+
+      assertThat(map.openNow()).isFalse();
+      assertThat(map.availableSpaces()).isZero();
+      assertThat(map.zones().get(0).spaces().get(0).status()).isEqualTo("UNAVAILABLE");
+   }
+
+   private static Space space(Long id, Long zoneId, String code) {
+      Space s = Space.create(zoneId, code, "PERPENDICULAR", null, null, null, null, false, 1L);
+      s.setId(id);
+      return s;
    }
 
    private static Zone zone(Long id, String code) {

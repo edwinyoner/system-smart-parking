@@ -37,12 +37,21 @@ public final class PublicParkingDto {
    }
 
    /** Espacios de una zona: libres solo cuenta los que reciben vehículos ahora */
+   /**
+    * @param totalSpaces     todos los espacios de la zona
+    * @param availableSpaces libres que reciben vehículos ahora (0 si no atiende)
+    * @param occupiedSpaces  con un vehículo
+    * @param usableSpaces    libres + ocupados (sin mantenimiento ni fuera de servicio): el total del panel
+    */
    public record ZoneAvailability(
+         Long id,
          String code,
          String name,
          boolean operational,
          int totalSpaces,
-         int availableSpaces
+         int availableSpaces,
+         int occupiedSpaces,
+         int usableSpaces
    ) {
    }
 
@@ -59,6 +68,8 @@ public final class PublicParkingDto {
          boolean openNow,
          int totalSpaces,
          int availableSpaces,
+         int occupiedSpaces,
+         int usableSpaces,
          double occupancyPercentage,
          ShiftInfo currentShift,
          RateInfo currentRate
@@ -88,7 +99,45 @@ public final class PublicParkingDto {
          boolean openNow,
          int totalSpaces,
          int availableSpaces,
+         int occupiedSpaces,
+         int usableSpaces,
          List<ZoneAvailability> zones,
+         LocalDateTime generatedAt
+   ) {
+   }
+
+   // ========================= MAPA DE ESPACIOS =========================
+
+   /** Estados públicos de un espacio: no se dice por qué no está disponible ni quién lo ocupa */
+   public static final String CELL_AVAILABLE = "AVAILABLE";
+   public static final String CELL_OCCUPIED = "OCCUPIED";
+   public static final String CELL_UNAVAILABLE = "UNAVAILABLE";
+
+   /** Un espacio en el mapa: sin placa, estadía ni sensor */
+   public record SpaceCell(String code, String type, String status) {
+   }
+
+   public record ZoneSpaces(
+         String code,
+         String name,
+         boolean operational,
+         int available,
+         int occupied,
+         int unavailable,
+         List<SpaceCell> spaces
+   ) {
+   }
+
+   /** Mapa de espacios por zona para la app (GET /public/parkings/{id}/spaces) */
+   public record SpaceMap(
+         Long parkingId,
+         String code,
+         String name,
+         boolean operational,
+         boolean openNow,
+         int totalSpaces,
+         int availableSpaces,
+         List<ZoneSpaces> zones,
          LocalDateTime generatedAt
    ) {
    }

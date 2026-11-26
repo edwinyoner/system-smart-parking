@@ -45,4 +45,9 @@ public class PublicParkingRestAdapter {
    public ResponseEntity<PublicParkingDto.Availability> availability(@PathVariable Long parkingId) {
       return ResponseEntity.ok().cacheControl(SHORT_CACHE).body(useCase.getAvailability(parkingId));
    }
+
+   @GetMapping("/{parkingId}/spaces")
+   public ResponseEntity<PublicParkingDto.SpaceMap> spaces(@PathVariable Long parkingId) {
+      return ResponseEntity.ok().cacheControl(SHORT_CACHE).body(useCase.getSpaceMap(parkingId));
+   }
 }
