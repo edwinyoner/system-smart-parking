@@ -34,6 +34,17 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
    @Query("SELECT t FROM TransactionEntity t WHERE t.status = 'ACTIVE'")
    Page<TransactionEntity> findAllActive(Pageable pageable);
 
+   @Query("""
+         SELECT t FROM TransactionEntity t
+         WHERE t.status = 'ACTIVE'
+           AND (:parkingId IS NULL OR t.parkingId = :parkingId)
+           AND (:zoneId IS NULL OR t.zoneId = :zoneId)
+           AND (:term IS NULL OR EXISTS (SELECT 1 FROM VehicleEntity v WHERE v.id = t.vehicleId
+                AND REPLACE(v.licensePlate, '-', '') LIKE CONCAT('%', :term, '%')))
+         """)
+   Page<TransactionEntity> findActiveFiltered(@Param("parkingId") Long parkingId, @Param("zoneId") Long zoneId,
+                                              @Param("term") String term, Pageable pageable);
+
    @Query("SELECT t FROM TransactionEntity t WHERE t.zoneId = :zoneId AND t.status = 'ACTIVE'")
    Page<TransactionEntity> findActiveByZoneId(@Param("zoneId") Long zoneId, Pageable pageable);
 
@@ -77,6 +88,16 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
          WHERE v.id = t.vehicleId AND v.licensePlate = :plate AND t.status = 'ACTIVE'
          """)
    Optional<TransactionEntity> findActiveByPlate(@Param("plate") String plate);
+
+   /** Estadías en curso de un parqueo con su placa (mapa de ocupación) */
+   @Query("""
+         SELECT new com.winnersystems.smartparking.parking.application.dto.query.ActiveStayView(
+                t.id, t.spaceId, v.licensePlate, t.entryTime)
+         FROM TransactionEntity t, VehicleEntity v
+         WHERE v.id = t.vehicleId AND t.parkingId = :parkingId AND t.status = 'ACTIVE'
+         """)
+   java.util.List<com.winnersystems.smartparking.parking.application.dto.query.ActiveStayView>
+         findActiveStaysByParkingId(@Param("parkingId") Long parkingId);
 
    /**
     * Búsqueda parcial por placa sin el guion: "abc1" encuentra ABC-123. El término llega solo con

@@ -97,6 +97,11 @@ public class SpacePersistenceAdapter implements SpacePersistencePort {
    }
 
    @Override
+   public List<Space> findByParkingId(Long parkingId) {
+      return repository.findVigentByParkingId(parkingId).stream().map(mapper::toDomain).toList();
+   }
+
+   @Override
    public List<Space> findAvailableByZoneId(Long zoneId) {
       return repository.findAvailableByZoneId(zoneId).stream().map(mapper::toDomain).toList();
    }

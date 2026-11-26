@@ -103,7 +103,8 @@ public record TransactionDetailDto(
    public record ParkingInfo(
          Long id,
          String name,
-         String code
+         String code,
+         boolean requireDriverDocument   // la salida exige el documento de entrada (si se entró con uno)
    ) {}
 
    /**

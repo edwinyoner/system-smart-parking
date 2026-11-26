@@ -37,6 +37,14 @@ public interface SpaceRepository extends JpaRepository<SpaceEntity, Long> {
    @Query("SELECT s FROM SpaceEntity s WHERE s.zoneId = :zoneId AND " + VIGENT + " ORDER BY s.code ASC")
    List<SpaceEntity> findVigentByZoneId(@Param("zoneId") Long zoneId);
 
+   @Query("""
+         SELECT s FROM SpaceEntity s, ZoneEntity z
+         WHERE z.id = s.zoneId AND z.parkingId = :parkingId
+           AND s.deletedAt IS NULL AND z.deletedAt IS NULL
+         ORDER BY s.code ASC
+         """)
+   List<SpaceEntity> findVigentByParkingId(@Param("parkingId") Long parkingId);
+
    @Query("SELECT s FROM SpaceEntity s WHERE s.zoneId = :zoneId AND s.status = 'AVAILABLE' AND "
          + VIGENT + " ORDER BY s.code ASC")
    List<SpaceEntity> findAvailableByZoneId(@Param("zoneId") Long zoneId);

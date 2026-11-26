@@ -37,6 +37,9 @@ public interface SpacePersistencePort {
    /** Espacios vigentes de una zona, por código */
    List<Space> findByZoneId(Long zoneId);
 
+   /** Espacios vigentes de todas las zonas vigentes de un parqueo, por código (una consulta) */
+   List<Space> findByParkingId(Long parkingId);
+
    /** Espacios libres (AVAILABLE) de una zona, por código */
    List<Space> findAvailableByZoneId(Long zoneId);
 

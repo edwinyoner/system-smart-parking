@@ -142,6 +142,8 @@ public class DataSeeder implements CommandLineRunner {
             // Espacios de Estacionamiento
             {"spaces.create", "Crear nuevos espacios"},
             {"spaces.read", "Ver información de espacios"},
+            {"occupancy.view", "Ver el mapa de ocupación en tiempo real"},
+            {"occupancy.view-all", "Ver el mapa de ocupación de todos los parqueos (no solo los asignados)"},
             {"spaces.update", "Actualizar espacios existentes"},
             {"spaces.delete", "Eliminar espacios"},
             {"spaces.bulk-create", "Creación masiva de espacios"},
@@ -269,6 +271,7 @@ public class DataSeeder implements CommandLineRunner {
                   "space-types.create", "space-types.read", "space-types.update", "space-types.delete",
                   // Gestión de Espacios
                   "spaces.create", "spaces.read", "spaces.update", "spaces.delete", "spaces.bulk-create", "spaces.restore",
+                  "occupancy.view", "occupancy.view-all",
                   // Asignación de operadores
                   "operator-assignments.create", "operator-assignments.read", "operator-assignments.update",
                   "operator-assignments.delete",
@@ -311,6 +314,7 @@ public class DataSeeder implements CommandLineRunner {
                   "parkings.read",
                   "zones.read",
                   "spaces.read",
+                  "occupancy.view",
                   "space-types.read",
                   // Ver tipos de documento
                   "document-types.read",

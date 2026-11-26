@@ -121,6 +121,7 @@ public class TransactionDetailResponse {
       private Long id;
       private String name;
       private String code;
+      private boolean requireDriverDocument;
    }
 
    @Data

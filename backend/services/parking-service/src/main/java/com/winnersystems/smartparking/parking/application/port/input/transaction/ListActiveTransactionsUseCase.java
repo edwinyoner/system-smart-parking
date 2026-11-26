@@ -43,6 +43,14 @@ public interface ListActiveTransactionsUseCase {
    PagedResponse<ActiveTransactionDto> listActiveTransactionsByZone(Long zoneId, int pageNumber, int pageSize);
 
    /**
+    * Vehículos dentro con filtros opcionales (null = sin filtro), los más recientes primero.
+    *
+    * @param plate parte de la placa, con o sin guion
+    */
+   PagedResponse<ActiveTransactionDto> listActiveTransactions(Long parkingId, Long zoneId, String plate,
+                                                              int pageNumber, int pageSize);
+
+   /**
     * Busca transacciones activas por placa (búsqueda parcial).
     *
     * @param plateNumber placa completa o parcial

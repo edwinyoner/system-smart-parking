@@ -111,6 +111,19 @@ public class TransactionPersistenceAdapter implements TransactionPersistencePort
    }
 
    @Override
+   public java.util.List<com.winnersystems.smartparking.parking.application.dto.query.ActiveStayView>
+         findActiveStaysByParkingId(Long parkingId) {
+      return transactionRepository.findActiveStaysByParkingId(parkingId);
+   }
+
+   @Override
+   public PageResult<Transaction> findActiveFiltered(Long parkingId, Long zoneId, String plate, PageRequest pageRequest) {
+      String term = plateTerm(plate);
+      return toPageResult(transactionRepository.findActiveFiltered(parkingId, zoneId, term.isEmpty() ? null : term,
+            toPageable(pageRequest)));
+   }
+
+   @Override
    public PageResult<Transaction> findActiveByZoneId(Long zoneId, PageRequest pageRequest) {
       return toPageResult(
             transactionRepository.findActiveByZoneId(zoneId, toPageable(pageRequest))

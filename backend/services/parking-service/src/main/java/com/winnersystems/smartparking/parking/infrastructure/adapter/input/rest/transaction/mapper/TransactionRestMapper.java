@@ -121,6 +121,7 @@ public class TransactionRestMapper {
                .id(dto.parking().id())
                .name(dto.parking().name())
                .code(dto.parking().code())
+               .requireDriverDocument(dto.parking().requireDriverDocument())
                .build());
       }
 

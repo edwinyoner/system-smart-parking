@@ -50,9 +50,18 @@ public interface TransactionPersistencePort {
    /** Vehículos dentro del parqueo (transacciones ACTIVE) */
    long countActiveByParkingId(Long parkingId);
 
+   /** Estadías en curso de un parqueo con su placa, para el mapa de ocupación (una consulta) */
+   java.util.List<com.winnersystems.smartparking.parking.application.dto.query.ActiveStayView> findActiveStaysByParkingId(Long parkingId);
+
    // ========================= LIST ACTIVAS (paginado) =========================
 
    PageResult<Transaction> findAllActive(PageRequest pageRequest);
+
+   /**
+    * Estadías en curso con filtros opcionales (null = sin filtro). La placa se busca en parte
+    * y sin guion: "abc1" encuentra ABC-123.
+    */
+   PageResult<Transaction> findActiveFiltered(Long parkingId, Long zoneId, String plate, PageRequest pageRequest);
 
    PageResult<Transaction> findActiveByZoneId(Long zoneId, PageRequest pageRequest);
 

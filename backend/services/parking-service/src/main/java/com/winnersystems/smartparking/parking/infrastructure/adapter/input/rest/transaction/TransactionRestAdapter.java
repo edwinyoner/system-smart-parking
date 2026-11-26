@@ -126,12 +126,17 @@ public class TransactionRestAdapter {
 
    // ========================= EN CURSO =========================
 
+   /** Vehículos dentro; parkingId, zoneId y plate (parte de la placa) son filtros opcionales */
    @GetMapping("/active")
    @PreAuthorize("hasAuthority('transactions.view')")
    public ResponseEntity<PagedResponse<ActiveTransactionResponse>> listActive(
+         @RequestParam(required = false) Long parkingId,
+         @RequestParam(required = false) Long zoneId,
+         @RequestParam(required = false) String plate,
          @RequestParam(defaultValue = "0") int page,
          @RequestParam(defaultValue = "20") int size) {
-      return ResponseEntity.ok(listActiveTransactionsUseCase.listAllActiveTransactions(page, size)
+      return ResponseEntity.ok(listActiveTransactionsUseCase
+            .listActiveTransactions(parkingId, zoneId, plate, Math.max(page, 0), Math.min(Math.max(size, 1), 100))
             .map(mapper::toActiveResponse));
    }
 

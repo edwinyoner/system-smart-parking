@@ -362,6 +362,15 @@ public class TransactionService implements
 
    @Override
    @Transactional(readOnly = true)
+   public PagedResponse<ActiveTransactionDto> listActiveTransactions(Long parkingId, Long zoneId, String plate,
+                                                                     int pageNumber, int pageSize) {
+      PageRequest request = PageRequest.of(pageNumber, pageSize, "entryTime", "DESC");
+      return toActiveTransactionPagedResponse(
+            transactionPersistencePort.findActiveFiltered(parkingId, zoneId, plate, request));
+   }
+
+   @Override
+   @Transactional(readOnly = true)
    public PagedResponse<ActiveTransactionDto> listActiveTransactionsByZone(Long zoneId, int pageNumber, int pageSize) {
       PageRequest request = PageRequest.of(pageNumber, pageSize, "entryTime", "DESC");
       PageResult<Transaction> result = transactionPersistencePort.findActiveByZoneId(zoneId, request);
@@ -647,7 +656,8 @@ public class TransactionService implements
                   c.getEmail()
             ),
 
-            new TransactionDetailDto.ParkingInfo(p.getId(), p.getName(), p.getCode()),
+            new TransactionDetailDto.ParkingInfo(p.getId(), p.getName(), p.getCode(),
+                  p.isDriverDocumentRequired()),
             new TransactionDetailDto.ZoneInfo(z.getId(), z.getName(), z.getCode()),
             new TransactionDetailDto.SpaceInfo(sp.getId(), sp.getCode(), sp.getType()),
 
