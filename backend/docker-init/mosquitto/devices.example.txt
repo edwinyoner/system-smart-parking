@@ -1,0 +1,5 @@
+# Credenciales MQTT de sensores y paneles: copia este archivo como devices.txt (no se versiona)
+# y reinicia el contenedor. El usuario es el device_id registrado en iot-service.
+# Formato: deviceId:contraseña
+SENSOR-PSM-A01:cambia-esta-clave
+DISPLAY-PSM-01:cambia-esta-clave

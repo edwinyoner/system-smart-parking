@@ -173,6 +173,31 @@ services:
       retries: 5
 
   # ============================================================================
+  # Mosquitto - broker MQTT (solo sensores HC-SR04 y paneles LED)
+  # ============================================================================
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: smart-parking-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    environment:
+      MQTT_IOT_USERNAME: ${MQTT_IOT_USERNAME:-iot-service}
+      MQTT_IOT_PASSWORD: ${MQTT_IOT_PASSWORD:?Falta MQTT_IOT_PASSWORD en backend/.env}
+    entrypoint: ["/bin/sh", "/mosquitto/init/entrypoint.sh"]
+    volumes:
+      - ./docker-init/mosquitto:/mosquitto/init:ro
+      - ./docker-init/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    networks:
+      - smart-parking-network
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -t smartparking/health -u \"$$MQTT_IOT_USERNAME\" -P \"$$MQTT_IOT_PASSWORD\" -E -W 3"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
   # MinIO - S3 compatible storage (BONUS)
   # ============================================================================
   minio:
@@ -211,6 +236,8 @@ volumes:
   sqlserver_data:
     driver: local
   redis_data:
+    driver: local
+  mosquitto_data:
     driver: local
   minio_data:
     driver: local
