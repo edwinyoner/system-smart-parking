@@ -1,12 +1,32 @@
+# ============================================
+# Sistema Operativo
+# ============================================
 .DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
 
 # ============================================
-# IDE - PyCharm/IntelliJ
+# IDEs & Editores
 # ============================================
 .idea/
+.vscode/
 *.iml
 *.iws
 *.ipr
+
+# ============================================
+# Asistentes IA (Instrucciones Locales)
+# ============================================
+CLAUDE.md
+
+# ============================================
+# Variables de Entorno & Secretos
+# ============================================
+.env
+.env.*
+!.env.example
 
 # ============================================
 # Logs
@@ -17,9 +37,32 @@ logs/
 *.gz
 
 # ============================================
-# Python
+# Java / Maven / Spring Boot
+# ============================================
+target/
+out/
+.out/
+
+# ============================================
+# Node / Angular / Frontend
+# ============================================
+node_modules/
+dist/
+.angular/
+
+# ============================================
+# Python / AI
 # ============================================
 __pycache__/
 *.pyc
 .venv/
 .venv-*/
+
+# ============================================
+# Flutter / Dart / Mobile
+# ============================================
+.dart_tool/
+build/
+
+# Excepción: configuración de LaTeX Workshop para compilar la tesis (latexmk)
+!docs/thesis-project/.vscode/
