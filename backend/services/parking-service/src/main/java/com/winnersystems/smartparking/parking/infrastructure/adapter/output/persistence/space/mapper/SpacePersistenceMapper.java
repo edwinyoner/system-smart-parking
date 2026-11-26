@@ -24,6 +24,8 @@ public class SpacePersistenceMapper {
       s.setSensorId(e.getSensorId());
       s.setHasCameraCoverage(Boolean.TRUE.equals(e.getHasCameraCoverage()));
       s.setStatus(e.getStatus());
+      s.setSensorOccupied(e.getSensorOccupied());
+      s.setSensorReadAt(e.getSensorReadAt());
       s.setCreatedAt(e.getCreatedAt());
       s.setCreatedBy(e.getCreatedBy());
       s.setUpdatedAt(e.getUpdatedAt());
@@ -47,6 +49,8 @@ public class SpacePersistenceMapper {
             .sensorId(s.getSensorId())
             .hasCameraCoverage(Boolean.TRUE.equals(s.getHasCameraCoverage()))
             .status(s.getStatus())
+            .sensorOccupied(s.getSensorOccupied())
+            .sensorReadAt(s.getSensorReadAt())
             .createdAt(s.getCreatedAt())
             .createdBy(s.getCreatedBy())
             .updatedAt(s.getUpdatedAt())
@@ -67,6 +71,8 @@ public class SpacePersistenceMapper {
       e.setSensorId(s.getSensorId());
       e.setHasCameraCoverage(Boolean.TRUE.equals(s.getHasCameraCoverage()));
       e.setStatus(s.getStatus());
+      e.setSensorOccupied(s.getSensorOccupied());
+      e.setSensorReadAt(s.getSensorReadAt());
       e.setUpdatedAt(s.getUpdatedAt());
       e.setUpdatedBy(s.getUpdatedBy());
       e.setDeletedAt(s.getDeletedAt());

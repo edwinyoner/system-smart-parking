@@ -94,6 +94,7 @@ service-clients:
       secret: ${IOT_SERVICE_CLIENT_SECRET:}
       permissions:
         - internal.captures.process # enviar lecturas de las cámaras de entrada y salida
+        - internal.sensors.process  # enviar lecturas estables de los sensores HC-SR04
 
 # ========== EMAIL TEMPLATES ==========
 email:

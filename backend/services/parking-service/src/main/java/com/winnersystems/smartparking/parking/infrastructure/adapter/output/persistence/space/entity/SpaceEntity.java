@@ -57,6 +57,13 @@ public class SpaceEntity {
    @Column(name = "HAS_CAMERA_COVERAGE", nullable = false)
    private Boolean hasCameraCoverage;
 
+   /** Última lectura del sensor: true = ve un vehículo; null = nunca informó */
+   @Column(name = "SENSOR_OCCUPIED")
+   private Boolean sensorOccupied;
+
+   @Column(name = "SENSOR_READ_AT")
+   private LocalDateTime sensorReadAt;
+
    @Column(name = "STATUS", nullable = false, length = 20)
    private String status;
 

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -37,6 +38,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                   // Llamadas entre microservicios: solo con token de servicio (el gateway no las publica)
                   .requestMatchers("/internal/**").hasAuthority(JwtAuthenticationFilter.SERVICE_CLIENT_AUTHORITY)
+
+                  // Información pública (app móvil y paneles LED): solo lectura y sin login
+                  .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
 
                   // ========== ENDPOINTS PÚBLICOS (TEMPORALMENTE) ==========
                   // SOLO PARA DESARROLLO - En producción quitar estos

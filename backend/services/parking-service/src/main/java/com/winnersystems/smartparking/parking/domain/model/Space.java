@@ -60,6 +60,10 @@ public class Space {
    private String sensorId;                // HC-SR04 asignado (opcional)
    private Boolean hasCameraCoverage;      // lo ve una cámara aérea (escenario B)
 
+   // Última lectura del sensor (null = el sensor nunca informó): lo que ve y cuándo lo vio
+   private Boolean sensorOccupied;
+   private LocalDateTime sensorReadAt;
+
    private String status;
 
    private LocalDateTime createdAt;
@@ -155,6 +159,27 @@ public class Space {
          this.status = STATUS_AVAILABLE;
          touch();
       }
+   }
+
+   // ========================= SENSOR =========================
+
+   /**
+    * Guarda lo que ve el sensor HC-SR04. No cambia el estado del espacio: eso lo decide
+    * SensorOccupancyService (puede mover una estadía o liberar el espacio).
+    *
+    * @throws ParkingDomainException si el espacio no tiene sensor
+    */
+   public void recordSensorReading(boolean occupied, LocalDateTime readAt) {
+      if (!hasSensor()) {
+         throw new ParkingDomainException("El espacio " + code + " no tiene sensor");
+      }
+      this.sensorOccupied = occupied;
+      this.sensorReadAt = readAt;
+   }
+
+   /** El sensor ve un vehículo ahora mismo (false si está libre o nunca informó) */
+   public boolean sensorDetectsVehicle() {
+      return Boolean.TRUE.equals(sensorOccupied);
    }
 
    // ========================= ESTADO MANUAL =========================
@@ -275,6 +300,11 @@ public class Space {
       this.description = desc;
       this.width = width;
       this.length = length;
+      // Otro sensor (o ninguno): la lectura anterior ya no describe este espacio
+      if (!java.util.Objects.equals(this.sensorId, sensor)) {
+         this.sensorOccupied = null;
+         this.sensorReadAt = null;
+      }
       this.sensorId = sensor;
       this.hasCameraCoverage = hasCameraCoverage;
    }
@@ -323,6 +353,11 @@ public class Space {
 
    public Boolean getHasCameraCoverage() { return hasCameraCoverage; }
    public void setHasCameraCoverage(Boolean hasCameraCoverage) { this.hasCameraCoverage = hasCameraCoverage; }
+
+   public Boolean getSensorOccupied() { return sensorOccupied; }
+   public void setSensorOccupied(Boolean sensorOccupied) { this.sensorOccupied = sensorOccupied; }
+   public LocalDateTime getSensorReadAt() { return sensorReadAt; }
+   public void setSensorReadAt(LocalDateTime sensorReadAt) { this.sensorReadAt = sensorReadAt; }
 
    public String getStatus() { return status; }
    public void setStatus(String status) { this.status = status; }
