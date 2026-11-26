@@ -2,88 +2,47 @@ package com.winnersystems.smartparking.parking.infrastructure.adapter.output.per
 
 import com.winnersystems.smartparking.parking.domain.model.OperatorAssignment;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.operatorassignment.entity.OperatorAssignmentEntity;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.shift.entity.ShiftEntity;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.zone.entity.ZoneEntity;
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper para convertir entre OperatorAssignment (Domain) y OperatorAssignmentEntity (JPA).
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Convierte entre OperatorAssignment (dominio) y OperatorAssignmentEntity (JPA).
  */
 @Component
 public class OperatorAssignmentPersistenceMapper {
 
-   /**
-    * Convierte del modelo de dominio a entidad JPA.
-    *
-    * @param domain modelo de dominio
-    * @return entidad JPA
-    */
-   public OperatorAssignmentEntity toEntity(OperatorAssignment domain) {
-      if (domain == null) {
-         return null;
-      }
-
-      OperatorAssignmentEntity entity = new OperatorAssignmentEntity();
-      entity.setId(domain.getId());
-      entity.setOperatorId(domain.getOperatorId());
-
-      // Relaciones - solo setear IDs, las entidades se cargarán en el Adapter
-      if (domain.getZoneId() != null) {
-         ZoneEntity zone = new ZoneEntity();
-         zone.setId(domain.getZoneId());
-         entity.setZone(zone);
-      }
-
-      if (domain.getShiftId() != null) {
-         ShiftEntity shift = new ShiftEntity();
-         shift.setId(domain.getShiftId());
-         entity.setShift(shift);
-      }
-
-      entity.setStartDate(domain.getStartDate());
-      entity.setEndDate(domain.getEndDate());
-      entity.setCreatedAt(domain.getCreatedAt());
-      entity.setCreatedBy(domain.getCreatedBy());
-      entity.setUpdatedAt(domain.getUpdatedAt());
-      entity.setUpdatedBy(domain.getUpdatedBy());
-
-      return entity;
+   public OperatorAssignment toDomain(OperatorAssignmentEntity e) {
+      if (e == null) return null;
+      OperatorAssignment a = new OperatorAssignment();
+      a.setId(e.getId());
+      a.setOperatorId(e.getOperatorId());
+      a.setOperatorName(e.getOperatorName());
+      a.setParkingId(e.getParkingId());
+      a.setZoneId(e.getZoneId());
+      a.setShiftId(e.getShiftId());
+      a.setStartDate(e.getStartDate());
+      a.setEndDate(e.getEndDate());
+      a.setCreatedAt(e.getCreatedAt());
+      a.setCreatedBy(e.getCreatedBy());
+      a.setUpdatedAt(e.getUpdatedAt());
+      a.setUpdatedBy(e.getUpdatedBy());
+      return a;
    }
 
-   /**
-    * Convierte de entidad JPA a modelo de dominio.
-    *
-    * @param entity entidad JPA
-    * @return modelo de dominio
-    */
-   public OperatorAssignment toDomain(OperatorAssignmentEntity entity) {
-      if (entity == null) {
-         return null;
+   /** Copia el estado del dominio en la entidad (nueva o cargada) */
+   public OperatorAssignmentEntity copyInto(OperatorAssignmentEntity e, OperatorAssignment a) {
+      if (e.getId() == null) {
+         e.setOperatorId(a.getOperatorId());
+         e.setParkingId(a.getParkingId());
+         e.setZoneId(a.getZoneId());
+         e.setShiftId(a.getShiftId());
+         e.setCreatedAt(a.getCreatedAt());
+         e.setCreatedBy(a.getCreatedBy());
       }
-
-      OperatorAssignment domain = new OperatorAssignment();
-      domain.setId(entity.getId());
-      domain.setOperatorId(entity.getOperatorId());
-
-      // Extraer IDs de las relaciones
-      if (entity.getZone() != null) {
-         domain.setZoneId(entity.getZone().getId());
-      }
-
-      if (entity.getShift() != null) {
-         domain.setShiftId(entity.getShift().getId());
-      }
-
-      domain.setStartDate(entity.getStartDate());
-      domain.setEndDate(entity.getEndDate());
-      domain.setCreatedAt(entity.getCreatedAt());
-      domain.setCreatedBy(entity.getCreatedBy());
-      domain.setUpdatedAt(entity.getUpdatedAt());
-      domain.setUpdatedBy(entity.getUpdatedBy());
-
-      return domain;
+      e.setOperatorName(a.getOperatorName());
+      e.setStartDate(a.getStartDate());
+      e.setEndDate(a.getEndDate());
+      e.setUpdatedAt(a.getUpdatedAt());
+      e.setUpdatedBy(a.getUpdatedBy());
+      return e;
    }
 }

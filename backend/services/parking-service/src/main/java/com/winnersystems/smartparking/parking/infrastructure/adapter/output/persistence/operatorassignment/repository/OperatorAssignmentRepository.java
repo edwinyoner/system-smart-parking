@@ -4,89 +4,51 @@ import com.winnersystems.smartparking.parking.infrastructure.adapter.output.pers
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Repositorio JPA para OperatorAssignmentEntity.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Rangos de fechas inclusivos; un fin nulo es indefinido (se compara con :end = 9999-12-31).
  */
-@Repository
 public interface OperatorAssignmentRepository extends JpaRepository<OperatorAssignmentEntity, Long> {
 
-   /**
-    * Lista todas las asignaciones de una zona específica.
-    *
-    * @param zoneId ID de la zona
-    * @return lista de asignaciones
-    */
-   @Query("SELECT oa FROM OperatorAssignmentEntity oa WHERE oa.zone.id = :zoneId ORDER BY oa.startDate DESC")
-   List<OperatorAssignmentEntity> findByZoneId(@Param("zoneId") Long zoneId);
-
-   /**
-    * Lista todas las asignaciones activas de una zona específica.
-    * Una asignación es activa si startDate <= hoy Y (endDate IS NULL O endDate > hoy).
-    *
-    * @param zoneId ID de la zona
-    * @param today fecha actual
-    * @return lista de asignaciones activas
-    */
    @Query("""
-         SELECT oa FROM OperatorAssignmentEntity oa 
-         WHERE oa.zone.id = :zoneId 
-         AND oa.startDate <= :today 
-         AND (oa.endDate IS NULL OR oa.endDate > :today)
-         ORDER BY oa.startDate DESC
+         SELECT a FROM OperatorAssignmentEntity a
+         WHERE (:parkingId IS NULL OR a.parkingId = :parkingId)
+           AND (:zoneId IS NULL OR a.zoneId = :zoneId)
+           AND (:operatorId IS NULL OR a.operatorId = :operatorId)
+         ORDER BY a.startDate DESC, a.id DESC
          """)
-   List<OperatorAssignmentEntity> findActiveByZoneId(
-         @Param("zoneId") Long zoneId,
-         @Param("today") LocalDate today
-   );
+   List<OperatorAssignmentEntity> search(@Param("parkingId") Long parkingId,
+                                         @Param("zoneId") Long zoneId,
+                                         @Param("operatorId") Long operatorId);
 
-   /**
-    * Lista todas las asignaciones de un operador específico.
-    *
-    * @param operatorId ID del operador
-    * @return lista de asignaciones
-    */
-   @Query("SELECT oa FROM OperatorAssignmentEntity oa WHERE oa.operatorId = :operatorId ORDER BY oa.startDate DESC")
-   List<OperatorAssignmentEntity> findByOperatorId(@Param("operatorId") Long operatorId);
-
-   /**
-    * Lista todas las asignaciones de un turno específico.
-    *
-    * @param shiftId ID del turno
-    * @return lista de asignaciones
-    */
-   @Query("SELECT oa FROM OperatorAssignmentEntity oa WHERE oa.shift.id = :shiftId ORDER BY oa.startDate DESC")
-   List<OperatorAssignmentEntity> findByShiftId(@Param("shiftId") Long shiftId);
-
-   /**
-    * Verifica si existe una asignación activa para un operador en una zona y turno específicos.
-    *
-    * @param operatorId ID del operador
-    * @param zoneId ID de la zona
-    * @param shiftId ID del turno
-    * @param today fecha actual
-    * @return true si existe asignación activa
-    */
    @Query("""
-         SELECT CASE WHEN COUNT(oa) > 0 THEN true ELSE false END 
-         FROM OperatorAssignmentEntity oa 
-         WHERE oa.operatorId = :operatorId 
-         AND oa.zone.id = :zoneId 
-         AND oa.shift.id = :shiftId 
-         AND oa.startDate <= :today 
-         AND (oa.endDate IS NULL OR oa.endDate > :today)
+         SELECT a FROM OperatorAssignmentEntity a
+         WHERE a.operatorId = :operatorId
+           AND a.startDate <= :end AND (a.endDate IS NULL OR a.endDate >= :start)
          """)
-   boolean existsActiveAssignment(
-         @Param("operatorId") Long operatorId,
-         @Param("zoneId") Long zoneId,
-         @Param("shiftId") Long shiftId,
-         @Param("today") LocalDate today
-   );
+   List<OperatorAssignmentEntity> findByOperatorOverlapping(@Param("operatorId") Long operatorId,
+                                                            @Param("start") LocalDate start,
+                                                            @Param("end") LocalDate end);
+
+   @Query("""
+         SELECT a FROM OperatorAssignmentEntity a
+         WHERE a.parkingId = :parkingId AND a.shiftId = :shiftId
+           AND a.startDate <= :end AND (a.endDate IS NULL OR a.endDate >= :start)
+         """)
+   List<OperatorAssignmentEntity> findByParkingShiftOverlapping(@Param("parkingId") Long parkingId,
+                                                                @Param("shiftId") Long shiftId,
+                                                                @Param("start") LocalDate start,
+                                                                @Param("end") LocalDate end);
+
+   @Query("""
+         SELECT COUNT(a) FROM OperatorAssignmentEntity a
+         WHERE a.parkingId = :parkingId AND a.shiftId = :shiftId
+           AND (a.endDate IS NULL OR a.endDate >= :today)
+         """)
+   long countCurrentOrFuture(@Param("parkingId") Long parkingId,
+                             @Param("shiftId") Long shiftId,
+                             @Param("today") LocalDate today);
 }

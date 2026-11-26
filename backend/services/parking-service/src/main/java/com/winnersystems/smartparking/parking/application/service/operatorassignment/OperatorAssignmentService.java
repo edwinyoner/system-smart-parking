@@ -1,299 +1,277 @@
 package com.winnersystems.smartparking.parking.application.service.operatorassignment;
 
-import com.winnersystems.smartparking.parking.application.dto.command.AssignOperatorsCommand;
+import com.winnersystems.smartparking.parking.application.dto.command.AssignOperatorCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.UpdateOperatorAssignmentCommand;
-import com.winnersystems.smartparking.parking.application.dto.query.OperatorAssignmentDetailDto;
 import com.winnersystems.smartparking.parking.application.dto.query.OperatorAssignmentDto;
-import com.winnersystems.smartparking.parking.application.port.input.operatorassignment.*;
+import com.winnersystems.smartparking.parking.application.port.input.operatorassignment.ManageOperatorAssignmentsUseCase;
 import com.winnersystems.smartparking.parking.application.port.output.*;
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceConflictException;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
 import com.winnersystems.smartparking.parking.domain.model.OperatorAssignment;
+import com.winnersystems.smartparking.parking.domain.model.Parking;
 import com.winnersystems.smartparking.parking.domain.model.Shift;
 import com.winnersystems.smartparking.parking.domain.model.Zone;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Servicio de aplicación para gestión de asignaciones de operadores.
+ * Asignación de operadores a parqueos y zonas por turno.
  *
- * Implementa todos los casos de uso relacionados con OperatorAssignment.
- * Este servicio NO llama a auth-service directamente, esa responsabilidad
- * está en la capa de Infrastructure (REST Adapter).
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Reglas:
+ * - El parqueo debe estar vigente; la zona (si se indica) vigente y de ese parqueo.
+ * - El turno debe estar activo en el horario del parqueo (ParkingShiftRate activa): no se
+ *   asigna personal a un horario en que el parqueo no atiende (409).
+ * - El operador debe existir y estar activo en auth-service; su nombre se copia.
+ * - En un turno y fechas dados, el parqueo tiene un operador para todo el parqueo
+ *   O uno por zona, no ambos (409).
+ * - Un mismo operador no puede tener dos asignaciones que se crucen en fechas y en
+ *   horario de turno, aunque sean de parqueos distintos (409): no puede estar en dos
+ *   lugares a la vez.
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional
-public class OperatorAssignmentService implements
-      AssignOperatorsUseCase,
-      ListOperatorAssignmentsUseCase,
-      GetOperatorAssignmentUseCase,
-      EndOperatorAssignmentUseCase,
-      UpdateOperatorAssignmentUseCase {
+public class OperatorAssignmentService implements ManageOperatorAssignmentsUseCase {
 
-   // ========================= PUERTOS DE SALIDA =========================
+   private final OperatorAssignmentPersistencePort assignmentPort;
+   private final ParkingPersistencePort parkingPort;
+   private final ZonePersistencePort zonePort;
+   private final ShiftPersistencePort shiftPort;
+   private final ParkingShiftRatePersistencePort shiftRatePort;
+   private final UserDirectoryPort userDirectoryPort;
+   private final CurrentUserPort currentUserPort;
+   private final Clock clock;
 
-   private final OperatorAssignmentPersistencePort operatorAssignmentPersistencePort;
-   private final ZonePersistencePort zonePersistencePort;
-   private final ShiftPersistencePort shiftPersistencePort;
-
-   // ========================= ASSIGN OPERATORS =========================
-
-   @Override
-   public List<OperatorAssignmentDto> assignOperators(AssignOperatorsCommand command) {
-      log.debug("Asignando {} operadores a zona {} en turno {}",
-            command.assignments().size(), command.zoneId(), command.shiftId());
-
-      // 1. Validar que la zona existe
-      Zone zone = zonePersistencePort.findById(command.zoneId())
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Zona no encontrada con ID: " + command.zoneId()));
-
-      // 2. Validar que el turno existe
-      Shift shift = shiftPersistencePort.findById(command.shiftId())
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Turno no encontrado con ID: " + command.shiftId()));
-
-      // 3. Crear asignaciones
-      List<OperatorAssignment> assignments = command.assignments().stream()
-            .map(data -> {
-               // Verificar si ya existe asignación activa
-               boolean exists = operatorAssignmentPersistencePort.existsActiveAssignment(
-                     data.operatorId(), command.zoneId(), command.shiftId());
-
-               if (exists) {
-                  log.warn("Operador {} ya tiene asignación activa en zona {} turno {}",
-                        data.operatorId(), command.zoneId(), command.shiftId());
-                  throw new IllegalArgumentException(
-                        "El operador ya tiene una asignación activa en esta zona y turno");
-               }
-
-               // Crear asignación
-               LocalDate startDate = data.startDate() != null ? data.startDate() : LocalDate.now();
-               OperatorAssignment assignment = new OperatorAssignment(
-                     data.operatorId(),
-                     command.zoneId(),
-                     command.shiftId(),
-                     startDate,
-                     data.endDate()
-               );
-               assignment.setCreatedBy(command.createdBy());
-               return assignment;
-            })
-            .collect(Collectors.toList());
-
-      // 4. Guardar todas las asignaciones
-      List<OperatorAssignment> savedAssignments =
-            operatorAssignmentPersistencePort.saveAll(assignments);
-
-      log.debug("{} asignaciones creadas exitosamente", savedAssignments.size());
-
-      // 5. Mapear a DTOs simplificados
-      return savedAssignments.stream()
-            .map(a -> new OperatorAssignmentDto(
-                  a.getId(),
-                  a.getOperatorId(),
-                  null,  // operatorName - se cargará en Infrastructure
-                  a.getZoneId(),
-                  zone.getName(),
-                  a.getShiftId(),
-                  shift.getName(),
-                  a.getStartDate(),
-                  a.getEndDate(),
-                  a.getStatus(),
-                  a.getCreatedAt()
-            ))
-            .collect(Collectors.toList());
+   public OperatorAssignmentService(OperatorAssignmentPersistencePort assignmentPort,
+                                    ParkingPersistencePort parkingPort,
+                                    ZonePersistencePort zonePort,
+                                    ShiftPersistencePort shiftPort,
+                                    ParkingShiftRatePersistencePort shiftRatePort,
+                                    UserDirectoryPort userDirectoryPort,
+                                    CurrentUserPort currentUserPort,
+                                    Clock clock) {
+      this.assignmentPort = assignmentPort;
+      this.parkingPort = parkingPort;
+      this.zonePort = zonePort;
+      this.shiftPort = shiftPort;
+      this.shiftRatePort = shiftRatePort;
+      this.userDirectoryPort = userDirectoryPort;
+      this.currentUserPort = currentUserPort;
+      this.clock = clock;
    }
 
-   // ========================= LIST ASSIGNMENTS =========================
+   // ========================= ASIGNAR =========================
 
    @Override
-   public List<OperatorAssignmentDto> listByZone(Long zoneId) {
-      log.debug("Listando todas las asignaciones de zona {}", zoneId);
+   public OperatorAssignmentDto assign(AssignOperatorCommand command) {
+      LocalDate today = LocalDate.now(clock);
+      Parking parking = findParking(command.parkingId());
+      if (command.zoneId() != null) {
+         Zone zone = zonePort.findById(command.zoneId())
+               .orElseThrow(() -> new ResourceNotFoundException("Zona", command.zoneId()));
+         if (!zone.belongsTo(parking.getId())) {
+            throw new ParkingDomainException("La zona " + zone.getName() + " no pertenece al parqueo " + parking.getName());
+         }
+      }
+      Shift shift = shiftPort.findById(command.shiftId())
+            .orElseThrow(() -> new ResourceNotFoundException("Turno", command.shiftId()));
+      ensureShiftOperates(parking, shift);
 
-      List<OperatorAssignment> assignments = operatorAssignmentPersistencePort.findByZoneId(zoneId);
-
-      return mapToSimpleDtos(assignments);
-   }
-
-   @Override
-   public List<OperatorAssignmentDto> listActiveByZone(Long zoneId) {
-      log.debug("Listando asignaciones activas de zona {}", zoneId);
-
-      List<OperatorAssignment> assignments = operatorAssignmentPersistencePort.findActiveByZoneId(zoneId);
-
-      return mapToSimpleDtos(assignments);
-   }
-
-   @Override
-   public List<OperatorAssignmentDto> listByOperator(Long operatorId) {
-      log.debug("Listando asignaciones del operador {}", operatorId);
-
-      List<OperatorAssignment> assignments = operatorAssignmentPersistencePort.findByOperatorId(operatorId);
-
-      return mapToSimpleDtos(assignments);
-   }
-
-   @Override
-   public List<OperatorAssignmentDto> listByShift(Long shiftId) {
-      log.debug("Listando asignaciones del turno {}", shiftId);
-
-      List<OperatorAssignment> assignments = operatorAssignmentPersistencePort.findByShiftId(shiftId);
-
-      return mapToSimpleDtos(assignments);
-   }
-
-   // ========================= GET ASSIGNMENT =========================
-
-   @Override
-   public OperatorAssignmentDetailDto getAssignment(Long assignmentId) {
-      log.debug("Obteniendo asignación {}", assignmentId);
-
-      OperatorAssignment assignment = operatorAssignmentPersistencePort.findById(assignmentId)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Asignación no encontrada con ID: " + assignmentId));
-
-      // Cargar entidades relacionadas
-      Zone zone = zonePersistencePort.findById(assignment.getZoneId()).orElseThrow();
-      Shift shift = shiftPersistencePort.findById(assignment.getShiftId()).orElseThrow();
-
-      // La información del operador se cargará en Infrastructure desde auth-service
-      return new OperatorAssignmentDetailDto(
-            assignment.getId(),
-            assignment.getStartDate(),
-            assignment.getEndDate(),
-            assignment.getStatus(),
-            assignment.getDurationInDays(),
-            // OperatorInfo - se completará en Infrastructure
-            new OperatorAssignmentDetailDto.OperatorInfo(
-                  assignment.getOperatorId(), null, null, null, null, null),
-            // ZoneInfo
-            new OperatorAssignmentDetailDto.ZoneInfo(
-                  zone.getId(), zone.getName(), zone.getCode()),
-            // ShiftInfo
-            new OperatorAssignmentDetailDto.ShiftInfo(
-                  shift.getId(), shift.getName(),
-                  shift.getStartTime().toString(), shift.getEndTime().toString()),
-            assignment.getCreatedAt(),
-            assignment.getCreatedBy(),
-            assignment.getUpdatedAt(),
-            assignment.getUpdatedBy()
-      );
-   }
-
-   // ========================= END ASSIGNMENT =========================
-
-   @Override
-   public OperatorAssignmentDto endNow(Long assignmentId, Long updatedBy) {
-      log.debug("Finalizando asignación {} inmediatamente", assignmentId);
-
-      OperatorAssignment assignment = operatorAssignmentPersistencePort.findById(assignmentId)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Asignación no encontrada con ID: " + assignmentId));
-
-      if (assignment.hasEnded()) {
-         throw new IllegalStateException("La asignación ya está finalizada");
+      UserDirectoryPort.UserSummary user = userDirectoryPort.findUser(command.operatorId())
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", command.operatorId()));
+      if (!user.active()) {
+         throw new ResourceConflictException("El usuario " + user.fullName() + " está desactivado y no puede ser asignado");
       }
 
-      assignment.endAssignment();
-      assignment.setUpdatedBy(updatedBy);
+      OperatorAssignment assignment = OperatorAssignment.create(user.id(), user.fullName(), parking.getId(),
+            command.zoneId(), shift.getId(), command.startDate(), command.endDate(), today,
+            currentUserPort.requireCurrentUserId());
+      ensureNoConflicts(assignment, shift);
+      return toDto(assignmentPort.save(assignment));
+   }
 
-      OperatorAssignment updated = operatorAssignmentPersistencePort.save(assignment);
+   // ========================= CAMBIAR FECHAS =========================
 
-      log.debug("Asignación finalizada");
+   @Override
+   public OperatorAssignmentDto update(Long assignmentId, UpdateOperatorAssignmentCommand command) {
+      OperatorAssignment assignment = findAssignment(assignmentId);
+      assignment.changeDates(command.startDate(), command.endDate(), LocalDate.now(clock),
+            currentUserPort.requireCurrentUserId());
+      Shift shift = shiftPort.findByIdIncludingDeleted(assignment.getShiftId())
+            .orElseThrow(() -> new ResourceNotFoundException("Turno", assignment.getShiftId()));
+      ensureNoConflicts(assignment, shift);
+      return toDto(assignmentPort.save(assignment));
+   }
 
-      return mapToSimpleDto(updated);
+   // ========================= FINALIZAR =========================
+
+   @Override
+   public Optional<OperatorAssignmentDto> finish(Long assignmentId) {
+      OperatorAssignment assignment = findAssignment(assignmentId);
+      boolean keep = assignment.finish(LocalDate.now(clock), currentUserPort.requireCurrentUserId());
+      if (!keep) {
+         assignmentPort.deleteById(assignmentId);
+         return Optional.empty();
+      }
+      return Optional.of(toDto(assignmentPort.save(assignment)));
+   }
+
+   // ========================= CONSULTAS =========================
+
+   @Override
+   @Transactional(readOnly = true)
+   public OperatorAssignmentDto get(Long assignmentId) {
+      return toDto(findAssignment(assignmentId));
    }
 
    @Override
-   public OperatorAssignmentDto endOn(Long assignmentId, LocalDate endDate, Long updatedBy) {
-      log.debug("Finalizando asignación {} en fecha {}", assignmentId, endDate);
-
-      OperatorAssignment assignment = operatorAssignmentPersistencePort.findById(assignmentId)
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Asignación no encontrada con ID: " + assignmentId));
-
-      assignment.endAssignmentOn(endDate);
-      assignment.setUpdatedBy(updatedBy);
-
-      OperatorAssignment updated = operatorAssignmentPersistencePort.save(assignment);
-
-      log.debug("Asignación finalizada en {}", endDate);
-
-      return mapToSimpleDto(updated);
+   @Transactional(readOnly = true)
+   public List<OperatorAssignmentDto> list(Long parkingId, Long zoneId, Long operatorId, String status) {
+      if (parkingId == null && operatorId == null) {
+         throw new ParkingDomainException("Indica el parqueo o el operador");
+      }
+      if (parkingId != null) {
+         findParking(parkingId);
+      }
+      return filterAndMap(assignmentPort.findAll(parkingId, zoneId, operatorId), normalizeStatus(status));
    }
-
-   // ========================= UPDATE ASSIGNMENT =========================
 
    @Override
-   public OperatorAssignmentDto updateAssignment(UpdateOperatorAssignmentCommand command) {
-      log.debug("Actualizando asignación {}", command.assignmentId());
-
-      OperatorAssignment assignment = operatorAssignmentPersistencePort.findById(command.assignmentId())
-            .orElseThrow(() -> new IllegalArgumentException(
-                  "Asignación no encontrada con ID: " + command.assignmentId()));
-
-      // Actualizar fechas si se especifican
-      if (command.startDate() != null) {
-         assignment.setStartDate(command.startDate());
-      }
-
-      if (command.endDate() != null) {
-         assignment.setEndDate(command.endDate());
-      } else {
-         // Si endDate es null explícitamente, hacer indefinida
-         assignment.makeIndefinite();
-      }
-
-      // Validar fechas
-      if (!assignment.hasValidDates()) {
-         throw new IllegalArgumentException(
-               "Las fechas son inválidas: endDate no puede ser anterior a startDate");
-      }
-
-      assignment.setUpdatedBy(command.updatedBy());
-
-      OperatorAssignment updated = operatorAssignmentPersistencePort.save(assignment);
-
-      log.debug("Asignación actualizada");
-
-      return mapToSimpleDto(updated);
+   @Transactional(readOnly = true)
+   public List<OperatorAssignmentDto> listMine(String status) {
+      return filterAndMap(assignmentPort.findAll(null, null, currentUserPort.requireCurrentUserId()),
+            normalizeStatus(status));
    }
 
-   // ========================= HELPER METHODS =========================
+   // ========================= REGLAS =========================
 
-   private List<OperatorAssignmentDto> mapToSimpleDtos(List<OperatorAssignment> assignments) {
-      return assignments.stream()
-            .map(this::mapToSimpleDto)
-            .collect(Collectors.toList());
+   private void ensureShiftOperates(Parking parking, Shift shift) {
+      boolean operates = shift.isUsable() && shiftRatePort.findByParkingId(parking.getId()).stream()
+            .anyMatch(c -> c.isActive() && c.getShiftId().equals(shift.getId()));
+      if (!operates) {
+         throw new ResourceConflictException("El parqueo " + parking.getName() + " no atiende en el turno "
+               + shift.getName() + ": actívalo primero en sus horarios y tarifas");
+      }
    }
 
-   private OperatorAssignmentDto mapToSimpleDto(OperatorAssignment assignment) {
-      // Cargar zona y turno
-      Zone zone = zonePersistencePort.findById(assignment.getZoneId()).orElse(null);
-      Shift shift = shiftPersistencePort.findById(assignment.getShiftId()).orElse(null);
+   private void ensureNoConflicts(OperatorAssignment candidate, Shift shift) {
+      LocalDate start = candidate.getStartDate();
+      LocalDate end = candidate.getEndDate();
 
+      // 1. Un operador de parqueo o uno por zona en el mismo turno
+      for (OperatorAssignment other : assignmentPort.findByParkingShiftOverlapping(
+            candidate.getParkingId(), candidate.getShiftId(), start, end)) {
+         if (other.equals(candidate)) {
+            continue;
+         }
+         if (candidate.isParkingWide() || other.isParkingWide()) {
+            throw new ResourceConflictException(other.isParkingWide()
+                  ? other.getOperatorName() + " ya atiende todo el parqueo en este turno y fechas"
+                  : "El parqueo ya tiene operadores por zona en este turno y fechas (por ejemplo "
+                    + other.getOperatorName() + "): asigna por zona o finaliza esas asignaciones");
+         }
+         if (other.getZoneId().equals(candidate.getZoneId())) {
+            throw new ResourceConflictException(other.getOperatorName()
+                  + " ya atiende esta zona en este turno y fechas");
+         }
+      }
+
+      // 2. El operador no puede estar en dos sitios a la vez
+      List<OperatorAssignment> mine = assignmentPort.findByOperatorOverlapping(candidate.getOperatorId(), start, end);
+      Map<Long, Shift> shifts = loadShifts(mine.stream().map(OperatorAssignment::getShiftId).collect(Collectors.toSet()));
+      for (OperatorAssignment other : mine) {
+         if (other.equals(candidate)) {
+            continue;
+         }
+         Shift otherShift = shifts.get(other.getShiftId());
+         if (other.getShiftId().equals(shift.getId()) || (otherShift != null && otherShift.overlapsWith(shift))) {
+            String where = parkingPort.findByIdIncludingDeleted(other.getParkingId()).map(Parking::getName).orElse("otro parqueo");
+            throw new ResourceConflictException(candidate.getOperatorName() + " ya tiene una asignación en "
+                  + where + " con un horario que se cruza ("
+                  + (otherShift != null ? otherShift.getName() + " " + otherShift.getTimeRange() : "turno " + other.getShiftId())
+                  + ") en esas fechas");
+         }
+      }
+   }
+
+   // ========================= AUXILIARES =========================
+
+   private Parking findParking(Long parkingId) {
+      return parkingPort.findById(parkingId).orElseThrow(() -> new ResourceNotFoundException("Parqueo", parkingId));
+   }
+
+   private OperatorAssignment findAssignment(Long id) {
+      return assignmentPort.findById(id).orElseThrow(() -> new ResourceNotFoundException("Asignación", id));
+   }
+
+   private static String normalizeStatus(String status) {
+      if (status == null || status.isBlank()) {
+         return null;
+      }
+      String value = status.trim().toUpperCase();
+      if (!Set.of(OperatorAssignment.STATUS_PENDING, OperatorAssignment.STATUS_ACTIVE,
+            OperatorAssignment.STATUS_ENDED).contains(value)) {
+         throw new ParkingDomainException("Estado de asignación inválido: " + status);
+      }
+      return value;
+   }
+
+   private Map<Long, Shift> loadShifts(Set<Long> ids) {
+      Map<Long, Shift> map = new HashMap<>();
+      for (Long id : ids) {
+         shiftPort.findByIdIncludingDeleted(id).ifPresent(s -> map.put(id, s));
+      }
+      return map;
+   }
+
+   private List<OperatorAssignmentDto> filterAndMap(List<OperatorAssignment> assignments, String status) {
+      LocalDate today = LocalDate.now(clock);
+      List<OperatorAssignment> filtered = assignments.stream()
+            .filter(a -> status == null || status.equals(a.statusOn(today)))
+            .toList();
+      // Parqueos, zonas y turnos se cargan una vez por ID
+      Map<Long, Parking> parkings = parkingPort.findAllByIdsIncludingDeleted(
+                  filtered.stream().map(OperatorAssignment::getParkingId).distinct().toList()).stream()
+            .collect(Collectors.toMap(Parking::getId, Function.identity()));
+      Map<Long, Zone> zones = zonePort.findAllByIdsIncludingDeleted(
+                  filtered.stream().map(OperatorAssignment::getZoneId).filter(Objects::nonNull).distinct().toList()).stream()
+            .collect(Collectors.toMap(Zone::getId, Function.identity()));
+      Map<Long, Shift> shifts = loadShifts(filtered.stream().map(OperatorAssignment::getShiftId).collect(Collectors.toSet()));
+      return filtered.stream()
+            .map(a -> toDto(a, parkings.get(a.getParkingId()),
+                  a.getZoneId() != null ? zones.get(a.getZoneId()) : null, shifts.get(a.getShiftId())))
+            .sorted(Comparator.comparing(OperatorAssignmentDto::startDate).reversed())
+            .toList();
+   }
+
+   private OperatorAssignmentDto toDto(OperatorAssignment a) {
+      Parking parking = parkingPort.findByIdIncludingDeleted(a.getParkingId()).orElse(null);
+      Zone zone = a.getZoneId() != null ? zonePort.findByIdIncludingDeleted(a.getZoneId()).orElse(null) : null;
+      Shift shift = shiftPort.findByIdIncludingDeleted(a.getShiftId()).orElse(null);
+      return toDto(a, parking, zone, shift);
+   }
+
+   private OperatorAssignmentDto toDto(OperatorAssignment a, Parking parking, Zone zone, Shift shift) {
+      LocalDateTime now = LocalDateTime.now(clock);
+      String status = a.statusOn(now.toLocalDate());
+      boolean onDuty = shift != null && a.isActiveOn(now.toLocalDate()) && shift.isWithinShift(now.toLocalTime());
       return new OperatorAssignmentDto(
-            assignment.getId(),
-            assignment.getOperatorId(),
-            null,  // operatorName - se cargará en Infrastructure
-            assignment.getZoneId(),
-            zone != null ? zone.getName() : null,
-            assignment.getShiftId(),
-            shift != null ? shift.getName() : null,
-            assignment.getStartDate(),
-            assignment.getEndDate(),
-            assignment.getStatus(),
-            assignment.getCreatedAt()
+            a.getId(), a.getOperatorId(), a.getOperatorName(),
+            a.getParkingId(), parking != null ? parking.getName() : null, parking != null ? parking.getCode() : null,
+            a.isParkingWide() ? "PARKING" : "ZONE",
+            a.getZoneId(), zone != null ? zone.getName() : null, zone != null ? zone.getCode() : null,
+            a.getShiftId(), shift != null ? shift.getName() : null,
+            shift != null ? shift.getStartTime() : null, shift != null ? shift.getEndTime() : null,
+            shift != null && shift.crossesMidnight(),
+            a.getStartDate(), a.getEndDate(), status, onDuty,
+            a.getCreatedAt(), a.getCreatedBy(), a.getUpdatedAt(), a.getUpdatedBy()
       );
    }
 }

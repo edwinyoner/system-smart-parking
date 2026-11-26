@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class ParkingShiftRateServiceTest {
@@ -33,6 +34,7 @@ class ParkingShiftRateServiceTest {
    private RatePersistencePort rates;
    private ParkingShiftRateService service;
    private ParkingScheduleResolver resolver;
+   private OperatorAssignmentPersistencePort assignments;
    private final Map<Long, Shift> shiftById = new HashMap<>();
    private final Map<Long, Rate> rateById = new HashMap<>();
    private final List<ParkingShiftRate> stored = new ArrayList<>();
@@ -44,9 +46,10 @@ class ParkingShiftRateServiceTest {
       shifts = mock(ShiftPersistencePort.class);
       rates = mock(RatePersistencePort.class);
       resolver = new ParkingScheduleResolver(configs, shifts, rates);
+      assignments = mock(OperatorAssignmentPersistencePort.class);
       // 15:30 hora de Lima
       Clock clock = Clock.fixed(Instant.parse("2026-11-26T20:30:00Z"), ZoneId.of("America/Lima"));
-      service = new ParkingShiftRateService(configs, parkings, shifts, rates, resolver, () -> Optional.of(7L), clock);
+      service = new ParkingShiftRateService(configs, parkings, shifts, rates, resolver, assignments, () -> Optional.of(7L), clock);
 
       Parking parking = Parking.create("Parqueo San Martín", "PSM", null, "Jr. San Martín", null, null, 1L);
       parking.setId(1L);
@@ -156,6 +159,19 @@ class ParkingShiftRateServiceTest {
       configure(new Item(3L, 10L, true));
       assertThat(resolver.resolve(1L, LocalDateTime.of(2026, 11, 27, 2, 0))).isPresent();
       assertThat(resolver.resolve(1L, LocalDateTime.of(2026, 11, 27, 6, 0))).isEmpty();
+   }
+
+   @Test
+   @DisplayName("no se quita un turno con operadores asignados")
+   void operatorsAssigned() {
+      configure(new Item(1L, 10L, true), new Item(2L, 10L, true));
+      when(assignments.countCurrentOrFutureByParkingAndShift(eq(1L), eq(2L), any())).thenReturn(1L);
+      assertThatThrownBy(() -> configure(new Item(1L, 10L, true)))
+            .isInstanceOf(ResourceConflictException.class).hasMessageContaining("operador asignado");
+      assertThatThrownBy(() -> service.deleteShiftRateConfig(stored.get(1).getId()))
+            .isInstanceOf(ResourceConflictException.class);
+      // Desactivarlo sí se permite
+      assertThat(configure(new Item(1L, 10L, true), new Item(2L, 10L, false))).hasSize(2);
    }
 
    @Test

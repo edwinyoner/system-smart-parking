@@ -147,6 +147,12 @@ public class DataSeeder implements CommandLineRunner {
             {"spaces.bulk-create", "Creación masiva de espacios"},
             {"spaces.restore", "Ver espacios eliminados y restaurarlos"},
 
+            // Asignación de operadores
+            {"operator-assignments.create", "Asignar operadores a parqueos y zonas"},
+            {"operator-assignments.read", "Ver asignaciones de operadores"},
+            {"operator-assignments.update", "Cambiar las fechas de una asignación"},
+            {"operator-assignments.delete", "Finalizar o cancelar asignaciones"},
+
             // Tipos de Documento
             {"document-types.create", "Crear nuevos tipos de documento"},
             {"document-types.read", "Ver tipos de documento"},
@@ -262,6 +268,9 @@ public class DataSeeder implements CommandLineRunner {
                   "space-types.create", "space-types.read", "space-types.update", "space-types.delete",
                   // Gestión de Espacios
                   "spaces.create", "spaces.read", "spaces.update", "spaces.delete", "spaces.bulk-create", "spaces.restore",
+                  // Asignación de operadores
+                  "operator-assignments.create", "operator-assignments.read", "operator-assignments.update",
+                  "operator-assignments.delete",
                   // Gestión de Tipos de Documento
                   "document-types.create", "document-types.read", "document-types.update", "document-types.delete",
                   "document-types.restore",

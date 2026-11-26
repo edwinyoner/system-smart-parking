@@ -2,36 +2,38 @@ package com.winnersystems.smartparking.parking.application.dto.query;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
- * DTO simplificado para información básica de asignación de operador.
- * Usado para listados y referencias rápidas.
+ * Asignación de un operador con los datos de su parqueo, zona y turno.
  *
- * @param id identificador de la asignación
- * @param operatorId ID del operador asignado
- * @param operatorName nombre completo del operador
- * @param zoneId ID de la zona
- * @param zoneName nombre de la zona
- * @param shiftId ID del turno
- * @param shiftName nombre del turno
- * @param startDate fecha de inicio de la asignación
- * @param endDate fecha de fin de la asignación (null = indefinida)
- * @param status estado calculado: "ACTIVA", "FINALIZADA", "PENDIENTE"
- * @param createdAt fecha de creación del registro
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * @param scope    PARKING (todo el parqueo) o ZONE
+ * @param status   PENDING, ACTIVE o ENDED
+ * @param onDutyNow vigente hoy y dentro del horario de su turno en este momento
  */
 public record OperatorAssignmentDto(
       Long id,
       Long operatorId,
       String operatorName,
+      Long parkingId,
+      String parkingName,
+      String parkingCode,
+      String scope,
       Long zoneId,
       String zoneName,
+      String zoneCode,
       Long shiftId,
       String shiftName,
+      LocalTime shiftStartTime,
+      LocalTime shiftEndTime,
+      boolean shiftCrossesMidnight,
       LocalDate startDate,
       LocalDate endDate,
       String status,
-      LocalDateTime createdAt
-) {}
+      boolean onDutyNow,
+      LocalDateTime createdAt,
+      Long createdBy,
+      LocalDateTime updatedAt,
+      Long updatedBy
+) {
+}

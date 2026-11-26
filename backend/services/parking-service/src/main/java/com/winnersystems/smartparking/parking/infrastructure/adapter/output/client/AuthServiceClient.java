@@ -4,7 +4,6 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-import java.util.List;
 
 /**
  * Cliente OpenFeign para comunicación con auth-service.
@@ -23,16 +22,6 @@ import java.util.List;
 public interface AuthServiceClient {
 
    /**
-    * Obtiene la lista de operadores activos desde auth-service.
-    *
-    * Llama a: GET http://auth-service/users/operators (exige users.read)
-    *
-    * @return lista de operadores activos
-    */
-   @GetMapping("/users/operators")
-   List<OperatorDto> getActiveOperators();
-
-   /**
     * Obtiene un usuario específico por ID desde auth-service.
     *
     * Llama a: GET http://auth-service/users/{userId} (exige users.read)
@@ -44,23 +33,6 @@ public interface AuthServiceClient {
    UserDto getUserById(@PathVariable("userId") Long userId);
 
    // ========================= DTOs =========================
-
-   /**
-    * DTO para recibir información de operador desde auth-service.
-    * Debe coincidir con OperatorDto de auth-service.
-    */
-   record OperatorDto(
-         Long id,
-         String firstName,
-         String lastName,
-         String email,
-         String phoneNumber,
-         Boolean status
-   ) {
-      public String getFullName() {
-         return firstName + " " + lastName;
-      }
-   }
 
    /**
     * DTO para recibir información de usuario desde auth-service.

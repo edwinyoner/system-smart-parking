@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
@@ -41,6 +42,7 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
    private final ShiftPersistencePort shiftPort;
    private final RatePersistencePort ratePort;
    private final ParkingScheduleResolver resolver;
+   private final OperatorAssignmentPersistencePort assignmentPort;
    private final CurrentUserPort currentUserPort;
    private final Clock clock;
 
@@ -49,6 +51,7 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
                                   ShiftPersistencePort shiftPort,
                                   RatePersistencePort ratePort,
                                   ParkingScheduleResolver resolver,
+                                  OperatorAssignmentPersistencePort assignmentPort,
                                   CurrentUserPort currentUserPort,
                                   Clock clock) {
       this.configPort = configPort;
@@ -56,6 +59,7 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
       this.shiftPort = shiftPort;
       this.ratePort = ratePort;
       this.resolver = resolver;
+      this.assignmentPort = assignmentPort;
       this.currentUserPort = currentUserPort;
       this.clock = clock;
    }
@@ -93,6 +97,11 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
          configs.add(ParkingShiftRate.create(parkingId, shift.getId(), rate.getId(), active, userId));
       }
       ParkingScheduleResolver.ensureNoOverlap(activeShifts);
+      for (ParkingShiftRate previous : configPort.findByParkingId(parkingId)) {
+         if (!seenShifts.contains(previous.getShiftId())) {
+            ensureNoOperators(parkingId, previous.getShiftId());
+         }
+      }
 
       // Reemplazo completo: las transacciones guardan su propia tarifa, así que no se pierde historial
       configPort.deleteByParkingId(parkingId);
@@ -135,7 +144,8 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
 
    @Override
    public void deleteShiftRateConfig(Long configId) {
-      findConfig(configId);
+      ParkingShiftRate config = findConfig(configId);
+      ensureNoOperators(config.getParkingId(), config.getShiftId());
       configPort.deleteById(configId);
    }
 
@@ -174,6 +184,21 @@ public class ParkingShiftRateService implements ConfigureParkingShiftRatesUseCas
             .orElseThrow(() -> new ResourceNotFoundException("Configuración de turno", configId));
       ensureParkingExists(config.getParkingId());
       return config;
+   }
+
+   /**
+    * Un turno con operadores asignados (vigentes o futuros) no se quita del horario del
+    * parqueo: quedarían asignados a un horario en que el parqueo no existe. Desactivarlo sí
+    * se permite (el parqueo deja de atender en ese turno).
+    */
+   private void ensureNoOperators(Long parkingId, Long shiftId) {
+      long count = assignmentPort.countCurrentOrFutureByParkingAndShift(parkingId, shiftId, LocalDate.now(clock));
+      if (count > 0) {
+         String name = shiftPort.findByIdIncludingDeleted(shiftId).map(Shift::getName).orElse("turno " + shiftId);
+         throw new ResourceConflictException("No se puede quitar el turno " + name + ": tiene " + count
+               + (count == 1 ? " operador asignado" : " operadores asignados")
+               + ". Finaliza esas asignaciones o desactiva el turno.");
+      }
    }
 
    private Shift loadShift(Long shiftId) {

@@ -1,23 +1,12 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.operatorassignment.dto.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.LocalDate;
 
 /**
- * Request DTO para actualizar una asignación de operador.
+ * Cambiar las fechas de una asignación.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * @param startDate opcional: se mantiene (solo cambia si aún no empezó)
+ * @param endDate   null = indefinida
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class UpdateOperatorAssignmentRequest {
-
-   private LocalDate startDate;  // Opcional - si es null, mantiene la actual
-
-   private LocalDate endDate;    // Opcional - si es null, hace indefinida
+public record UpdateOperatorAssignmentRequest(LocalDate startDate, LocalDate endDate) {
 }

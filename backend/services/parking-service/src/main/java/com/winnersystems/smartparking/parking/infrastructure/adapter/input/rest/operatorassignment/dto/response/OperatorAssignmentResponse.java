@@ -1,25 +1,41 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.operatorassignment.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
- * Response con información simplificada de una asignación de operador.
- * Usado en listados y respuestas rápidas.
+ * Asignación de un operador.
  *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * @param scope     PARKING (todo el parqueo) o ZONE
+ * @param status    PENDING, ACTIVE o ENDED
+ * @param onDutyNow en este momento le toca atender
  */
 public record OperatorAssignmentResponse(
       Long id,
       Long operatorId,
       String operatorName,
+      Long parkingId,
+      String parkingName,
+      String parkingCode,
+      String scope,
       Long zoneId,
       String zoneName,
+      String zoneCode,
       Long shiftId,
       String shiftName,
+      @JsonFormat(pattern = "HH:mm") LocalTime shiftStartTime,
+      @JsonFormat(pattern = "HH:mm") LocalTime shiftEndTime,
+      boolean shiftCrossesMidnight,
       LocalDate startDate,
       LocalDate endDate,
       String status,
-      LocalDateTime createdAt
-) {}
+      boolean onDutyNow,
+      LocalDateTime createdAt,
+      Long createdBy,
+      LocalDateTime updatedAt,
+      Long updatedBy
+) {
+}
