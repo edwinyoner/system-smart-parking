@@ -1,0 +1,23 @@
+.config-section {
+  border-top: 1px solid var(--cui-border-color);
+  padding-top: 1.25rem;
+}
+
+.section-title {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.mode-option {
+  display: block;
+  height: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.mode-option.selected {
+  border-color: var(--sp-success-soft-border);
+  background-color: var(--sp-success-soft-bg);
+}

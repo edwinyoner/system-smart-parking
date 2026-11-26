@@ -1,0 +1,12 @@
+.page-title {
+  font-weight: 600;
+}
+
+.source-link {
+  color: var(--sp-success-strong);
+  text-decoration: none;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+}

@@ -5,7 +5,6 @@ import com.winnersystems.smartparking.parking.application.dto.query.PagedRespons
 import com.winnersystems.smartparking.parking.application.port.input.infraction.*;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.request.AssignFineRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.request.CreateInfractionRequest;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.request.RecordFinePaymentRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.request.UpdateInfractionRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.response.InfractionResponse;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.mapper.InfractionRestMapper;
@@ -49,7 +48,6 @@ public class InfractionRestAdapter {
    private final UpdateInfractionUseCase updateInfractionUseCase;
    private final ListInfractionsUseCase listInfractionsUseCase;
    private final AssignFineUseCase assignFineUseCase;
-   private final RecordFinePaymentUseCase recordFinePaymentUseCase;
    private final InfractionRestMapper mapper;
 
    // ========================= CREATE =========================
@@ -274,23 +272,6 @@ public class InfractionRestAdapter {
       InfractionDto dto = assignFineUseCase.assignFine(
             id,
             mapper.toAssignFineCommand(request)
-      );
-
-      return ResponseEntity.ok(mapper.toResponse(dto));
-   }
-
-   /**
-    * POST /api/v1/infractions/{id}/record-payment
-    * Registra el pago de una multa.
-    */
-   @PostMapping("/{id}/record-payment")
-   public ResponseEntity<InfractionResponse> recordFinePayment(
-         @PathVariable Long id,
-         @Valid @RequestBody RecordFinePaymentRequest request) {
-
-      InfractionDto dto = recordFinePaymentUseCase.recordFinePayment(
-            id,
-            mapper.toRecordFinePaymentCommand(request)
       );
 
       return ResponseEntity.ok(mapper.toResponse(dto));

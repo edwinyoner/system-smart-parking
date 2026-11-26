@@ -32,13 +32,6 @@ export const parkingRoutes: Routes = [
     canActivate: [AuthGuard],
   },
 
-  // TIPOS DE PAGO
-  {
-    path: "payment-types",
-    loadChildren: () => import("./payment-types/routes").then((m) => m.routes),
-    canActivate: [AuthGuard],
-  },
-
   // ==================== CLIENTES Y VEHÍCULOS ====================
   // CLIENTES
   {
@@ -62,12 +55,6 @@ export const parkingRoutes: Routes = [
     canActivate: [AuthGuard],
   },
 
-  // PAGOS
-  {
-    path: "payments",
-    loadChildren: () => import("./payments/routes").then((m) => m.routes),
-    canActivate: [AuthGuard],
-  },
 
   // ==================== INFRACCIONES ====================
   // INFRACCIONES (pendiente de implementar)

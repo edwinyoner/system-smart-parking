@@ -110,6 +110,45 @@ services:
           memory: 1G
 
   # ============================================================================
+  # SQL Server 2022 Express - payment-service (un solo contenedor)
+  # La imagen de Microsoft no ejecuta scripts al arrancar: docker-init/sqlserver/entrypoint.sh
+  # inicia el motor, espera a que responda y ejecuta 01-init.sql (base y usuario del servicio).
+  # Contraseñas en backend/.env: MSSQL_SA_PASSWORD (administrador) y
+  # MSSQL_USER / MSSQL_PASSWORD (usuario del servicio). SQL Server exige
+  # contraseñas de 8 o más caracteres con mayúsculas, minúsculas, números o símbolos.
+  # ============================================================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: db-system-smart-parking-sqlserver
+    restart: unless-stopped
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Falta MSSQL_SA_PASSWORD en backend/.env}
+      MSSQL_USER: ${MSSQL_USER:?Falta MSSQL_USER en backend/.env}
+      MSSQL_PASSWORD: ${MSSQL_PASSWORD:?Falta MSSQL_PASSWORD en backend/.env}
+      TZ: America/Lima
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./docker-init/sqlserver:/docker-init:ro
+    entrypoint: ["/bin/bash", "/docker-init/entrypoint.sh"]
+    networks:
+      - smart-parking-network
+    # Sano solo si el usuario del servicio entra a su base: confirma que 01-init.sql se ejecutó
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U \"$$MSSQL_USER\" -P \"$$MSSQL_PASSWORD\" -d payment_service_db -C -b -Q 'SELECT 1' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # ============================================================================
   # Redis 7 - Cache compartido (BONUS)
   # ============================================================================
   redis:
@@ -168,6 +207,8 @@ volumes:
   mongodb_data:
     driver: local
   oracle_data:
+    driver: local
+  sqlserver_data:
     driver: local
   redis_data:
     driver: local

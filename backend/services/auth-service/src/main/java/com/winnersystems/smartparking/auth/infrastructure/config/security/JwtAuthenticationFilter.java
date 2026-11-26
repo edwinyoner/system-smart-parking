@@ -66,6 +66,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
          return;
       }
 
+      // Un token de servicio no es una sesión de usuario: auth-service no expone nada para servicios
+      if (isServiceToken(authHeader.substring(7))) {
+         log.debug("Token de servicio ignorado en {} {}", request.getMethod(), request.getRequestURI());
+         filterChain.doFilter(request, response);
+         return;
+      }
+
       try {
          // 2. Extraer token (quitar "Bearer ")
          final String jwt = authHeader.substring(7);
@@ -131,6 +138,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
       // 9. Continuar con el siguiente filtro
       filterChain.doFilter(request, response);
+   }
+
+   /** Un token mal formado o con firma inválida no cuenta como de servicio */
+   private boolean isServiceToken(String jwt) {
+      try {
+         return jwtService.isServiceToken(jwt);
+      } catch (RuntimeException e) {
+         return false;
+      }
    }
 
    private boolean isSessionActive(UserDetails userDetails, String jwt) {

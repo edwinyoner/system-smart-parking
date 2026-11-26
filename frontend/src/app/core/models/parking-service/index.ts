@@ -7,8 +7,6 @@ export * from './space.model';
 export * from './document-type.model';
 export * from './customer.model';
 export * from './vehicle.model';
-export * from './payment.model';
-export * from './payment-type.model';
 export * from './transaction.model';
 export * from './infraction.model';
 export * from './operator-assignment.model';

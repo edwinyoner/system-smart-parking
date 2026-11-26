@@ -102,6 +102,9 @@ parking:
     open: "06:00"
     close: "22:00"
     timezone: America/Lima
+  payment:
+    # Se paga antes de salir. Tras pagar hay estos minutos para salir sin que suba el monto
+    exit-window-minutes: 15
 
 # ========== ACTUATOR (Health Checks & Monitoring) ==========
 management:

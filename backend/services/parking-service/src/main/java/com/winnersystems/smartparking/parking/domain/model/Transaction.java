@@ -11,11 +11,14 @@ import java.util.Objects;
  * Transaction es la entidad MÁS IMPORTANTE del sistema. Registra el ciclo completo
  * desde que un vehículo entra hasta que sale y paga.
  *
- * Ciclo de vida:
- * 1. ENTRADA: Se crea con status ACTIVE y paymentStatus PENDING
- * 2. SALIDA: Se actualiza con exitTime, calcula monto, status COMPLETED
- * 3. PAGO: Se crea Payment asociado, paymentStatus cambia a PAID
- * 4. COMPROBANTE: Se envía automáticamente por WhatsApp/Email
+ * Ciclo de vida (se paga ANTES de salir):
+ * 1. ENTRADA: status ACTIVE y paymentStatus PENDING.
+ * 2. PAGO: lo cobra payment-service (QR o efectivo) y avisa: paidAmount y paidAt; PAID si cubre lo debido.
+ * 3. SALIDA: solo si no se debe nada. Tras pagar hay exitWindowMinutes para salir sin que suba el monto;
+ *    pasado ese tiempo se cobra la diferencia. Una estadía sin costo (gracia) sale sin pagar (NOT_REQUIRED).
+ * 4. COMPROBANTE: interno, lo emitirá payment-service.
+ *
+ * parking-service no guarda pagos: solo cuánto se cubrió (ver ChargeSettlement).
  *
  * Esta entidad conecta TODO el sistema:
  * - Vehículo (qué auto)
@@ -23,7 +26,7 @@ import java.util.Objects;
  * - Ubicación (dónde se estacionó: Parking > Zone > Space)
  * - Tarifa (cuánto cuesta)
  * - Operadores (quién registró entrada/salida)
- * - Pago (cómo y cuándo pagó)
+ * - Pago: cuánto se pagó y cuándo (el detalle está en payment-service)
  *
  * Seguridad anti-robo:
  * - Guarda documento de entrada y salida
@@ -92,11 +95,13 @@ public class Transaction {
    private BigDecimal discountAmount;                     // Descuentos aplicados (default 0.00)
    private BigDecimal totalAmount;                        // Monto final a pagar
    private String currency;                               // Moneda (default "PEN")
+   private BigDecimal paidAmount;                         // Pagado (neto de devoluciones), según payment-service
+   private LocalDateTime paidAt;                          // Último pago (inicia la ventana para salir)
 
    // ========================= ESTADOS =========================
 
    private String status;                                 // ACTIVE, COMPLETED, CANCELLED
-   private String paymentStatus;                          // PENDING, PAID, OVERDUE
+   private String paymentStatus;                          // PENDING, PAID, NOT_REQUIRED, REFUNDED, OVERDUE
 
    // ========================= COMPROBANTE DIGITAL =========================
 
@@ -128,6 +133,10 @@ public class Transaction {
    public static final String PAYMENT_STATUS_PENDING = "PENDING";
    public static final String PAYMENT_STATUS_PAID = "PAID";
    public static final String PAYMENT_STATUS_OVERDUE = "OVERDUE";
+   /** Estadía sin costo (salió dentro del tiempo de gracia de la tarifa) */
+   public static final String PAYMENT_STATUS_NOT_REQUIRED = "NOT_REQUIRED";
+   /** Se devolvió el pago después de la salida */
+   public static final String PAYMENT_STATUS_REFUNDED = "REFUNDED";
 
    // ========================= CONSTANTES - MÉTODOS DE REGISTRO =========================
 
@@ -145,6 +154,7 @@ public class Transaction {
       this.paymentStatus = PAYMENT_STATUS_PENDING;
       this.currency = "PEN";
       this.discountAmount = BigDecimal.ZERO;
+      this.paidAmount = BigDecimal.ZERO;
       this.receiptSent = false;
       this.createdAt = LocalDateTime.now();
       this.updatedAt = LocalDateTime.now();
@@ -206,20 +216,30 @@ public class Transaction {
    // ========================= MÉTODOS DE NEGOCIO - SALIDA =========================
 
    /**
-    * Registra la salida del vehículo.
+    * Registra la salida. Exige que no se deba nada: si falta pagar lanza PaymentRequiredException
+    * y la transacción no cambia (el servicio revierte la operación).
     *
-    * @param exitDocumentTypeId tipo de documento salida
-    * @param exitDocumentNumber número de documento salida
-    * @param operatorId operador que registra salida
+    * El monto final es el costo hasta la hora del pago si sale dentro de la ventana; si no, hasta ahora.
+    *
+    * @throws com.winnersystems.smartparking.parking.domain.exception.PaymentRequiredException si falta pagar
     */
-   public void recordExit(Long exitDocumentTypeId, String exitDocumentNumber, Long operatorId) {
+   public void completeExit(Long exitDocumentTypeId, String exitDocumentNumber, Long operatorId,
+                            Rate rate, LocalDateTime now, int exitWindowMinutes) {
+      BigDecimal due = amountDueAt(now, rate, exitWindowMinutes);
+      if (due.signum() > 0) {
+         throw new com.winnersystems.smartparking.parking.domain.exception.PaymentRequiredException(id, due);
+      }
+      // Costo bruto de la tarifa; calculateTotal resta el descuento
+      this.calculatedAmount = rate.calculateCost(minutesUntil(billingCutoff(now, exitWindowMinutes)));
+      this.calculateTotal();
       this.exitDocumentTypeId = exitDocumentTypeId;
       this.exitDocumentNumber = exitDocumentNumber;
       this.exitOperatorId = operatorId;
-      this.exitTime = LocalDateTime.now();
+      this.exitTime = now;
       this.status = STATUS_COMPLETED;
       this.calculateDuration();
-      this.updatedAt = LocalDateTime.now();
+      this.paymentStatus = totalAmount.signum() == 0 ? PAYMENT_STATUS_NOT_REQUIRED : PAYMENT_STATUS_PAID;
+      this.updatedAt = now;
    }
 
    /**
@@ -306,10 +326,51 @@ public class Transaction {
    // ========================= MÉTODOS DE NEGOCIO - PAGO =========================
 
    /**
-    * Marca la transacción como pagada.
+    * Hasta qué momento se cobra: si pagó y sale dentro de la ventana, hasta la hora del pago;
+    * si no, hasta ahora.
     */
-   public void markAsPaid() {
-      this.paymentStatus = PAYMENT_STATUS_PAID;
+   public LocalDateTime billingCutoff(LocalDateTime now, int exitWindowMinutes) {
+      boolean withinWindow = paidAt != null && getPaidAmount().signum() > 0
+            && !now.isAfter(paidAt.plusMinutes(exitWindowMinutes));
+      return withinWindow ? paidAt : now;
+   }
+
+   /** Costo de la estadía hasta cutoff, con las reglas de la tarifa y el descuento */
+   public BigDecimal costUntil(LocalDateTime cutoff, Rate rate) {
+      BigDecimal cost = rate.calculateCost(minutesUntil(cutoff));
+      BigDecimal discount = discountAmount != null ? discountAmount : BigDecimal.ZERO;
+      BigDecimal total = cost.subtract(discount);
+      return total.signum() < 0 ? BigDecimal.ZERO : total;
+   }
+
+   private int minutesUntil(LocalDateTime cutoff) {
+      return (int) Math.max(0, Duration.between(entryTime, cutoff).toMinutes());
+   }
+
+   /** Lo que falta pagar para salir ahora */
+   public BigDecimal amountDueAt(LocalDateTime now, Rate rate, int exitWindowMinutes) {
+      BigDecimal due = costUntil(billingCutoff(now, exitWindowMinutes), rate).subtract(getPaidAmount());
+      return due.signum() < 0 ? BigDecimal.ZERO : due;
+   }
+
+   /**
+    * Registra lo que avisa payment-service: el total pagado (neto de devoluciones) y la hora del último pago.
+    * Dentro: PAID si cubre lo debido a la hora del pago. Ya salió: PAID, o REFUNDED si se devolvió algo.
+    */
+   public void applySettlement(BigDecimal netPaid, LocalDateTime lastPaidAt, Rate rate) {
+      this.paidAmount = netPaid == null || netPaid.signum() < 0 ? BigDecimal.ZERO : netPaid;
+      this.paidAt = paidAmount.signum() > 0 ? lastPaidAt : null;
+      if (isActive()) {
+         boolean covered = paidAt != null && costUntil(paidAt, rate).compareTo(paidAmount) <= 0;
+         this.paymentStatus = covered ? PAYMENT_STATUS_PAID : PAYMENT_STATUS_PENDING;
+      } else if (isCompleted()) {
+         BigDecimal total = totalAmount == null ? BigDecimal.ZERO : totalAmount;
+         if (total.signum() == 0) {
+            this.paymentStatus = PAYMENT_STATUS_NOT_REQUIRED;
+         } else {
+            this.paymentStatus = paidAmount.compareTo(total) >= 0 ? PAYMENT_STATUS_PAID : PAYMENT_STATUS_REFUNDED;
+         }
+      }
       this.updatedAt = LocalDateTime.now();
    }
 
@@ -707,6 +768,12 @@ public class Transaction {
    public void setTotalAmount(BigDecimal totalAmount) {
       this.totalAmount = totalAmount;
    }
+
+   public BigDecimal getPaidAmount() { return paidAmount == null ? BigDecimal.ZERO : paidAmount; }
+   public void setPaidAmount(BigDecimal paidAmount) { this.paidAmount = paidAmount; }
+
+   public LocalDateTime getPaidAt() { return paidAt; }
+   public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
 
    public String getCurrency() {
       return currency;

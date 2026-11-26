@@ -2,12 +2,10 @@ package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest
 
 import com.winnersystems.smartparking.parking.application.dto.command.AssignFineCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.CreateInfractionCommand;
-import com.winnersystems.smartparking.parking.application.dto.command.RecordFinePaymentCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.UpdateInfractionCommand;
 import com.winnersystems.smartparking.parking.application.dto.query.InfractionDto;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.request.AssignFineRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.request.CreateInfractionRequest;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.request.RecordFinePaymentRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.request.UpdateInfractionRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.infraction.dto.response.InfractionResponse;
 import org.springframework.stereotype.Component;
@@ -60,16 +58,6 @@ public class InfractionRestMapper {
       return new AssignFineCommand(
             request.getFineAmount(),
             request.getFineDueDate()
-      );
-   }
-
-   /**
-    * RecordFinePaymentRequest → RecordFinePaymentCommand
-    */
-   public RecordFinePaymentCommand toRecordFinePaymentCommand(RecordFinePaymentRequest request) {
-      return new RecordFinePaymentCommand(
-            request.getAmount(),
-            request.getReference()
       );
    }
 

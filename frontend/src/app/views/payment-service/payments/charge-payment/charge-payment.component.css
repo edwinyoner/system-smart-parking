@@ -1,0 +1,48 @@
+.amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sp-success-strong);
+}
+
+.type-option {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+}
+
+.type-option.selected {
+  border-color: var(--sp-success-soft-border);
+  background-color: var(--sp-success-soft-bg);
+}
+
+.type-option:focus-visible {
+  outline: 2px solid var(--sp-success-strong);
+  outline-offset: 2px;
+}
+
+.qr-panel {
+  border: 1px solid var(--sp-warning-soft-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.qr-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px dashed var(--cui-border-color);
+  border-radius: 0.5rem;
+}
+
+.qr-icon {
+  font-size: 3.5rem;
+  color: var(--cui-body-color);
+}
+
+.qr-payload {
+  word-break: break-all;
+  color: var(--cui-body-color);
+}

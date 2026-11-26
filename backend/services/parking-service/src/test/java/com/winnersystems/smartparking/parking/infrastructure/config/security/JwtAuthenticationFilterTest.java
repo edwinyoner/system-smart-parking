@@ -92,4 +92,35 @@ class JwtAuthenticationFilterTest {
       assertThat(run(null)).isNull();
       assertThat(run("Bearer token.falso.xyz")).isNull();
    }
+
+   private static String serviceToken(Object permissions) {
+      return Jwts.builder()
+            .subject("service:payment-service")
+            .claim("tokenType", "SERVICE")
+            .claim("clientId", "payment-service")
+            .claim("permissions", permissions)
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + 60_000))
+            .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+            .compact();
+   }
+
+   @Test
+   @DisplayName("token de servicio: sin userId, solo permisos internos y SERVICE_CLIENT")
+   void serviceTokenGetsOnlyInternal() throws Exception {
+      Authentication auth = run("Bearer " + serviceToken(List.of("internal.charges.settle", "transactions.update")));
+      CustomUserDetails principal = (CustomUserDetails) auth.getPrincipal();
+      assertThat(principal.getId()).isNull();
+      assertThat(auth.getAuthorities()).extracting(GrantedAuthority::getAuthority)
+            .containsExactlyInAnyOrder("internal.charges.settle", "SERVICE_CLIENT");
+   }
+
+   @Test
+   @DisplayName("un token de usuario nunca recibe permisos internos ni SERVICE_CLIENT")
+   void userTokenNeverInternal() throws Exception {
+      Authentication auth = run("Bearer " + token(List.of("shifts.read", "internal.charges.settle", "SERVICE_CLIENT")));
+      assertThat(auth.getAuthorities()).extracting(GrantedAuthority::getAuthority)
+            .doesNotContain("internal.charges.settle", "SERVICE_CLIENT")
+            .contains("shifts.read");
+   }
 }

@@ -1,312 +1,108 @@
 <!-- src/app/views/parking-service/transactions/transaction-payment/transaction-payment.component.html -->
+<div class="card mb-4">
+  <div class="card-header">
+    <strong><i class="fa-solid fa-money-bill-wave me-2"></i>Cobrar Estadía</strong>
+    <small class="text-body-secondary ms-2">Se paga antes de salir</small>
+  </div>
 
-<c-row>
-  <c-col xs="12">
-    <c-card class="mb-4">
-      <c-card-header>
-        <strong>
-          <i class="fa-solid fa-money-bill-wave me-2"></i>
-          Procesar Pago de Estacionamiento
-        </strong>
-      </c-card-header>
-      
-      <c-card-body>
-        
-        <!-- ========================= BÚSQUEDA POR PLACA ========================= -->
-        @if (!transaction || searchErrorMessage) {
-          <div class="search-section mb-4">
-            <h5 class="mb-3">
-              <i class="fa-solid fa-search me-2"></i>
-              Buscar Vehículo
-            </h5>
-            
-            @if (searchErrorMessage) {
-              <c-alert color="warning" [dismissible]="true" (visibleChange)="searchErrorMessage = ''">
-                <i class="fa-solid fa-triangle-exclamation me-2"></i>
-                {{ searchErrorMessage }}
-              </c-alert>
-            }
-            
-            <form cForm [formGroup]="searchForm" (ngSubmit)="searchByPlate()">
-              <c-row class="align-items-end">
-                <c-col md="6">
-                  <label cFormLabel for="plateNumber">
-                    Placa del Vehículo <span class="text-danger">*</span>
-                  </label>
-                  <input 
-                    cFormControl 
-                    type="text" 
-                    id="plateNumber"
-                    formControlName="plateNumber"
-                    placeholder="Ej: ABC-123"
-                    [class.is-invalid]="isFieldInvalid(searchForm, 'plateNumber')"
-                    style="text-transform: uppercase;">
-                  @if (isFieldInvalid(searchForm, 'plateNumber')) {
-                    <div class="invalid-feedback d-block">
-                      Placa requerida (mínimo 6 caracteres)
-                    </div>
-                  }
-                </c-col>
-                
-                <c-col md="6">
-                  <button 
-                    cButton 
-                    color="primary" 
-                    type="submit"
-                    [disabled]="searchForm.invalid || searching">
-                    @if (searching) {
-                      <c-spinner size="sm" class="me-1"></c-spinner>
-                    } @else {
-                      <i class="fa-solid fa-search me-1"></i>
-                    }
-                    Buscar
-                  </button>
-                </c-col>
-              </c-row>
-            </form>
-          </div>
-        }
-        
-        <!-- ========================= DATOS DE LA TRANSACCIÓN ========================= -->
-        @if (transaction) {
-          <div class="transaction-summary mb-4">
-            <h5 class="mb-3">
-              <i class="fa-solid fa-file-invoice-dollar me-2"></i>
-              Resumen de la Transacción
-            </h5>
-            
-            <c-row>
-              <c-col md="6">
-                <dl class="row">
-                  <dt class="col-sm-5">Transacción ID:</dt>
-                  <dd class="col-sm-7"><strong>#{{ transaction.id }}</strong></dd>
-                  
-                  <dt class="col-sm-5">Placa:</dt>
-                  <dd class="col-sm-7">
-                    <strong class="text-primary">{{ transaction.vehicle.plateNumber }}</strong>
-                  </dd>
-                  
-                  <dt class="col-sm-5">Cliente:</dt>
-                  <dd class="col-sm-7">{{ transaction.customer.name }}</dd>
-                  
-                  <dt class="col-sm-5">Parqueo:</dt>
-                  <dd class="col-sm-7">{{ transaction.parking.name }}</dd>
-                  
-                  <dt class="col-sm-5">Espacio:</dt>
-                  <dd class="col-sm-7">{{ transaction.zone.name }} - {{ transaction.space.code }}</dd>
-                </dl>
-              </c-col>
-              
-              <c-col md="6">
-                <dl class="row">
-                  <dt class="col-sm-5">Entrada:</dt>
-                  <dd class="col-sm-7">{{ transaction.entryTime | date: 'dd/MM/yyyy HH:mm' }}</dd>
-                  
-                  @if (transaction.exitTime) {
-                    <dt class="col-sm-5">Salida:</dt>
-                    <dd class="col-sm-7">{{ transaction.exitTime | date: 'dd/MM/yyyy HH:mm' }}</dd>
-                  }
-                  
-                  <dt class="col-sm-5">Duración:</dt>
-                  <dd class="col-sm-7">
-                    <c-badge color="info">{{ transaction.durationFormatted }}</c-badge>
-                  </dd>
-                  
-                  <dt class="col-sm-5">Tarifa:</dt>
-                  <dd class="col-sm-7">S/ {{ transaction.rate.hourlyRate }} / hora</dd>
-                  
-                  <dt class="col-sm-5">Estado Pago:</dt>
-                  <dd class="col-sm-7">
-                    <c-badge [color]="getPaymentStatusBadge(transaction.paymentStatus)">
-                      {{ getPaymentStatusText(transaction.paymentStatus) }}
-                    </c-badge>
-                  </dd>
-                </dl>
-              </c-col>
-            </c-row>
-            
-            <!-- Desglose de Montos -->
-            <div class="amount-breakdown mt-3 p-3 bg-light rounded">
-              <c-row>
-                <c-col md="8">
-                  <dl class="row mb-0">
-                    <dt class="col-6">Monto Calculado:</dt>
-                    <dd class="col-6 text-end">S/ {{ transaction.calculatedAmount?.toFixed(2) }}</dd>
-                    
-                    @if (transaction.discountAmount > 0) {
-                      <dt class="col-6">Descuento:</dt>
-                      <dd class="col-6 text-end text-success">- S/ {{ transaction.discountAmount.toFixed(2) }}</dd>
-                    }
-                  </dl>
-                </c-col>
-                <c-col md="4">
-                  <div class="total-amount text-end">
-                    <div class="small text-body-secondary">TOTAL A PAGAR</div>
-                    <div class="fs-3 fw-bold text-success">
-                      S/ {{ transaction.totalAmount?.toFixed(2) }}
-                    </div>
-                  </div>
-                </c-col>
-              </c-row>
-            </div>
-          </div>
-          
-          <hr class="my-4">
-          
-          <!-- ========================= FORMULARIO DE PAGO ========================= -->
-          @if (errorMessage) {
-            <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
-              <i class="fa-solid fa-triangle-exclamation me-2"></i>
-              {{ errorMessage }}
-            </c-alert>
+  <div class="card-body">
+
+    <!-- ===================== BÚSQUEDA ===================== -->
+    @if (!transaction) {
+    @if (searchErrorMessage) {
+    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+      <span><i class="fa-solid fa-triangle-exclamation me-2"></i>{{ searchErrorMessage }}</span>
+      <button type="button" class="btn-close" aria-label="Cerrar" (click)="searchErrorMessage = ''"></button>
+    </div>
+    }
+    <form [formGroup]="searchForm" (ngSubmit)="searchByPlate()">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label class="form-label" for="plateNumber">Placa del vehículo <span class="text-danger">*</span></label>
+          <input id="plateNumber" type="text" class="form-control text-uppercase" formControlName="plateNumber"
+            placeholder="Ej: ABC-123" [class.is-invalid]="isFieldInvalid('plateNumber')">
+          @if (isFieldInvalid('plateNumber')) {
+          <div class="invalid-feedback">Placa requerida (mínimo 6 caracteres)</div>
           }
-          
-          <form cForm [formGroup]="paymentForm" (ngSubmit)="onSubmit()">
-            <h5 class="mb-3">
-              <i class="fa-solid fa-cash-register me-2"></i>
-              Datos del Pago
-            </h5>
-            
-            <c-row class="mb-3">
-              <c-col md="6">
-                <label cFormLabel for="paymentTypeId">
-                  Método de Pago <span class="text-danger">*</span>
-                </label>
-                <select 
-                  cFormSelect 
-                  id="paymentTypeId"
-                  formControlName="paymentTypeId"
-                  [class.is-invalid]="isFieldInvalid(paymentForm, 'paymentTypeId')">
-                  <option [ngValue]="null">Seleccione</option>
-                  @for (paymentType of paymentTypes; track paymentType.id) {
-                    <option [ngValue]="paymentType.id">{{ paymentType.name }}</option>
-                  }
-                </select>
-                @if (isFieldInvalid(paymentForm, 'paymentTypeId')) {
-                  <div class="invalid-feedback d-block">Método de pago requerido</div>
-                }
-              </c-col>
-              
-              <c-col md="6">
-                <label cFormLabel for="amountPaid">
-                  Monto Recibido <span class="text-danger">*</span>
-                </label>
-                <input 
-                  cFormControl 
-                  type="number" 
-                  id="amountPaid"
-                  formControlName="amountPaid"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  [class.is-invalid]="isFieldInvalid(paymentForm, 'amountPaid')">
-                @if (calculateChange() > 0) {
-                  <small class="text-success">
-                    <i class="fa-solid fa-coins"></i>
-                    Vuelto: S/ {{ calculateChange().toFixed(2) }}
-                  </small>
-                }
-                @if (isFieldInvalid(paymentForm, 'amountPaid')) {
-                  <div class="invalid-feedback d-block">Monto requerido</div>
-                }
-              </c-col>
-            </c-row>
-            
-            <c-row class="mb-3">
-              <c-col md="6">
-                <label cFormLabel for="referenceNumber">
-                  Nº de Referencia / Transacción
-                </label>
-                <input 
-                  cFormControl 
-                  type="text" 
-                  id="referenceNumber"
-                  formControlName="referenceNumber"
-                  placeholder="Opcional">
-                <small cFormText>Para pagos con tarjeta o transferencia</small>
-              </c-col>
-            </c-row>
-            
-            <c-row class="mb-3">
-              <c-col xs="12">
-                <c-form-check>
-                  <input 
-                    cFormCheckInput 
-                    type="checkbox" 
-                    id="sendReceipt"
-                    formControlName="sendReceipt">
-                  <label cFormCheckLabel for="sendReceipt">
-                    Enviar comprobante al cliente
-                  </label>
-                </c-form-check>
-                @if (paymentForm.get('sendReceipt')?.value && transaction.customer.email) {
-                  <small class="text-body-secondary ms-4">
-                    <i class="fa-solid fa-envelope"></i>
-                    Se enviará a: {{ transaction.customer.email }}
-                  </small>
-                }
-                @if (paymentForm.get('sendReceipt')?.value && transaction.customer.phone) {
-                  <small class="text-body-secondary ms-4">
-                    <i class="fa-brands fa-whatsapp"></i>
-                    WhatsApp: {{ transaction.customer.phone }}
-                  </small>
-                }
-              </c-col>
-            </c-row>
-            
-            <c-row class="mb-3">
-              <c-col xs="12">
-                <label cFormLabel for="notes">
-                  Observaciones
-                </label>
-                <textarea 
-                  cFormControl 
-                  id="notes"
-                  formControlName="notes"
-                  rows="2"
-                  placeholder="Comentarios adicionales (opcional)">
-                </textarea>
-              </c-col>
-            </c-row>
-            
-            <!-- ========================= BOTONES ========================= -->
-            <c-row class="mt-4">
-              <c-col xs="12" class="d-flex justify-content-end gap-2">
-                <button 
-                  cButton 
-                  color="secondary" 
-                  type="button"
-                  (click)="cancel()"
-                  [disabled]="submitting">
-                  <i class="fa-solid fa-times me-1"></i>
-                  Cancelar
-                </button>
-                <button 
-                  cButton 
-                  color="success" 
-                  size="lg"
-                  type="submit"
-                  [disabled]="paymentForm.invalid || submitting">
-                  @if (submitting) {
-                    <c-spinner size="sm" class="me-1"></c-spinner>
-                  } @else {
-                    <i class="fa-solid fa-check-circle me-1"></i>
-                  }
-                  Procesar Pago - S/ {{ transaction.totalAmount?.toFixed(2) }}
-                </button>
-              </c-col>
-            </c-row>
-          </form>
-        }
-        
-        @if (!transaction && !searching && !searchErrorMessage) {
-          <div class="text-center py-5">
-            <i class="fa-solid fa-money-bill-wave fa-3x text-body-secondary mb-3"></i>
-            <p class="text-body-secondary">Ingrese una placa para procesar el pago</p>
+        </div>
+        <div class="col-md-6">
+          <button type="submit" class="btn btn-success" [disabled]="searching">
+            @if (searching) {<span class="spinner-border spinner-border-sm me-1"></span>} @else {<i class="fa-solid fa-search me-1"></i>}
+            Buscar
+          </button>
+        </div>
+      </div>
+    </form>
+    @if (!searching && !searchErrorMessage) {
+    <div class="text-center py-5 text-body-secondary">
+      <i class="fa-solid fa-money-bill-wave fa-3x mb-3"></i>
+      <p class="mb-0">Ingresa una placa para cobrar su estadía</p>
+    </div>
+    }
+    }
+
+    @if (transaction; as t) {
+    <div class="row g-4">
+      <!-- ===================== RESUMEN ===================== -->
+      <div class="col-lg-6">
+        <h5 class="mb-3"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Estadía #{{ t.id }}</h5>
+        <dl class="row mb-3">
+          <dt class="col-sm-5">Placa</dt>
+          <dd class="col-sm-7 fw-bold">{{ t.vehicle.plateNumber }}</dd>
+          <dt class="col-sm-5">Cliente</dt>
+          <dd class="col-sm-7">{{ t.customer.name }}</dd>
+          <dt class="col-sm-5">Parqueo</dt>
+          <dd class="col-sm-7">{{ t.parking.name }} · {{ t.zone.name }} - {{ t.space.code }}</dd>
+          <dt class="col-sm-5">Entrada</dt>
+          <dd class="col-sm-7">{{ t.entryTime | date: 'dd/MM/yyyy HH:mm' }}</dd>
+          <dt class="col-sm-5">Tarifa</dt>
+          <dd class="col-sm-7">{{ t.rate.name }} · S/ {{ t.rate.hourlyRate | number: '1.2-2' }} / hora</dd>
+          <dt class="col-sm-5">Estado de pago</dt>
+          <dd class="col-sm-7"><span class="badge" [ngClass]="'bg-' + statusColor(t.paymentStatus)"
+              [class.text-dark]="statusColor(t.paymentStatus) === 'warning'">{{ statusLabel(t.paymentStatus) }}</span></dd>
+          @if ((t.payment?.paidAmount ?? 0) > 0) {
+          <dt class="col-sm-5">Ya pagado</dt>
+          <dd class="col-sm-7">S/ {{ t.payment!.paidAmount | number: '1.2-2' }}
+            <small class="text-body-secondary">({{ t.payment!.paidAt | date: 'HH:mm' }})</small></dd>
+          }
+        </dl>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearSearch()">
+          <i class="fa-solid fa-search me-1"></i>Buscar otra placa
+        </button>
+      </div>
+
+      <!-- ===================== COBRO ===================== -->
+      <div class="col-lg-6">
+        @if (t.status !== 'ACTIVE') {
+        <div class="alert alert-secondary mb-0">
+          Esta estadía ya terminó ({{ t.status === 'CANCELLED' ? 'anulada' : 'el vehículo salió' }}).
+          <button type="button" class="btn btn-link p-0 ms-1" (click)="viewDetail()">Ver detalle</button>
+        </div>
+        } @else if (amountDue > 0) {
+        <app-charge-payment [concept]="'PARKING_STAY'" [sourceId]="t.id" [amountDue]="amountDue" [currency]="t.currency"
+          (paid)="onPaid()"></app-charge-payment>
+        } @else {
+        <div class="paid-box">
+          <div class="fw-semibold mb-1">
+            <i class="fa-solid fa-check-circle me-2"></i>
+            {{ (t.payment?.paidAmount ?? 0) > 0 ? 'Estadía pagada' : 'Sin costo: está dentro del tiempo de gracia' }}
           </div>
+          @if (t.payment?.exitDeadline) {
+          <small class="d-block mb-3">Puede salir sin pagar más hasta las <strong>{{ t.payment!.exitDeadline | date: 'HH:mm' }}</strong>.</small>
+          }
+          <button type="button" class="btn btn-success" (click)="goToExit()">
+            <i class="fa-solid fa-right-from-bracket me-2"></i>Registrar salida
+          </button>
+        </div>
         }
-        
-      </c-card-body>
-    </c-card>
-  </c-col>
-</c-row>
+      </div>
+    </div>
+    }
+
+    <div class="d-flex justify-content-end mt-4">
+      <button type="button" class="btn btn-secondary" (click)="cancel()">
+        <i class="fa-solid fa-arrow-left me-1"></i>Volver a activas
+      </button>
+    </div>
+  </div>
+</div>

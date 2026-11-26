@@ -100,6 +100,10 @@ export const routes: Routes = [
       },
       {
         path: '',
+        loadChildren: () => import('./views/payment-service/routes').then((m) => m.paymentRoutes)
+      },
+      {
+        path: '',
         loadChildren: () => import('./views/parking-service/routes').then((m) => m.parkingRoutes)
       },
 

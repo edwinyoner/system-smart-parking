@@ -5,7 +5,6 @@ import com.winnersystems.smartparking.parking.application.dto.query.PagedRespons
 import com.winnersystems.smartparking.parking.application.dto.query.TransactionDetailDto;
 import com.winnersystems.smartparking.parking.application.dto.query.TransactionDto;
 import com.winnersystems.smartparking.parking.application.port.input.transaction.*;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.ProcessPaymentRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.RecordEntryRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.RecordExitRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.response.ActiveTransactionResponse;
@@ -27,7 +26,7 @@ import java.time.LocalDateTime;
  * Endpoints:
  * - POST   /api/v1/transactions/entry          - Registrar entrada
  * - POST   /api/v1/transactions/exit           - Registrar salida
- * - POST   /api/v1/transactions/{id}/payment   - Procesar pago
+ * (El pago lo cobra payment-service; la salida exige que no se deba nada)
  * - GET    /api/v1/transactions/{id}           - Consultar por ID
  * - GET    /api/v1/transactions/active         - Listar activas
  * - GET    /api/v1/transactions                - Listar todas
@@ -42,7 +41,6 @@ public class TransactionRestAdapter {
 
    private final RecordEntryUseCase recordEntryUseCase;
    private final RecordExitUseCase recordExitUseCase;
-   private final ProcessPaymentUseCase processPaymentUseCase;
    private final GetTransactionUseCase getTransactionUseCase;
    private final ListActiveTransactionsUseCase listActiveTransactionsUseCase;
    private final ListTransactionsUseCase listTransactionsUseCase;
@@ -73,21 +71,6 @@ public class TransactionRestAdapter {
          @Valid @RequestBody RecordExitRequest request) {
 
       TransactionDetailDto dto = recordExitUseCase.recordExit(mapper.toCommand(request));
-      return ResponseEntity.ok(mapper.toDetailResponse(dto));
-   }
-
-   /**
-    * Procesa el pago de una transacción.
-    *
-    * POST /api/v1/transactions/{id}/payment
-    */
-   @PostMapping("/{id}/payment")
-   public ResponseEntity<TransactionDetailResponse> processPayment(
-         @PathVariable Long id,
-         @Valid @RequestBody ProcessPaymentRequest request) {
-
-      request.setTransactionId(id);
-      TransactionDetailDto dto = processPaymentUseCase.processPayment(mapper.toCommand(request));
       return ResponseEntity.ok(mapper.toDetailResponse(dto));
    }
 

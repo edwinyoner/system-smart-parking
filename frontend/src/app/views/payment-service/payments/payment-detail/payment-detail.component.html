@@ -1,0 +1,182 @@
+<div class="payment-detail-container">
+
+  <div class="page-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-receipt me-2"></i>
+      Pago #{{ payment?.id ?? '' }}
+    </h2>
+    <div class="d-flex gap-2">
+      @if (canCancel) {
+      <button class="btn btn-outline-danger" (click)="openCancel()"><i class="fas fa-ban me-2"></i>Anular QR</button>
+      }
+      @if (canRefund) {
+      <button class="btn btn-outline-warning" (click)="openRefund()"><i class="fas fa-rotate-left me-2"></i>Devolver</button>
+      }
+      <button class="btn btn-secondary" (click)="back()"><i class="fas fa-arrow-left me-2"></i>Volver</button>
+    </div>
+  </div>
+
+  @if (successMessage) {
+  <app-alert-message type="success" [message]="successMessage" [dismissible]="true" (onDismiss)="dismissSuccess()"></app-alert-message>
+  }
+  @if (errorMessage) {
+  <app-alert-message type="error" [message]="errorMessage" [dismissible]="true" (onDismiss)="dismissError()"></app-alert-message>
+  }
+
+  @if (isLoading) {
+  <div class="text-center py-5"><div class="spinner-border text-success" role="status"></div></div>
+  }
+
+  @if (payment; as p) {
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header"><strong><i class="fas fa-circle-info me-2"></i>Datos del pago</strong></div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Concepto</dt>
+            <dd class="col-sm-8">
+              <a [routerLink]="sourceLink(p.concept, p.sourceId)" class="source-link">{{ conceptLabel(p.concept) }} #{{ p.sourceId }}</a>
+              <div class="text-muted small">{{ p.description }}</div>
+            </dd>
+
+            <dt class="col-sm-4">Placa</dt>
+            <dd class="col-sm-8">{{ p.plateNumber || '-' }}</dd>
+
+            <dt class="col-sm-4">Tipo de pago</dt>
+            <dd class="col-sm-8">
+              {{ p.paymentTypeName }} <span class="badge bg-secondary ms-1">{{ p.paymentTypeCode }}</span>
+              <div class="text-muted small">Confirmación {{ confirmationLabel(p.confirmationMode) | lowercase }} · {{ channelLabel(p.channel) }}</div>
+            </dd>
+
+            @if (p.operationNumber) {
+            <dt class="col-sm-4">N.° de operación</dt>
+            <dd class="col-sm-8">{{ p.operationNumber }}</dd>
+            }
+            @if (p.gatewayReference) {
+            <dt class="col-sm-4">Referencia de la pasarela</dt>
+            <dd class="col-sm-8"><code>{{ p.gatewayReference }}</code></dd>
+            }
+            @if (p.status === 'PENDING' && p.expiresAt) {
+            <dt class="col-sm-4">El QR vence</dt>
+            <dd class="col-sm-8">{{ p.expiresAt | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
+            }
+
+            <dt class="col-sm-4">Creado</dt>
+            <dd class="col-sm-8">{{ p.createdAt | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
+            @if (p.paidAt) {
+            <dt class="col-sm-4">Pagado</dt>
+            <dd class="col-sm-8">{{ p.paidAt | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
+            }
+            @if (p.failureReason) {
+            <dt class="col-sm-4">Motivo del rechazo</dt>
+            <dd class="col-sm-8 text-danger">{{ p.failureReason }}</dd>
+            }
+            @if (p.cancelReason) {
+            <dt class="col-sm-4">Motivo de la anulación</dt>
+            <dd class="col-sm-8">{{ p.cancelReason }}</dd>
+            }
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-body text-center">
+          <span class="badge fs-6 mb-3" [ngClass]="statusBadge(p.status)">
+            <i class="fas me-1" [ngClass]="statusIcon(p.status)"></i>{{ statusLabel(p.status) }}
+          </span>
+          <div class="amount">S/ {{ p.amount | number: '1.2-2' }}</div>
+          @if (p.refundedAmount > 0) {
+          <div class="text-danger">Devuelto: - S/ {{ p.refundedAmount | number: '1.2-2' }}</div>
+          <div class="fw-semibold">Neto: S/ {{ netAmount | number: '1.2-2' }}</div>
+          }
+        </div>
+      </div>
+
+      @if (p.refundedAt) {
+      <div class="card mb-4">
+        <div class="card-header"><strong><i class="fas fa-rotate-left me-2"></i>Devolución</strong></div>
+        <div class="card-body small">
+          <div>{{ p.refundedAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+          <div class="text-muted">{{ p.refundReason }}</div>
+        </div>
+      </div>
+      }
+
+      <div class="card">
+        <div class="card-body small">
+          @if (p.settlementNotified) {
+          <i class="fas fa-check-circle text-success me-1"></i>parking-service registró este pago.
+          } @else if (p.status === 'COMPLETED' || p.status === 'PARTIALLY_REFUNDED' || p.status === 'REFUNDED') {
+          <i class="fas fa-rotate text-warning me-1"></i>parking-service aún no recibió el aviso: se reintenta cada minuto.
+          } @else {
+          <i class="fas fa-circle-minus text-muted me-1"></i>No cubre la deuda (no está pagado).
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+</div>
+
+<!-- Devolución -->
+@if (showRefund && payment) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title"><i class="fas fa-rotate-left me-2"></i>Devolver pago</h5>
+        <button type="button" class="btn-close" aria-label="Cerrar" (click)="showRefund = false"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="small text-body-secondary">
+          La devolución es <strong>manual</strong>: registra aquí lo que entregas al cliente.
+          Si la estadía sigue activa o es una multa, lo devuelto vuelve a quedar por pagar.
+        </p>
+        <div class="mb-3">
+          <label class="form-label" for="refundAmount">Monto (máximo S/ {{ payment.refundableAmount | number: '1.2-2' }})</label>
+          <input id="refundAmount" type="number" min="0.01" step="0.01" [max]="payment.refundableAmount" class="form-control"
+            [(ngModel)]="refundAmount" [class.is-invalid]="(refundAmount ?? 0) > payment.refundableAmount">
+        </div>
+        <div>
+          <label class="form-label" for="refundReason">Motivo <span class="text-danger">*</span></label>
+          <textarea id="refundReason" rows="2" maxlength="255" class="form-control" [(ngModel)]="refundReason"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showRefund = false">Cancelar</button>
+        <button type="button" class="btn btn-warning" (click)="confirmRefund()" [disabled]="refundInvalid || saving">
+          <i class="fas fa-rotate-left me-2"></i>Devolver
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Anulación -->
+@if (showCancel && payment) {
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="fas fa-ban me-2"></i>Anular QR</h5>
+        <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" (click)="showCancel = false"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p>El QR de <strong>S/ {{ payment.amount | number: '1.2-2' }}</strong> dejará de poder pagarse.</p>
+        <label class="form-label" for="cancelReason">Motivo <span class="text-danger">*</span></label>
+        <textarea id="cancelReason" rows="2" maxlength="255" class="form-control" [(ngModel)]="cancelReason"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showCancel = false">Cancelar</button>
+        <button type="button" class="btn btn-danger" (click)="confirmCancel()" [disabled]="!cancelReason.trim() || saving">Anular</button>
+      </div>
+    </div>
+  </div>
+</div>
+}

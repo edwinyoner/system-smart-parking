@@ -123,6 +123,14 @@ public class TransactionEntity {
    @Column(name = "CURRENCY", length = 3)
    private String currency;
 
+   /** Pagado, neto de devoluciones (lo avisa payment-service) */
+   @Column(name = "PAID_AMOUNT", precision = 10, scale = 2)
+   private BigDecimal paidAmount;
+
+   /** Último pago: desde aquí corre el tiempo para salir */
+   @Column(name = "PAID_AT")
+   private LocalDateTime paidAt;
+
    // ========================= ESTADOS =========================
 
    @Column(name = "STATUS", nullable = false, length = 20)

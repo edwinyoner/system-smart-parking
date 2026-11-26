@@ -41,3 +41,8 @@ dt {
 dd {
   color: #333;
 }
+.payment-step {
+  border: 1px solid var(--sp-warning-soft-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}

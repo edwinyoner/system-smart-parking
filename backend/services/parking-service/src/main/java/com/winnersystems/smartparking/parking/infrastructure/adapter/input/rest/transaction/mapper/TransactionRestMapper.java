@@ -1,12 +1,10 @@
 package com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.mapper;
 
-import com.winnersystems.smartparking.parking.application.dto.command.ProcessPaymentCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.RecordEntryCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.RecordExitCommand;
 import com.winnersystems.smartparking.parking.application.dto.query.ActiveTransactionDto;
 import com.winnersystems.smartparking.parking.application.dto.query.TransactionDetailDto;
 import com.winnersystems.smartparking.parking.application.dto.query.TransactionDto;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.ProcessPaymentRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.RecordEntryRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.request.RecordExitRequest;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.input.rest.transaction.dto.response.ActiveTransactionResponse;
@@ -59,20 +57,6 @@ public class TransactionRestMapper {
             request.getExitMethod(),
             request.getPhotoUrl(),
             request.getPlateConfidence(),
-            request.getNotes()
-      );
-   }
-
-   public ProcessPaymentCommand toCommand(ProcessPaymentRequest request) {
-      if (request == null) return null;
-
-      return new ProcessPaymentCommand(
-            request.getTransactionId(),
-            request.getPaymentTypeId(),
-            request.getAmountPaid(),
-            request.getReferenceNumber(),
-            request.getOperatorId(),
-            request.getSendReceipt(),
             request.getNotes()
       );
    }
@@ -198,11 +182,10 @@ public class TransactionRestMapper {
       // Pago
       if (dto.payment() != null) {
          response.setPayment(TransactionDetailResponse.PaymentInfo.builder()
-               .id(dto.payment().id())
-               .amount(dto.payment().amount())
-               .referenceNumber(dto.payment().referenceNumber())
-               .paymentDate(dto.payment().paymentDate())
-               .status(dto.payment().status())
+               .paidAmount(dto.payment().paidAmount())
+               .paidAt(dto.payment().paidAt())
+               .amountDue(dto.payment().amountDue())
+               .exitDeadline(dto.payment().exitDeadline())
                .build());
       }
 

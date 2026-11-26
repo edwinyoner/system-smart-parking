@@ -139,15 +139,19 @@ public record TransactionDetailDto(
    ) {}
 
    /**
-    * Información del pago registrado.
+    * Estado del pago de la estadía. El detalle de cada pago (tipo, operación, comprobante)
+    * está en payment-service: GET /payments/by-source/PARKING_STAY/{id}.
+    *
+    * @param paidAmount   pagado, neto de devoluciones
+    * @param paidAt       último pago
+    * @param amountDue    lo que falta pagar para salir ahora (0 si ya salió)
+    * @param exitDeadline hasta cuándo puede salir sin pagar más (null si no aplica)
     */
    public record PaymentInfo(
-         Long id,
-         String paymentType,
-         BigDecimal amount,
-         String referenceNumber,
-         LocalDateTime paymentDate,
-         String status
+         BigDecimal paidAmount,
+         LocalDateTime paidAt,
+         BigDecimal amountDue,
+         LocalDateTime exitDeadline
    ) {}
 
    /**

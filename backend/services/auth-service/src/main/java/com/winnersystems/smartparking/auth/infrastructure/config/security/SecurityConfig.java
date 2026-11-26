@@ -69,7 +69,8 @@ public class SecurityConfig {
                         "/forgot-password",    // POST /api/auth/forgot-password → /forgot-password
                         "/reset-password",     // POST /api/auth/reset-password → /reset-password
                         "/verify-email",        // GET  /api/auth/verify-email → /verify-email
-                        "/resend-verification"
+                        "/resend-verification",
+                        "/service-token"       // Solo red interna: el gateway no la publica
                   ).permitAll()
 
                   .requestMatchers("/change-password").authenticated()

@@ -1,7 +1,7 @@
 // src/app/views/parking-service/transactions/transaction-detail/transaction-detail.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   CardComponent,
   CardBodyComponent,
@@ -16,11 +16,17 @@ import {
 
 import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
 import { TransactionDetailResponse } from '../../../../core/models/parking-service/transaction.model';
+import { PaymentService } from '../../../../core/services/payment-service/payment.service';
+import { Payment } from '../../../../core/models/payment-service/payment.model';
+import {
+  paymentStatusBadge, paymentStatusLabel, stayPaymentStatusColor, stayPaymentStatusLabel,
+} from '../../../../core/utils/payment.util';
 
 @Component({
   selector: 'app-transaction-detail',
   standalone: true,
   imports: [
+    RouterLink,
     CommonModule,
     CardComponent,
     CardBodyComponent,
@@ -40,11 +46,14 @@ export class TransactionDetailComponent implements OnInit {
   transaction: TransactionDetailResponse | null = null;
   loading = false;
   errorMessage = '';
+  /** Pagos de esta estadía en payment-service */
+  payments: Payment[] = [];
   
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private transactionService: TransactionService
+    private transactionService: TransactionService,
+    private paymentService: PaymentService
   ) {}
   
   ngOnInit(): void {
@@ -62,6 +71,10 @@ export class TransactionDetailComponent implements OnInit {
       next: (transaction) => {
         this.transaction = transaction;
         this.loading = false;
+        this.paymentService.getBySource('PARKING_STAY', id, true).subscribe({
+          next: payments => (this.payments = payments),
+          error: () => (this.payments = []),   // sin permiso de pagos: solo se ve el resumen
+        });
       },
       error: (error) => {
         console.error('Error loading transaction:', error);
@@ -78,7 +91,7 @@ export class TransactionDetailComponent implements OnInit {
   }
   
   goToProcessPayment(): void {
-    if (this.transaction && this.transaction.paymentStatus === 'PENDING') {
+    if (this.transaction && this.transaction.status === 'ACTIVE') {
       this.router.navigate(['/transactions/payment'], {
         queryParams: { transactionId: this.transaction.id }
       });
@@ -113,21 +126,8 @@ export class TransactionDetailComponent implements OnInit {
     }
   }
   
-  getPaymentStatusBadge(status: string): string {
-    switch (status) {
-      case 'PAID': return 'success';
-      case 'PENDING': return 'warning';
-      case 'OVERDUE': return 'danger';
-      default: return 'secondary';
-    }
-  }
-  
-  getPaymentStatusText(status: string): string {
-    switch (status) {
-      case 'PAID': return 'Pagado';
-      case 'PENDING': return 'Pendiente';
-      case 'OVERDUE': return 'Vencido';
-      default: return status;
-    }
-  }
+  getPaymentStatusBadge = stayPaymentStatusColor;
+  getPaymentStatusText = stayPaymentStatusLabel;
+  paymentBadge = paymentStatusBadge;
+  paymentLabel = paymentStatusLabel;
 }

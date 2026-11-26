@@ -17,7 +17,7 @@ import com.winnersystems.smartparking.parking.application.dto.query.InfractionDt
  * - infractionCode (generado automáticamente)
  * - parkingId, zoneId, vehicleId (datos originales)
  * - status (solo por ResolveInfractionUseCase)
- * - fineAmount, finePaid (solo por AssignFineUseCase y RecordFinePaymentUseCase)
+ * - fineAmount, finePaid (la multa con AssignFineUseCase; su pago lo registra payment-service)
  *
  * Usado por:
  * - Operadores que agregan más información

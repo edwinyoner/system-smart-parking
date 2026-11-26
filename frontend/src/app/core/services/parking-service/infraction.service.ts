@@ -10,7 +10,7 @@ import { PaginatedResponse } from '../../models/pagination.model';
   providedIn: 'root'
 })
 export class InfractionService {
-  private apiUrl = `${environment.apiUrl}/parking-service/api/v1/infractions`;
+  private apiUrl = `${environment.apiUrl}/parking-service/v1/infractions`;
 
   constructor(private http: HttpClient) {}
 

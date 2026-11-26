@@ -19,12 +19,18 @@ public class JwtAdapter implements JwtPort {
    private final long accessTokenExpiration;
    private final long refreshTokenExpiration;
    private final long refreshTokenExpirationRememberMe;
+   private final long serviceTokenExpiration;
+
+   /** Claim que distingue un token de servicio de uno de usuario */
+   public static final String TOKEN_TYPE_CLAIM = "tokenType";
+   public static final String SERVICE_TOKEN_TYPE = "SERVICE";
 
    public JwtAdapter(
          @Value("${jwt.secret}") String secret,
          @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
          @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration,
-         @Value("${jwt.refresh-token-expiration-remember-me}") long refreshTokenExpirationRememberMe) {
+         @Value("${jwt.refresh-token-expiration-remember-me}") long refreshTokenExpirationRememberMe,
+         @Value("${jwt.service-token-expiration:300000}") long serviceTokenExpiration) {
 
       byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
       if (keyBytes.length < 32) {
@@ -35,6 +41,31 @@ public class JwtAdapter implements JwtPort {
       this.accessTokenExpiration = accessTokenExpiration;
       this.refreshTokenExpiration = refreshTokenExpiration;
       this.refreshTokenExpirationRememberMe = refreshTokenExpirationRememberMe;
+      this.serviceTokenExpiration = serviceTokenExpiration;
+   }
+
+   @Override
+   public String generateServiceToken(String clientId, Set<String> permissions) {
+      Date now = new Date();
+      return Jwts.builder()
+            .claim(TOKEN_TYPE_CLAIM, SERVICE_TOKEN_TYPE)
+            .claim("clientId", clientId)
+            .claim("permissions", permissions)
+            .subject("service:" + clientId)
+            .issuedAt(now)
+            .expiration(new Date(now.getTime() + serviceTokenExpiration))
+            .signWith(secretKey)
+            .compact();
+   }
+
+   @Override
+   public long serviceTokenExpirationSeconds() {
+      return serviceTokenExpiration / 1000;
+   }
+
+   @Override
+   public boolean isServiceToken(String token) {
+      return SERVICE_TOKEN_TYPE.equals(extractClaims(token).get(TOKEN_TYPE_CLAIM, String.class));
    }
 
    @Override

@@ -169,6 +169,7 @@ public class DataSeeder implements CommandLineRunner {
             {"payment-types.read", "Ver tipos de pago"},
             {"payment-types.update", "Actualizar tipos de pago"},
             {"payment-types.delete", "Eliminar tipos de pago"},
+            {"payment-types.restore", "Ver tipos de pago eliminados y restaurarlos"},
 
             // Pagos
             {"payments.process", "Procesar pagos de estacionamiento"},
@@ -262,6 +263,7 @@ public class DataSeeder implements CommandLineRunner {
                   "transactions.view",
                   // Gestión de Tipos de Pago
                   "payment-types.create", "payment-types.read", "payment-types.update", "payment-types.delete",
+                  "payment-types.restore",
                   // Ver pagos
                   "payments.view",
                   // Gestión de Infracciones

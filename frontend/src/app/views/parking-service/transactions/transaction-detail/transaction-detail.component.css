@@ -43,3 +43,11 @@ dd {
 .gap-2 {
   gap: 0.5rem !important;
 }
+.payment-link {
+  color: var(--sp-success-strong);
+  text-decoration: none;
+}
+
+.payment-link:hover {
+  text-decoration: underline;
+}

@@ -32,6 +32,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+   /** Claim y valor que marcan un token de servicio (lo emite auth-service en /service-token) */
+   static final String SERVICE_TOKEN_TYPE = "SERVICE";
+   /** Prefijo de los permisos que solo puede traer un token de servicio */
+   public static final String INTERNAL_PREFIX = "internal.";
+   /** Autoridad de todo token de servicio (no empieza con ROLE_: ningún rol humano la produce) */
+   public static final String SERVICE_CLIENT_AUTHORITY = "SERVICE_CLIENT";
+
    private final JwtService jwtService;
 
    @Override
@@ -49,24 +56,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
          try {
             // 3. Extraer claims del JWT (los emite auth-service)
             Claims claims = jwtService.extractAllClaims(token);
-            Long userId = claims.get("userId", Long.class);
-            String email = claims.getSubject();
-            String activeRole = claims.get("activeRole", String.class);
+            boolean serviceToken = SERVICE_TOKEN_TYPE.equals(claims.get("tokenType", String.class));
 
-            // 4. Autoridades: los permisos del rol activo y el rol ("ROLE_ADMIN")
+            // 4. Autoridades. Usuario: permisos del rol activo y el rol ("ROLE_ADMIN").
+            //    Microservicio: solo permisos internos (internal.*) y SERVICE_CLIENT.
+            //    Un token de usuario nunca recibe permisos internos, aunque los traiga.
             List<GrantedAuthority> authorities = new ArrayList<>();
             if (claims.get("permissions") instanceof Collection<?> permissions) {
                for (Object permission : permissions) {
-                  authorities.add(new SimpleGrantedAuthority(String.valueOf(permission)));
+                  String name = String.valueOf(permission);
+                  boolean internal = name.startsWith(INTERNAL_PREFIX) || SERVICE_CLIENT_AUTHORITY.equals(name);
+                  if (serviceToken == internal) {
+                     authorities.add(new SimpleGrantedAuthority(name));
+                  }
                }
             }
-            if (activeRole != null) {
-               authorities.add(new SimpleGrantedAuthority("ROLE_" + activeRole));
-            }
-            log.debug("JWT válido: userId={}, activeRole={}, permisos={}", userId, activeRole, authorities.size());
 
-            // 5. Usuario autenticado con su ID, para la auditoría
-            CustomUserDetails userDetails = new CustomUserDetails(userId, email, activeRole, authorities);
+            CustomUserDetails userDetails;
+            if (serviceToken) {
+               authorities.add(new SimpleGrantedAuthority(SERVICE_CLIENT_AUTHORITY));
+               // 5a. Microservicio: sin userId; la auditoría de sus acciones la lleva quien la origina
+               userDetails = new CustomUserDetails(null, claims.getSubject(), null, authorities);
+               log.debug("Token de servicio válido: {}, permisos={}", claims.getSubject(), authorities.size());
+            } else {
+               Long userId = claims.get("userId", Long.class);
+               String activeRole = claims.get("activeRole", String.class);
+               if (activeRole != null) {
+                  authorities.add(new SimpleGrantedAuthority("ROLE_" + activeRole));
+               }
+               // 5b. Usuario autenticado con su ID, para la auditoría
+               userDetails = new CustomUserDetails(userId, claims.getSubject(), activeRole, authorities);
+               log.debug("JWT válido: userId={}, activeRole={}, permisos={}", userId, activeRole, authorities.size());
+            }
 
             // 6. Establecer autenticación en el contexto de Spring Security
             UsernamePasswordAuthenticationToken authentication =
@@ -77,8 +98,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                   );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            log.debug("Usuario autenticado: userId={}", userId);
 
          } catch (Exception e) {
             // Token con claims inesperados: la petición sigue sin autenticar y Spring responde 401

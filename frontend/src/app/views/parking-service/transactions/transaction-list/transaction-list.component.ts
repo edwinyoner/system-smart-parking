@@ -22,6 +22,7 @@ import { ParkingService } from '../../../../core/services/parking-service/parkin
 import { ZoneService } from '../../../../core/services/parking-service/zone.service';
 
 import { TransactionDto, TransactionStatus, TransactionPaymentStatus } from '../../../../core/models/parking-service/transaction.model';
+import { stayPaymentStatusColor, stayPaymentStatusLabel } from '../../../../core/utils/payment.util';
 import { Parking } from '../../../../core/models/parking-service/parking.model';
 import { Zone } from '../../../../core/models/parking-service/zone.model';
 
@@ -76,7 +77,7 @@ export class TransactionListComponent implements OnInit {
   
   // ========================= CONSTANTES =========================
   transactionStatuses: TransactionStatus[] = ['ACTIVE', 'COMPLETED', 'CANCELLED'];
-  paymentStatuses: TransactionPaymentStatus[] = ['PENDING', 'PAID', 'OVERDUE'];
+  paymentStatuses: TransactionPaymentStatus[] = ['PENDING', 'PAID', 'NOT_REQUIRED', 'REFUNDED', 'OVERDUE'];
   
   constructor(
     private transactionService: TransactionService,
@@ -326,21 +327,6 @@ export class TransactionListComponent implements OnInit {
     }
   }
   
-  getPaymentStatusBadge(status: string): string {
-    switch (status) {
-      case 'PAID': return 'success';
-      case 'PENDING': return 'warning';
-      case 'OVERDUE': return 'danger';
-      default: return 'secondary';
-    }
-  }
-  
-  getPaymentStatusText(status: string): string {
-    switch (status) {
-      case 'PAID': return 'Pagado';
-      case 'PENDING': return 'Pendiente';
-      case 'OVERDUE': return 'Vencido';
-      default: return status;
-    }
-  }
+  getPaymentStatusBadge = stayPaymentStatusColor;
+  getPaymentStatusText = stayPaymentStatusLabel;
 }

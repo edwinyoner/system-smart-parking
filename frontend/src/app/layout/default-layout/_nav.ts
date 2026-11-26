@@ -90,6 +90,7 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Tipos de Pago",
     url: "/payment-types",
     icon: "fa-solid fa-money-check",
+    requiredPermissions: ["payment-types.read"],
   },
 
   // ==================== CLIENTES Y VEHÍCULOS ====================
@@ -137,6 +138,7 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Procesar Pago",
     url: "/transactions/payment",
     icon: "fa-solid fa-money-bill-wave",
+    requiredPermissions: ["payments.process"],
   },
   {
     name: "Historial Transacciones",
@@ -166,7 +168,8 @@ export const navItems: INavDataWithPermissions[] = [
   {
     name: "Historial de Pagos",
     url: "/payments",
-    icon: "fa-solid fa-list",
+    icon: "fa-solid fa-receipt",
+    requiredPermissions: ["payments.view"],
   },
 
   // ==================== REPORTES ====================

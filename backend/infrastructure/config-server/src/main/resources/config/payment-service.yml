@@ -1,0 +1,120 @@
+# ================================================================================
+# CONFIGURACIÓN DEL MICROSERVICIO: payment-service
+# config-server/src/main/resources/config/payment-service.yml
+# Tipos de pago, cobros (QR con pasarela) y comprobantes internos
+# ================================================================================
+
+server:
+  port: 8085
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: payment-service
+
+  # ========== DATASOURCE (SQL Server 2022) ==========
+  # La base payment_service_db la crea el contenedor sqlserver al arrancar (docker-init/sqlserver/entrypoint.sh)
+  datasource:
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: jdbc:sqlserver://localhost:1433;databaseName=payment_service_db;encrypt=true;trustServerCertificate=true
+    username: ${MSSQL_USER}
+    password: ${MSSQL_PASSWORD}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 2
+      pool-name: PaymentServiceHikariCP
+
+  # ========== JPA / HIBERNATE ==========
+  jpa:
+    database-platform: org.hibernate.dialect.SQLServerDialect
+    hibernate:
+      ddl-auto: create-drop   # Desarrollo: create-drop (borra los datos en cada reinicio) | Producción: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+    show-sql: false
+    properties:
+      hibernate:
+        # NVARCHAR en vez de VARCHAR: guarda tildes y ñ sin depender de la intercalación
+        use_nationalized_character_data: true
+        format_sql: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  # ========== ZONA HORARIA ==========
+  jackson:
+    time-zone: America/Lima
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+
+# ========== EUREKA CLIENT ==========
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 10
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+    metadata-map:
+      version: 1.0.0
+      description: "Payment Microservice"
+
+# ========== PAGOS ==========
+payment:
+  qr:
+    expiration-minutes: 10        # Un QR sin pagar vence a los 10 minutos
+  gateway:
+    mode: simulated               # simulated (tesis) | una pasarela real en el futuro
+    # Secreto compartido con la pasarela para firmar los avisos (webhook). Mínimo 32 caracteres
+    webhook-secret: ${PAYMENT_GATEWAY_WEBHOOK_SECRET:}
+    simulator:
+      webhook-url: http://localhost:8085/payments/webhook
+  maintenance:
+    interval-ms: 60000            # Vencer QR y reintentar avisos a parking-service
+
+# ========== TOKEN DE SERVICIO ==========
+# payment-service pide su propio token a auth-service (POST /service-token) para llamar a parking-service
+service-client:
+  client-id: payment-service
+  secret: ${PAYMENT_SERVICE_CLIENT_SECRET:}
+
+# ========== FEIGN ==========
+spring.cloud.openfeign:
+  client:
+    config:
+      default:
+        connect-timeout: 3000
+        read-timeout: 5000
+        logger-level: basic
+
+# ========== JWT ==========
+# Mismo secreto que auth-service (que firma); aquí solo se valida
+jwt:
+  secret: ${JWT_SECRET}   # Definido en backend/.env (no versionado)
+
+# ========== LOGGING ==========
+logging:
+  level:
+    root: INFO
+    com.winnersystems.smartparking.payment: DEBUG
+  file:
+    name: logs/payment-service.log
+
+# ========== APPLICATION INFO ==========
+info:
+  app:
+    name: Payment Service
+    description: Microservicio de tipos de pago, cobros y comprobantes internos
+    version: 1.0.0
+    database: SQL Server 2022

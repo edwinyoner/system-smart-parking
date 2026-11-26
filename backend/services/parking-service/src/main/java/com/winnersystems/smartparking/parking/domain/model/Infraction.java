@@ -287,17 +287,45 @@ public class Infraction {
 
    // ========================= MÉTODOS DE NEGOCIO - PAGO DE MULTA =========================
 
+   /** Se puede pagar: tiene multa, no está pagada, no fue desestimada ni eliminada */
+   public boolean isFinePayable() {
+      return hasFine() && !isFinePaid() && !isDeleted()
+            && !RESOLUTION_DISMISSED.equals(resolutionType);
+   }
+
+   /** Lo que falta pagar de la multa */
+   public BigDecimal getFineAmountDue() {
+      if (!hasFine()) {
+         return BigDecimal.ZERO;
+      }
+      BigDecimal paid = finePaidAmount == null ? BigDecimal.ZERO : finePaidAmount;
+      BigDecimal due = fineAmount.subtract(paid);
+      return due.signum() < 0 ? BigDecimal.ZERO : due;
+   }
+
    /**
-    * Registra el pago de la multa.
+    * Registra lo que avisa payment-service: el total pagado (neto de devoluciones).
+    * Pagada por completo: se resuelve como PAID. Si luego se devuelve el pago, vuelve a PENDING.
     *
-    * @param amount monto pagado
-    * @param reference número de referencia
+    * @param lastPaymentId pago más reciente, como referencia (el detalle está en payment-service)
     */
-   public void recordFinePayment(BigDecimal amount, String reference) {
-      this.finePaid = true;
-      this.finePaidAt = LocalDateTime.now();
-      this.finePaidAmount = amount;
-      this.finePaymentReference = reference;
+   public void applyFineSettlement(BigDecimal netPaid, LocalDateTime paidAt, Long lastPaymentId) {
+      this.finePaidAmount = netPaid == null || netPaid.signum() < 0 ? BigDecimal.ZERO : netPaid;
+      this.finePaymentReference = lastPaymentId == null ? null : "PAGO-" + lastPaymentId;
+      boolean paid = hasFine() && finePaidAmount.compareTo(fineAmount) >= 0;
+      boolean wasPaid = isFinePaid();
+      this.finePaid = paid;
+      this.finePaidAt = paid ? paidAt : null;
+      if (paid && !isResolved()) {
+         resolveAsPaid(null, "Multa pagada (pago N.° " + lastPaymentId + ")");
+      } else if (!paid && wasPaid && RESOLUTION_PAID.equals(resolutionType)) {
+         // Se devolvió el pago: la multa vuelve a estar pendiente
+         this.status = STATUS_PENDING;
+         this.resolvedAt = null;
+         this.resolvedBy = null;
+         this.resolution = null;
+         this.resolutionType = null;
+      }
       this.updatedAt = LocalDateTime.now();
    }
 

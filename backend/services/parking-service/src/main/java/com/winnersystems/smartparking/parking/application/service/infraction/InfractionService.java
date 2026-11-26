@@ -31,8 +31,7 @@ public class InfractionService implements
       GetInfractionUseCase,
       UpdateInfractionUseCase,
       ListInfractionsUseCase,
-      AssignFineUseCase,
-      RecordFinePaymentUseCase {
+      AssignFineUseCase {
 
    // ========================= PUERTOS DE SALIDA =========================
 
@@ -266,43 +265,6 @@ public class InfractionService implements
       } else {
          infraction.assignFine(command.fineAmount()); // 7 días por defecto
       }
-
-      Infraction saved = infractionPersistencePort.save(infraction);
-      return buildInfractionDto(saved);
-   }
-
-   // ========================= RecordFinePaymentUseCase =========================
-
-   @Override
-   public InfractionDto recordFinePayment(Long infractionId, RecordFinePaymentCommand command) {
-      Infraction infraction = loadInfraction(infractionId);
-
-      // Validar multa
-      if (!infraction.hasFine()) {
-         throw new IllegalStateException(
-               String.format("La infracción #%d no tiene multa asignada", infractionId)
-         );
-      }
-
-      if (infraction.isFinePaid()) {
-         throw new IllegalStateException(
-               String.format("La multa de la infracción #%d ya está pagada", infractionId)
-         );
-      }
-
-      // Validar monto
-      if (command.amount().compareTo(infraction.getFineAmount()) < 0) {
-         throw new IllegalArgumentException(
-               String.format("Monto insuficiente. Requerido: %s, recibido: %s",
-                     infraction.getFineAmount(), command.amount())
-         );
-      }
-
-      // Registrar pago
-      infraction.recordFinePayment(command.amount(), command.reference());
-
-      // Resolver automáticamente como PAID
-      infraction.resolveAsPaid(getCurrentUserId(), "Multa pagada");
 
       Infraction saved = infractionPersistencePort.save(infraction);
       return buildInfractionDto(saved);

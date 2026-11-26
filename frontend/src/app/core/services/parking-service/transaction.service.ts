@@ -1,6 +1,6 @@
 // src/app/core/services/parking-service/transaction.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
@@ -8,16 +8,16 @@ import {
   ActiveTransactionDto,
   TransactionDto,
   TransactionEntryRequest,
-  TransactionExitRequest,
-  ProcessPaymentRequest
+  TransactionExitRequest
 } from '../../models/parking-service/transaction.model';
 import { ParkingPagedResponse } from '../../models/pagination.model';
+import { SKIP_LOADING } from '../../interceptors/loading.interceptor';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TransactionService {
-  private apiUrl = `${environment.apiUrl}/parking-service/transactions`;
+  private apiUrl = `${environment.apiUrl}/parking-service/v1/transactions`;
 
   constructor(private http: HttpClient) {}
 
@@ -47,21 +47,6 @@ export class TransactionService {
     );
   }
 
-  /**
-   * Procesa el PAGO de una transacción.
-   * 
-   * POST /transactions/{id}/payment
-   */
-  processPayment(
-    transactionId: number,
-    request: ProcessPaymentRequest
-  ): Observable<TransactionDetailResponse> {
-    return this.http.post<TransactionDetailResponse>(
-      `${this.apiUrl}/${transactionId}/payment`,
-      request
-    );
-  }
-
   // ========================= CONSULTAS INDIVIDUALES =========================
 
   /**
@@ -69,8 +54,11 @@ export class TransactionService {
    * 
    * GET /transactions/{id}
    */
-  getById(id: number): Observable<TransactionDetailResponse> {
-    return this.http.get<TransactionDetailResponse>(`${this.apiUrl}/${id}`);
+  /** silent: recálculo en segundo plano (lo que se debe sube con el tiempo), sin spinner global */
+  getById(id: number, silent = false): Observable<TransactionDetailResponse> {
+    return this.http.get<TransactionDetailResponse>(`${this.apiUrl}/${id}`, {
+      context: new HttpContext().set(SKIP_LOADING, silent),
+    });
   }
 
   /**

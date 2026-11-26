@@ -47,7 +47,7 @@ import { TransactionService } from '../../core/services/parking-service/transact
 import { CustomerService } from '../../core/services/parking-service/customer.service';
 import { VehicleService } from '../../core/services/parking-service/vehicle.service';
 import { InfractionService } from '../../core/services/parking-service/infraction.service';
-import { PaymentService } from '../../core/services/parking-service/payment.service';
+import { PaymentService } from '../../core/services/payment-service/payment.service';
 
 import { Parking } from '../../core/models/parking-service/parking.model';
 import { Zone } from '../../core/models/parking-service/zone.model';
@@ -56,11 +56,12 @@ import { ActiveTransactionDto, TransactionDto } from '../../core/models/parking-
 import { Customer } from '../../core/models/parking-service/customer.model';
 import { Vehicle } from '../../core/models/parking-service/vehicle.model';
 import { Infraction } from '../../core/models/parking-service/infraction.model';
-import { PaymentDto } from '../../core/models/parking-service/payment.model';
+import { Payment } from '../../core/models/payment-service/payment.model';
+import { paymentStatusLabel } from '../../core/utils/payment.util';
 
 import { interval, Subscription, forkJoin, Observable } from 'rxjs';
 import { switchMap, startWith, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { of, map } from 'rxjs';
 import { Router } from '@angular/router';
 
 /**
@@ -244,7 +245,7 @@ export class DashboardComponent implements OnInit {
   topZones = signal<ZoneStats[]>([]);
   activeTransactions = signal<ActiveTransactionDto[]>([]);
   recentTransactions = signal<TransactionDto[]>([]);
-  recentPayments = signal<PaymentDto[]>([]);
+  recentPayments = signal<Payment[]>([]);
   topCustomers = signal<Customer[]>([]);
   topVehicles = signal<Vehicle[]>([]);
   recentInfractions = signal<Infraction[]>([]);
@@ -297,7 +298,10 @@ export class DashboardComponent implements OnInit {
       customers: this.#customerService.getAll({ pageNumber: 0, pageSize: 10 }).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
       recurrentCustomers: this.#customerService.getRecurrent(0, 10).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
       vehicles: this.#vehicleService.getAll({ pageNumber: 0, pageSize: 10 }).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
-      payments: of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }),
+      // Últimos pagos cobrados (payment-service). Sin payments.view, la tarjeta queda vacía
+      payments: this.#paymentService.getAll(0, 10, { status: 'COMPLETED' }, true).pipe(
+        map(page => ({ items: page.content, totalElements: page.totalElements, totalPages: page.totalPages, pageNumber: page.pageNumber, pageSize: page.pageSize })),
+        catchError(() => of({ items: [] as Payment[], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 }))),
       infractions: this.#infractionService.getAll(0, 10).pipe(catchError(() => of({ items: [], totalElements: 0, totalPages: 0, pageNumber: 0, pageSize: 0 })))
     }).subscribe({
       next: (data) => {
@@ -376,12 +380,12 @@ export class DashboardComponent implements OnInit {
 
     // Calcular ticket promedio
     if (payments.length > 0) {
-      const totalPayments = payments.reduce((sum: number, p: PaymentDto) => sum + (p.amount || 0), 0);
+      const totalPayments = payments.reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
       stats.averageTicket = totalPayments / payments.length;
     }
 
     // Calcular ingresos del mes (suma de todos los pagos)
-    stats.monthRevenue = payments.reduce((sum: number, p: PaymentDto) => sum + (p.amount || 0), 0);
+    stats.monthRevenue = payments.reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
 
     this.systemStats.set(stats);
 
@@ -488,6 +492,8 @@ export class DashboardComponent implements OnInit {
   getPercentage(value: number, total: number): number {
     return total > 0 ? Math.round((value / total) * 100) : 0;
   }
+
+  paymentStatusLabel = paymentStatusLabel;
 
   getStatusColor(status: string): string {
     const colorMap: Record<string, string> = {

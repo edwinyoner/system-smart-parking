@@ -41,6 +41,18 @@ public interface JwtPort {
          Set<String> permissions
    );
 
+   /**
+    * Token de servicio (client credentials): tokenType = SERVICE, sujeto "service:<clientId>",
+    * sin userId ni roles y con permisos internos.
+    */
+   String generateServiceToken(String clientId, Set<String> permissions);
+
+   /** Duración de un token de servicio, en segundos */
+   long serviceTokenExpirationSeconds();
+
+   /** true si el token es de un microservicio (tokenType = SERVICE), no de un usuario */
+   boolean isServiceToken(String token);
+
    String extractEmail(String token);
    boolean validateToken(String token);
    Long extractUserId(String token);

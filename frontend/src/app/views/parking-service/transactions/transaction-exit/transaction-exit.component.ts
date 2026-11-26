@@ -1,5 +1,7 @@
 // src/app/views/parking-service/transactions/transaction-exit/transaction-exit.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, catchError, exhaustMap, filter } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -23,6 +25,9 @@ import { DocumentTypeService } from '../../../../core/services/parking-service/d
 
 import { TransactionDetailResponse, TransactionExitRequest } from '../../../../core/models/parking-service/transaction.model';
 import { DocumentType } from '../../../../core/models/parking-service/document-type.model';
+import { ChargePaymentComponent } from '../../../payment-service/payments/charge-payment/charge-payment.component';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
+import { stayPaymentStatusColor, stayPaymentStatusLabel } from '../../../../core/utils/payment.util';
 
 @Component({
   selector: 'app-transaction-exit',
@@ -41,7 +46,8 @@ import { DocumentType } from '../../../../core/models/parking-service/document-t
     ButtonDirective,
     SpinnerComponent,
     AlertComponent,
-    BadgeComponent
+    BadgeComponent,
+    ChargePaymentComponent
   ],
   templateUrl: './transaction-exit.component.html',
   styleUrls: ['./transaction-exit.component.css']
@@ -63,6 +69,8 @@ export class TransactionExitComponent implements OnInit {
   // ========================= MENSAJES =========================
   errorMessage = '';
   searchErrorMessage = '';
+
+  private destroyRef = inject(DestroyRef);
   
   constructor(
     private fb: FormBuilder,
@@ -76,6 +84,24 @@ export class TransactionExitComponent implements OnInit {
     this.buildForms();
     this.loadDocumentTypes();
     this.checkQueryParams();
+
+    // Lo que se debe sube con el tiempo: se recalcula cada 15 s sin spinner
+    liveRefresh(15000).pipe(
+      filter(() => !!this.transaction && !this.submitting),
+      exhaustMap(() => this.transactionService.getById(this.transaction!.id, true).pipe(catchError(() => EMPTY))),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(t => (this.transaction = t));
+  }
+
+  /** Lo que falta pagar para poder salir */
+  get amountDue(): number {
+    return this.transaction?.payment?.amountDue ?? 0;
+  }
+
+  /** Tras el pago, parking-service ya recibió el aviso: se recarga para habilitar la salida */
+  onPaid(): void {
+    if (!this.transaction) return;
+    this.transactionService.getById(this.transaction.id, true).subscribe(t => (this.transaction = t));
   }
   
   // ========================= CONSTRUCCIÓN DE FORMULARIOS =========================
@@ -187,9 +213,10 @@ export class TransactionExitComponent implements OnInit {
         this.router.navigate(['/transactions', response.id]);
       },
       error: (error) => {
-        console.error('Error recording exit:', error);
+        // 409 "Falta pagar...": el monto subió (se pasó del tiempo para salir); se recarga para cobrar la diferencia
         this.errorMessage = error.error?.message || 'Error al registrar la salida';
         this.submitting = false;
+        if (error.status === 409) this.onPaid();
       }
     });
   }
@@ -221,21 +248,6 @@ export class TransactionExitComponent implements OnInit {
     this.router.navigate(['/transactions/active']);
   }
   
-  getPaymentStatusBadge(status: string): string {
-    switch (status) {
-      case 'PAID': return 'success';
-      case 'PENDING': return 'warning';
-      case 'OVERDUE': return 'danger';
-      default: return 'secondary';
-    }
-  }
-  
-  getPaymentStatusText(status: string): string {
-    switch (status) {
-      case 'PAID': return 'Pagado';
-      case 'PENDING': return 'Pendiente';
-      case 'OVERDUE': return 'Vencido';
-      default: return status;
-    }
-  }
+  paymentStatusLabel = stayPaymentStatusLabel;
+  paymentStatusColor = stayPaymentStatusColor;
 }

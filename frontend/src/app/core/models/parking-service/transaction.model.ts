@@ -5,9 +5,11 @@
 export type TransactionStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
 /**
- * Estados de Pago de una Transacción
+ * Estado de pago de una estadía (lo calcula parking-service con los avisos de payment-service):
+ * PENDING (debe), PAID (pagada), NOT_REQUIRED (salió en el tiempo de gracia),
+ * REFUNDED (se devolvió el pago tras salir), OVERDUE (vencida).
  */
-export type TransactionPaymentStatus = 'PENDING' | 'PAID' | 'OVERDUE';
+export type TransactionPaymentStatus = 'PENDING' | 'PAID' | 'NOT_REQUIRED' | 'REFUNDED' | 'OVERDUE';
 
 /**
  * Métodos de registro (entrada/salida)
@@ -74,21 +76,6 @@ export interface TransactionExitRequest {
   plateConfidence?: number;
 
   // Observaciones
-  notes?: string;
-}
-
-/**
- * Request para PROCESAR PAGO de transacción.
- */
-export interface ProcessPaymentRequest {
-  // transactionId se setea desde el path /{id}/payment
-  paymentTypeId: number;
-  amountPaid: number;
-  operatorId: number;
-
-  // Opcionales
-  referenceNumber?: string;
-  sendReceipt?: boolean;          // Default true
   notes?: string;
 }
 
@@ -187,12 +174,13 @@ export interface TransactionDetailResponse {
 
   // ========================= PAGO =========================
 
+  // Se paga antes de salir. El detalle de cada pago está en payment-service
+  // (GET /payments/by-source/PARKING_STAY/{id})
   payment?: {
-    id: number;
-    amount: number;
-    referenceNumber?: string;
-    paymentDate: string;
-    status: string;
+    paidAmount: number;       // pagado, neto de devoluciones
+    paidAt?: string;          // último pago
+    amountDue: number;        // falta pagar para salir ahora (0 si ya salió)
+    exitDeadline?: string;    // hasta cuándo puede salir sin pagar más
   };
 
   // ========================= EVIDENCIA =========================
@@ -252,7 +240,7 @@ export interface ActiveTransactionDto {
 
   // Cálculo en tiempo real
   hourlyRate: number;
-  currentAmount: number;          // Monto acumulado ACTUAL
+  currentAmount: number;          // Lo que falta pagar si saliera ahora (descuenta lo ya pagado)
   currency: string;
 
   // Alertas

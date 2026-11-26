@@ -2,8 +2,6 @@ package com.winnersystems.smartparking.parking.infrastructure.config;
 
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.documenttype.entity.DocumentTypeEntity;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.documenttype.repository.DocumentTypeRepository;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.paymenttype.entity.PaymentTypeEntity;
-import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.paymenttype.repository.PaymentTypeRepository;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.rate.entity.RateEntity;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.rate.repository.RateRepository;
 import com.winnersystems.smartparking.parking.infrastructure.adapter.output.persistence.shift.entity.ShiftEntity;
@@ -25,7 +23,7 @@ import java.util.List;
  *
  * Carga:
  * - Tipos de documento (DNI, CE, Pasaporte, RUC)
- * - Tipos de pago (Efectivo, Tarjeta, QR, Yape, POS)
+ * (Los tipos de pago se cargan en payment-service)
  * - Turnos (Mañana, Tarde, Noche)
  * - Tarifas (Estándar, Nocturna, Preferencial)
  * - Relación Zona-Turno-Tarifa
@@ -40,17 +38,14 @@ import java.util.List;
 public class DataSeeder implements CommandLineRunner {
 
    private final DocumentTypeRepository documentTypeRepository;
-   private final PaymentTypeRepository paymentTypeRepository;
    private final ShiftRepository shiftRepository;
    private final RateRepository rateRepository;
 
    public DataSeeder(
          DocumentTypeRepository documentTypeRepository,
-         PaymentTypeRepository paymentTypeRepository,
          ShiftRepository shiftRepository,
          RateRepository rateRepository) {
       this.documentTypeRepository = documentTypeRepository;
-      this.paymentTypeRepository = paymentTypeRepository;
       this.shiftRepository = shiftRepository;
       this.rateRepository = rateRepository;
    }
@@ -62,7 +57,6 @@ public class DataSeeder implements CommandLineRunner {
       log.info("========================================");
 
       seedDocumentTypes();
-      seedPaymentTypes();
       seedShifts();
       seedRates();
 
@@ -111,54 +105,6 @@ public class DataSeeder implements CommandLineRunner {
             .numericOnly(numericOnly)
             .status(true)
             .build();
-   }
-
-   // ========================= TIPOS DE PAGO =========================
-
-   private void seedPaymentTypes() {
-      if (paymentTypeRepository.count() > 0) {
-         log.info("Tipos de pago ya existen, saltando...");
-         return;
-      }
-
-      log.info("→ Cargando tipos de pago...");
-
-      paymentTypeRepository.save(PaymentTypeEntity.builder()
-            .code("CASH")
-            .name("Efectivo")
-            .description("Pago en efectivo (billetes y monedas)")
-            .status(true)
-            .build());
-
-      paymentTypeRepository.save(PaymentTypeEntity.builder()
-            .code("YAPE")
-            .name("Yape")
-            .description("Pago con app Yape del BCP")
-            .status(true)
-            .build());
-
-      paymentTypeRepository.save(PaymentTypeEntity.builder()
-            .code("QR")
-            .name("Código QR")
-            .description("Pago mediante código QR")
-            .status(true)
-            .build());
-
-      paymentTypeRepository.save(PaymentTypeEntity.builder()
-            .code("CARD")
-            .name("Tarjeta de Crédito/Débito")
-            .description("Pago con tarjeta Visa, Mastercard, etc.")
-            .status(true)
-            .build());
-
-      paymentTypeRepository.save(PaymentTypeEntity.builder()
-            .code("POS")
-            .name("POS (Terminal)")
-            .description("Pago con terminal punto de venta")
-            .status(true)
-            .build());
-
-      log.info("5 tipos de pago cargados");
    }
 
    // ========================= TURNOS =========================

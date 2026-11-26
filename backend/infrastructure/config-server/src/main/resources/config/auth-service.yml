@@ -77,6 +77,19 @@ jwt:
   access-token-expiration: 1800000      # 30 minutos
   refresh-token-expiration: 604800000   # 7 días
   refresh-token-expiration-remember-me: 2592000000  # 30 días
+  service-token-expiration: 300000      # 5 minutos (tokens entre microservicios)
+
+# ========== CLIENTES DE SERVICIO (client credentials) ==========
+# Microservicios que piden un token propio en POST /service-token (solo red interna).
+# Sin secreto (o con menos de 32 caracteres) el cliente queda deshabilitado.
+# Sus permisos son internos (internal.*): no existen en la tabla de permisos.
+service-clients:
+  clients:
+    payment-service:
+      secret: ${PAYMENT_SERVICE_CLIENT_SECRET:}
+      permissions:
+        - internal.charges.read     # consultar cuánto se debe (estadía o multa)
+        - internal.charges.settle   # avisar que se pagó o se devolvió
 
 # ========== EMAIL TEMPLATES ==========
 email:

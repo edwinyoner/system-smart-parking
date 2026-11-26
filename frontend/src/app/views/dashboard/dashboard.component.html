@@ -226,7 +226,7 @@
     </c-col>
 
     <c-col xs="12" sm="6" lg="4" class="mb-3">
-      <c-card class="stat-card stat-card-gold h-100" (click)="navigateTo('/parking-service/payments')" style="cursor: pointer;">
+      <c-card class="stat-card stat-card-gold h-100" (click)="navigateTo('/payments')" style="cursor: pointer;">
         <c-card-body>
           <div class="stat-icon">
             <fa-icon [icon]="icons.money" size="2x"></fa-icon>
@@ -659,7 +659,7 @@
             <fa-icon [icon]="icons.money" class="me-2"></fa-icon>
             Últimos Pagos
           </div>
-          <button cButton size="sm" color="primary" (click)="navigateTo('/parking-service/payments')">
+          <button cButton size="sm" color="primary" (click)="navigateTo('/payments')">
             Ver Todos
           </button>
         </c-card-header>
@@ -676,13 +676,13 @@
                   <div>
                     <div class="fw-bold">S/ {{ payment.amount | number:'1.2-2' }}</div>
                     <small class="text-muted">{{ payment.paymentTypeName }}</small>
-                    @if (payment.referenceNumber) {
-                      <div><small class="text-muted">Ref: {{ payment.referenceNumber }}</small></div>
+                    @if (payment.operationNumber) {
+                      <div><small class="text-muted">Op. {{ payment.operationNumber }}</small></div>
                     }
                   </div>
                   <div class="text-end">
-                    <c-badge [color]="getStatusColor(payment.status)">{{ payment.status }}</c-badge>
-                    <div><small class="text-muted">{{ payment.paymentDate | date:'short' }}</small></div>
+                    <c-badge [color]="getStatusColor(payment.status)">{{ paymentStatusLabel(payment.status) }}</c-badge>
+                    <div><small class="text-muted">{{ payment.paidAt | date:'short' }}</small></div>
                   </div>
                 </div>
               }

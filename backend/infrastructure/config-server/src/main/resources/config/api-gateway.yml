@@ -20,6 +20,15 @@ spring:
         webflux:
           routes:
             # ========== AUTH SERVICE (registrado en Eureka) ==========
+            # Token de servicio: solo para la red interna. Se responde 404 antes de la ruta de auth
+            - id: auth-service-token-blocked
+              uri: no://op
+              order: -1
+              predicates:
+                - Path=/api/auth/service-token,/api/auth/service-token/**
+              filters:
+                - SetStatus=404
+
             - id: auth-service-auth
               uri: lb://AUTH-SERVICE
               predicates:
@@ -52,12 +61,30 @@ spring:
             # Ejemplo: /api/parking-service/v1/shifts -> /shifts
             # Incluye las rutas públicas sin login (/api/parking-service/v1/public/...),
             # que parking-service deja abiertas y el resto exige JWT.
+            # Endpoints entre microservicios: solo red interna. 404 antes de la ruta de parking
+            - id: parking-service-internal-blocked
+              uri: no://op
+              order: -1
+              predicates:
+                - Path=/api/parking-service/v1/internal,/api/parking-service/v1/internal/**
+              filters:
+                - SetStatus=404
+
             - id: parking-service
               uri: lb://PARKING-SERVICE
               predicates:
                 - Path=/api/parking-service/v1/**
               filters:
                 - RewritePath=/api/parking-service/v1(?<segment>/.*|), ${segment}
+
+            # ========== PAYMENT SERVICE (registrado en Eureka) ==========
+            # Ejemplo: /api/payment-service/v1/payment-types -> /payment-types
+            - id: payment-service
+              uri: lb://PAYMENT-SERVICE
+              predicates:
+                - Path=/api/payment-service/v1/**
+              filters:
+                - RewritePath=/api/payment-service/v1(?<segment>/.*|), ${segment}
 
             # ========== IOT SERVICE (Go, NO se registra en Eureka) ==========
             # URI fija: con lb://IOT-SERVICE el gateway respondería 503.

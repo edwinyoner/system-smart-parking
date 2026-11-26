@@ -35,6 +35,9 @@ public class SecurityConfig {
 
             // Configurar autorización de requests
             .authorizeHttpRequests(auth -> auth
+                  // Llamadas entre microservicios: solo con token de servicio (el gateway no las publica)
+                  .requestMatchers("/internal/**").hasAuthority(JwtAuthenticationFilter.SERVICE_CLIENT_AUTHORITY)
+
                   // ========== ENDPOINTS PÚBLICOS (TEMPORALMENTE) ==========
                   // SOLO PARA DESARROLLO - En producción quitar estos
                   .requestMatchers(
@@ -47,7 +50,6 @@ public class SecurityConfig {
                         "/parkings/**",
                         "/zones/**",
                         "/spaces/**",
-                        "/payment-types/**",
                         "/transactions/**"
                   ).permitAll()
 

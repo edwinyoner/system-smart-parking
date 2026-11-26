@@ -45,6 +45,8 @@ public class TransactionPersistenceMapper {
             .discountAmount(transaction.getDiscountAmount())
             .totalAmount(transaction.getTotalAmount())
             .currency(transaction.getCurrency())
+            .paidAmount(transaction.getPaidAmount())
+            .paidAt(transaction.getPaidAt())
             .status(transaction.getStatus())
             .paymentStatus(transaction.getPaymentStatus())
             .receiptSent(transaction.getReceiptSent())
@@ -93,6 +95,8 @@ public class TransactionPersistenceMapper {
       transaction.setDiscountAmount(entity.getDiscountAmount());
       transaction.setTotalAmount(entity.getTotalAmount());
       transaction.setCurrency(entity.getCurrency());
+      transaction.setPaidAmount(entity.getPaidAmount());
+      transaction.setPaidAt(entity.getPaidAt());
       transaction.setStatus(entity.getStatus());
       transaction.setPaymentStatus(entity.getPaymentStatus());
       transaction.setReceiptSent(entity.getReceiptSent());

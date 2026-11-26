@@ -158,10 +158,9 @@ public class TransactionDetailResponse {
    @NoArgsConstructor
    @AllArgsConstructor
    public static class PaymentInfo {
-      private Long id;
-      private BigDecimal amount;
-      private String referenceNumber;
-      private LocalDateTime paymentDate;
-      private String status;
+      private BigDecimal paidAmount;       // Pagado, neto de devoluciones
+      private LocalDateTime paidAt;        // Último pago
+      private BigDecimal amountDue;        // Falta pagar para salir ahora
+      private LocalDateTime exitDeadline;  // Hasta cuándo puede salir sin pagar más
    }
 }

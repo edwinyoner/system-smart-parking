@@ -1,6 +1,5 @@
 package com.winnersystems.smartparking.parking.application.service.transaction;
 
-import com.winnersystems.smartparking.parking.application.dto.command.ProcessPaymentCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.RecordEntryCommand;
 import com.winnersystems.smartparking.parking.application.dto.command.RecordExitCommand;
 import com.winnersystems.smartparking.parking.application.dto.query.*;
@@ -8,11 +7,13 @@ import com.winnersystems.smartparking.parking.application.port.input.transaction
 import com.winnersystems.smartparking.parking.application.port.output.*;
 import com.winnersystems.smartparking.parking.domain.exception.*;
 import com.winnersystems.smartparking.parking.domain.model.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,8 +21,10 @@ import java.util.List;
 /**
  * Servicio de aplicación para gestión de transacciones de estacionamiento.
  *
- * Implementa todos los casos de uso relacionados con el ciclo completo:
- * Entrada → Salida → Pago
+ * Implementa los casos de uso del ciclo completo: Entrada → Pago → Salida.
+ *
+ * El pago lo cobra payment-service (QR o efectivo) y lo avisa por /internal/charges (ChargeService).
+ * La salida exige que no se deba nada: tras pagar hay parking.payment.exit-window-minutes para salir.
  *
  * Responsabilidades:
  * - Orquestar operaciones entre múltiples agregados (Vehicle, Customer, Space, etc.)
@@ -38,7 +41,6 @@ import java.util.List;
 public class TransactionService implements
       RecordEntryUseCase,
       RecordExitUseCase,
-      ProcessPaymentUseCase,
       GetTransactionUseCase,
       ListActiveTransactionsUseCase,
       ListTransactionsUseCase {
@@ -53,9 +55,10 @@ public class TransactionService implements
    private final SpacePersistencePort spacePersistencePort;
    private final ZonePersistencePort zonePersistencePort;
    private final RatePersistencePort ratePersistencePort;
-   private final PaymentPersistencePort paymentPersistencePort;
    private final ParkingShiftRatePersistencePort parkingShiftRatePersistencePort;
    private final DocumentTypePersistencePort documentTypePersistencePort;
+   private final Clock clock;
+   private final int exitWindowMinutes;
 
    // ========================= CONSTANTES =========================
 
@@ -72,9 +75,10 @@ public class TransactionService implements
          SpacePersistencePort spacePersistencePort,
          ZonePersistencePort zonePersistencePort,
          RatePersistencePort ratePersistencePort,
-         PaymentPersistencePort paymentPersistencePort,
          ParkingShiftRatePersistencePort parkingShiftRatePersistencePort,
-         DocumentTypePersistencePort documentTypePersistencePort) {
+         DocumentTypePersistencePort documentTypePersistencePort,
+         Clock clock,
+         @Value("${parking.payment.exit-window-minutes:15}") int exitWindowMinutes) {
       this.transactionPersistencePort = transactionPersistencePort;
       this.vehiclePersistencePort = vehiclePersistencePort;
       this.customerPersistencePort = customerPersistencePort;
@@ -83,9 +87,10 @@ public class TransactionService implements
       this.spacePersistencePort = spacePersistencePort;
       this.zonePersistencePort = zonePersistencePort;
       this.ratePersistencePort = ratePersistencePort;
-      this.paymentPersistencePort = paymentPersistencePort;
       this.parkingShiftRatePersistencePort = parkingShiftRatePersistencePort;
       this.documentTypePersistencePort = documentTypePersistencePort;
+      this.clock = clock;
+      this.exitWindowMinutes = exitWindowMinutes;
    }
 
    // ========================= RecordEntryUseCase =========================
@@ -133,7 +138,7 @@ public class TransactionService implements
       customer.recordVisit();
       customerPersistencePort.save(customer);
 
-      return buildTransactionDetailDto(saved, vehicle, customer, parking, zone, space, rate, null);
+      return buildTransactionDetailDto(saved, vehicle, customer, parking, zone, space, rate);
    }
 
    // ========================= RecordExitUseCase =========================
@@ -154,51 +159,19 @@ public class TransactionService implements
       Space space = loadSpace(transaction.getSpaceId());
       Rate rate = loadRate(transaction.getRateId());
 
-      // 4. Registrar salida y validar documentos (anti-robo)
-      processExit(transaction, command);
+      // 4. Registrar salida: exige el pago y valida el documento (anti-robo)
+      processExit(transaction, command, rate);
       validateDocumentMatch(transaction);
 
-      // 5. Calcular monto a pagar
-      calculateTransactionAmount(transaction, rate);
-
-      // 6. Guardar transacción actualizada
+      // 5. Guardar transacción actualizada
       transaction.setUpdatedBy(command.operatorId());
       Transaction saved = transactionPersistencePort.save(transaction);
 
-      // 7. Liberar espacio
+      // 6. Liberar espacio
       space.markAsAvailable();
       spacePersistencePort.save(space);
 
-      return buildTransactionDetailDto(saved, vehicle, customer, parking, zone, space, rate, null);
-   }
-
-   // ========================= ProcessPaymentUseCase =========================
-
-   @Override
-   public TransactionDetailDto processPayment(ProcessPaymentCommand command) {
-      // 1. Cargar transacción
-      Transaction transaction = loadTransaction(command.transactionId());
-
-      // 2. Validar estado para pago
-      validateTransactionForPayment(transaction, command);
-
-      // 3. Crear y guardar pago
-      Payment payment = buildPayment(command);
-      Payment savedPayment = paymentPersistencePort.save(payment);
-
-      // 4. Actualizar transacción como pagada
-      transaction.markAsPaid();
-      transaction.setUpdatedBy(command.operatorId());
-
-      // 5. Enviar comprobante si está configurado
-      if (Boolean.TRUE.equals(command.sendReceipt())) {
-         markReceiptForSending(transaction);
-      }
-
-      Transaction saved = transactionPersistencePort.save(transaction);
-
-      // 6. Cargar entidades relacionadas y construir DTO
-      return buildTransactionDetailDtoWithPayment(saved, savedPayment);
+      return buildTransactionDetailDto(saved, vehicle, customer, parking, zone, space, rate);
    }
 
    // ========================= GetTransactionUseCase =========================
@@ -391,33 +364,6 @@ public class TransactionService implements
       }
    }
 
-   private void validateTransactionForPayment(Transaction transaction, ProcessPaymentCommand command) {
-      if (!transaction.isCompleted()) {
-         throw new InvalidTransactionStateException(
-               transaction.getId(),
-               transaction.getStatus(),
-               Transaction.STATUS_COMPLETED,
-               "procesar pago"
-         );
-      }
-
-      if (!transaction.isPending()) {
-         throw new InvalidTransactionStateException(
-               transaction.getId(),
-               transaction.getPaymentStatus(),
-               Transaction.PAYMENT_STATUS_PENDING,
-               "procesar pago"
-         );
-      }
-
-      if (command.amountPaid().compareTo(transaction.getTotalAmount()) < 0) {
-         throw new IllegalArgumentException(
-               String.format("Monto insuficiente. Requerido: %s, recibido: %s",
-                     transaction.getTotalAmount(), command.amountPaid())
-         );
-      }
-   }
-
    // ========================= HELPERS - BUSCAR O CREAR =========================
 
    private Vehicle findOrCreateVehicle(RecordEntryCommand command) {
@@ -514,11 +460,15 @@ public class TransactionService implements
       return type.normalizeNumber(documentNumber);
    }
 
-   private void processExit(Transaction transaction, RecordExitCommand command) {
-      transaction.recordExit(
+   /** Falta pagar: PaymentRequiredException (409) y la operación se revierte */
+   private void processExit(Transaction transaction, RecordExitCommand command, Rate rate) {
+      transaction.completeExit(
             command.exitDocumentTypeId(),
             validDocumentNumber(command.exitDocumentTypeId(), command.exitDocumentNumber()),
-            command.operatorId()
+            command.operatorId(),
+            rate,
+            LocalDateTime.now(clock),
+            exitWindowMinutes
       );
 
       transaction.setExitMethod(
@@ -536,39 +486,6 @@ public class TransactionService implements
                : command.notes();
          transaction.setNotes(newNotes);
       }
-   }
-
-   /** La tarifa decide cómo se cobra el tiempo (fracción, mínimo, gracia, tolerancia) */
-   private void calculateTransactionAmount(Transaction transaction, Rate rate) {
-      int minutes = transaction.getDurationMinutes() == null ? 0 : transaction.getDurationMinutes();
-      transaction.applyCalculatedAmount(rate.calculateCost(minutes));
-   }
-
-   private Payment buildPayment(ProcessPaymentCommand command) {
-      Payment payment = new Payment(
-            command.transactionId(),
-            command.paymentTypeId(),
-            command.amountPaid(),
-            command.operatorId()
-      );
-
-      if (command.referenceNumber() != null) {
-         payment.setReferenceNumber(command.referenceNumber());
-      }
-
-      if (command.notes() != null) {
-         payment.setNotes(command.notes());
-      }
-
-      payment.setCreatedBy(command.operatorId());
-
-      return payment;
-   }
-
-   private void markReceiptForSending(Transaction transaction) {
-      transaction.markReceiptAsSent();
-      transaction.updateWhatsAppStatus("PENDING");
-      transaction.updateEmailStatus("PENDING");
    }
 
    // ========================= HELPERS - TARIFAS =========================
@@ -621,7 +538,7 @@ public class TransactionService implements
     * IMPORTANTE: Incluye ParkingInfo completo.
     */
    private TransactionDetailDto buildTransactionDetailDto(Transaction t, Vehicle v, Customer c,
-                                                          Parking p, Zone z, Space sp, Rate r, Payment pay) {
+                                                          Parking p, Zone z, Space sp, Rate r) {
       return new TransactionDetailDto(
             t.getId(),
             t.getStatus(),
@@ -689,15 +606,8 @@ public class TransactionService implements
             t.getTotalAmount(),
             t.getCurrency(),
 
-            // PaymentInfo (nullable)
-            pay != null ? new TransactionDetailDto.PaymentInfo(
-                  pay.getId(),
-                  null,                                      // paymentType - nullable
-                  pay.getAmount(),
-                  pay.getReferenceNumber(),
-                  pay.getPaymentDate(),
-                  pay.getStatus()
-            ) : null,
+            // Pago: lo cobra payment-service; aquí, cuánto se pagó y cuánto falta para salir
+            buildPaymentInfo(t, r),
 
             // OperatorInfo - nullable (auth-service en futuro)
             new TransactionDetailDto.OperatorInfo(t.getEntryOperatorId(), null, null),
@@ -737,23 +647,19 @@ public class TransactionService implements
       Zone zone = loadZone(t.getZoneId());
       Space space = loadSpace(t.getSpaceId());
       Rate rate = loadRate(t.getRateId());
-      Payment payment = paymentPersistencePort.findByTransactionId(t.getId()).orElse(null);
 
-      return buildTransactionDetailDto(t, vehicle, customer, parking, zone, space, rate, payment);
+      return buildTransactionDetailDto(t, vehicle, customer, parking, zone, space, rate);
    }
 
-   /**
-    * Construye TransactionDetailDto cargando payment.
-    */
-   private TransactionDetailDto buildTransactionDetailDtoWithPayment(Transaction transaction, Payment payment) {
-      Vehicle vehicle = loadVehicle(transaction.getVehicleId());
-      Customer customer = loadCustomer(transaction.getCustomerId());
-      Parking parking = loadParking(transaction.getParkingId());
-      Zone zone = loadZone(transaction.getZoneId());
-      Space space = loadSpace(transaction.getSpaceId());
-      Rate rate = loadRate(transaction.getRateId());
-
-      return buildTransactionDetailDto(transaction, vehicle, customer, parking, zone, space, rate, payment);
+   /** Pagado, pendiente y hasta cuándo puede salir sin pagar más */
+   private TransactionDetailDto.PaymentInfo buildPaymentInfo(Transaction t, Rate rate) {
+      BigDecimal due = t.isActive()
+            ? t.amountDueAt(LocalDateTime.now(clock), rate, exitWindowMinutes)
+            : BigDecimal.ZERO;
+      LocalDateTime exitDeadline = t.isActive() && t.getPaidAt() != null && due.signum() == 0
+            ? t.getPaidAt().plusMinutes(exitWindowMinutes)
+            : null;
+      return new TransactionDetailDto.PaymentInfo(t.getPaidAmount(), t.getPaidAt(), due, exitDeadline);
    }
 
    /**
@@ -768,9 +674,9 @@ public class TransactionService implements
       Rate rate = loadRate(t.getRateId());
 
       // Calcular tiempo transcurrido y monto actual
-      int elapsedMinutes = (int) Duration.between(t.getEntryTime(), LocalDateTime.now()).toMinutes();
-      // Lo que pagaría si saliera ahora, con las mismas reglas que al registrar la salida
-      BigDecimal currentAmount = rate.calculateCost(elapsedMinutes);
+      int elapsedMinutes = (int) Duration.between(t.getEntryTime(), LocalDateTime.now(clock)).toMinutes();
+      // Lo que falta pagar si saliera ahora (descuenta lo ya pagado y respeta el tiempo para salir)
+      BigDecimal currentAmount = t.amountDueAt(LocalDateTime.now(clock), rate, exitWindowMinutes);
 
       boolean isOverdue = elapsedMinutes > MAX_RECOMMENDED_MINUTES;
 
