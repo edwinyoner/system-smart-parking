@@ -1,5 +1,5 @@
 name: smart_parking
-description: "A new Flutter project."
+description: "Smart Parking Huaraz: disponibilidad pública de parqueos (prototipo académico)."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -34,11 +34,12 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  http: ^1.2.0
-  flutter_secure_storage: ^9.0.0
   flutter_riverpod: ^3.3.2
   dio: ^5.11.1
   go_router: ^17.5.0
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

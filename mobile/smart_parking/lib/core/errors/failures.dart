@@ -18,6 +18,11 @@ final class ServerFailure extends Failure {
   final int? statusCode;
 }
 
+/// El recurso ya no existe o dejó de publicarse (HTTP 404).
+final class NotFoundFailure extends Failure {
+  const NotFoundFailure() : super('El parqueo ya no está disponible');
+}
+
 /// Cualquier error no previsto.
 final class UnexpectedFailure extends Failure {
   const UnexpectedFailure() : super('Ocurrió un error inesperado');

@@ -11,7 +11,9 @@ Failure mapDioException(DioException e) {
     case DioExceptionType.connectionError:
       return const NetworkFailure();
     case DioExceptionType.badResponse:
-      return ServerFailure(e.response?.statusCode);
+      final status = e.response?.statusCode;
+      if (status == 404) return const NotFoundFailure();
+      return ServerFailure(status);
     default:
       return const UnexpectedFailure();
   }
