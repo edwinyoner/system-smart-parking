@@ -112,7 +112,7 @@
 \newcommand{\universidadLineaDos}{SANTIAGO ANTÚNEZ DE MAYOLO}
 \newcommand{\facultad}{FACULTAD DE CIENCIAS}
 \newcommand{\escuela}{ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMAS E INFORMÁTICA}
-\newcommand{\tituloTesis}{PROTOTIPO DE SMART PARKING SYSTEM APLICANDO TECNOLOGÍAS EMERGENTES DE INTERNET OF THINGS, ARTIFICIAL INTELLIGENCE Y CLOUD COMPUTING PARA UNA SMART MOBILITY DE SMART CITY EN HUARAZ - ANCASH, 2025}
+\newcommand{\tituloTesis}{PROTOTIPO DE SMART PARKING SYSTEM APLICANDO TECNOLOGÍAS EMERGENTES DE INTERNET OF THINGS, ARTIFICIAL INTELLIGENCE Y CLOUD COMPUTING PARA UNA SMART MOBILITY DE SMART CITY EN HUARAZ - ÁNCASH, 2025}
 \newcommand{\autor}{EDWIN YONER FLORES RUPAY}
 \newcommand{\asesor}{FRANZ MARTÍN VILLANUEVA COCHACHIN} 
 \newcommand{\ciudad}{Huaraz}
@@ -416,7 +416,7 @@ Los recursos materiales y equipos requeridos para el desarrollo del proyecto se 
 	\multicolumn{3}{l}{\textbf{Entornos de desarrollo }} \\
 	\midrule
 	Desarrollo Java &
-	IntelliJ IDEA para los microservicios infraestructura y servicios de autenticación y gestión de parqueos (api-gateway, config-server, eureka-server, auth-service y parking-service) basados Java y Spring Boot &
+	IntelliJ IDEA para los microservicios infraestructura y servicios de autenticación y gestión de parqueos (api-gateway, config-server, eureka-server, auth-service y parking-service) basados en Java y Spring Boot &
 	Disponible \\
 	
 	Desarrollo Python &
@@ -431,12 +431,12 @@ Los recursos materiales y equipos requeridos para el desarrollo del proyecto se 
 	Visual Studio Code para el desarrollo frontend de la interfaz web con Angular &
 	Disponible \\
 	
-	Desarrollo Movil &
+	Desarrollo Móvil &
 	Android Studio para el desarrollo movil (android/ios) basado en Dart y Flutter &
 	Disponible \\
 	
 	Desarrollo C/C++ &
-	STM32CubeIDE, STM32CubeMX, ESP-IDF y Arduino IDE para programar microcontroladores STM32, ESP32 y Arduino mediante C/C++ &
+	Visual Studio Code con PlatformIO y el framework Arduino para programar en C/C++ los microcontroladores ESP32-S3 y ESP32-C6 &
 	Disponible \\
 	
 	Documentación &
@@ -511,28 +511,28 @@ Los recursos materiales y equipos requeridos para el desarrollo del proyecto se 
 	\multicolumn{3}{l}{\textbf{Hardware IoT}} \\
 	\midrule
 	Microcontroladores &
-	ESP32 DevKit V1 para adquisición de datos de sensores y comunicación Wi-Fi con el sistema &
-	1 \\
+	ESP32-S3-DevKitC-1 N16R8 para los paneles LED (2) y ESP32-C6-DevKitC-1 para los sensores de espacio (4), con Wi-Fi y Bluetooth &
+	6 \\
 	
 	Sensores &
-	HC-SR04 ultrasónicos para detectar la ocupación de los espacios de estacionamiento del prototipo &
-	4 \\
+	HC-SR04 ultrasónicos: 2 detectan la llegada del vehículo a la entrada y salida del Parqueo San Martín y 4 detectan la ocupación de espacios del Parqueo Las Banderas &
+	6 \\
 	
 	Captura de imágenes &
-	ESP32-CAM con cámara OV2640, condicionada a la incorporación de captura de imágenes en las pruebas experimentales &
-	2 \\
+	Freenove ESP32-S3 WROOM CAM: 2 con cámara OV2640 para la entrada y salida del Parqueo San Martín y 1 con cámara gran angular OV5640 para la vista aérea del Parqueo Las Banderas &
+	3 \\
 	
 	Prototipado electrónico &
-	Protoboard, cables Dupont, conectores y elementos de montaje para la integración de sensores y microcontrolador &
+	Protoboard, cables Dupont, resistencias, conectores, 2 servomotores SG90 como barreras de maqueta y elementos de montaje &
 	1 lote \\
 	
 	Alimentación &
-	Fuente regulada de 5 V, con capacidad de corriente adecuada para el montaje experimental &
-	1 \\
+	Fuentes reguladas de 5 V: de 2 A para cada cámara y de 4 A para cada panel LED &
+	5 \\
 	
 	Indicador visual &
-	Módulo LED o pantalla pequeña para mostrar la disponibilidad de estacionamientos, si se incorpora a la demostración &
-	2 \\
+	Paneles LED RGB HUB75 P5 de 64x32 (dos por panel, uno en cada parqueo) y pantalla táctil Waveshare ESP32-S3-Touch-LCD-4.3 para el kiosco de pago &
+	4 + 1 \\
 	\addlinespace
 	
 	\midrule
@@ -554,7 +554,7 @@ Los recursos materiales y equipos requeridos para el desarrollo del proyecto se 
 \noindent\parbox{\textwidth}{
 	\setlength{\parindent}{0pt}
 	\small
-	\textit{Nota.} Los recursos listados representan los requerimientos de hardware y servicios necesarios para el despliegue del prototipo y pruebas piloto. El despliegue en la nube es opcional según validación postdefensa; para pruebas locales se utilizará infraestructura con Docker.
+	\textit{Nota.} Los recursos listados representan los requerimientos necesarios para el prototipo y pruebas piloto.
 }
 
 \subsubsection*{9.3. Locales}
@@ -601,12 +601,12 @@ Los espacios físicos donde se desarrollarán las actividades del proyecto son l
 	\multicolumn{3}{l}{\textbf{Espacios Externos (Pruebas Piloto)}} \\
 	\midrule
 	Parqueo San Martín &
-	Estacionamiento público en Jr. San Martín (aprox. 20 espacios para validación inicial) &
+	Estacionamiento público con control de acceso de entrada y salida, en Jr. San Martín (aprox. 20 espacios) &
 	MPH \\
 	\addlinespace
 	
 	Parqueo Las Banderas &
-	Estacionamiento público en Av. Simón Bolívar (aprox. 10 espacios para pruebas escaladas) &
+	Estacionamiento público en la vía pública, sin control de acceso, en Av. Simón Bolívar (aprox. 10 espacios) &
 	MPH \\
 	\addlinespace
 	
@@ -622,7 +622,7 @@ Los espacios físicos donde se desarrollarán las actividades del proyecto son l
 \noindent\parbox{\textwidth}{
 	\setlength{\parindent}{0pt}
 	\small
-	\textit{Nota.} Los espacios externos serán gestionados previa coordinación y autorización de la Municipalidad Provincial de Huaraz. Las zonas específicas serán confirmadas antes del inicio de las pruebas piloto.
+	\textit{Nota.} Los espacios externos serán gestionados en coordinación con la Municipalidad Provincial de Huaraz, que autorizó la investigación mediante la Carta N.° 000127-2025-MPHZ/GAF/SGRRHH (ver Anexo 5). Las zonas específicas serán confirmadas con la Gerencia de Administración Tributaria y Rentas antes del inicio de las pruebas piloto.
 }
 
 \newpage
@@ -660,9 +660,9 @@ A nivel regional y local, el departamento de Áncash evidencia esta crisis de mo
 El desarrollo y validación experimental de la presente investigación se restringe de manera estricta bajo las siguientes dimensiones de delimitación:
 
 \begin{itemize}[leftmargin=*]
-	\item \textbf{Delimitación Espacial o Geográfica:} El proyecto se circunscribe geográficamente a la ciudad de Huaraz, provincia de Huaraz, departamento de Áncash, Perú. A nivel institucional y de pruebas de campo, la investigación se desarrollará en coordinación con la Municipalidad Provincial de Huaraz (MPH), ejecutando los despliegues de validación física en entornos públicos controlados: el Parqueo San Martín (ubicado en el Jr. San Martín, con una capacidad aproximada de 20 espacios) y el Parqueo Las Banderas (ubicado en la Av. Simón Bolívar, con una capacidad aproximada de 10 espacios).
+	\item \textbf{Delimitación Espacial o Geográfica:} El proyecto se circunscribe geográficamente a la ciudad de Huaraz, provincia de Huaraz, departamento de Áncash, Perú. A nivel institucional y de pruebas de campo, la investigación se desarrollará en coordinación con la Municipalidad Provincial de Huaraz (MPH), que la autorizó mediante la Carta N.° 000127-2025-MPHZ/GAF/SGRRHH (ver Anexo 5), ejecutando los despliegues de validación física en entornos públicos controlados: el Parqueo San Martín (ubicado en el Jr. San Martín, con control de acceso de entrada y salida y una capacidad aproximada de 20 espacios) y el Parqueo Las Banderas (ubicado en la vía pública de la Av. Simón Bolívar, sin control de acceso y con una capacidad aproximada de 10 espacios).
 	
-	\item \textbf{Delimitación Temporal:} El proceso de investigación, recolección de datos experimentales, desarrollo técnico y validación analítica del prototipo comprende un periodo fijo de siete (07) meses, iniciando formalmente en octubre de 2025 y concluyendo en junio de 2026.
+	\item \textbf{Delimitación Temporal:} El proceso de investigación, recolección de datos experimentales, desarrollo técnico y validación analítica del prototipo comprende un periodo de doce (12) meses, de octubre de 2025 a octubre de 2026.
 	
 	\item \textbf{Delimitación Social o Poblacional:} El estudio se delimita al análisis operativo, flujos de ocupación vehicular y gestión transaccional correspondientes a los perfiles de usuarios definidos dentro del ecosistema del sistema: personal de tecnologías de la información (Administrador TI), funcionarios de supervisión gerencial (Autoridad municipal), personal operativo de campo de la MPH (Operadores del sistema), y conductores vehiculares recurrentes que interactúan de forma directa con el aplicativo móvil en las zonas piloto establecidas.
 	
@@ -673,7 +673,7 @@ El desarrollo y validación experimental de la presente investigación se restri
 % =========================================================================
 % DECLARACIÓN DE VARIABLES GLOBALES DE PROBLEMAS
 % =========================================================================
-\newcommand{\problemaGeneral}{¿De qué manera la convergencia de tecnologías Internet of Things, Artificial Intelligence y Cloud Computing, a través de un prototipo de Smart Parking System, optimiza la gestión de movilidad urbana y contribuye al desarrollo de una Smart City en Huaraz - Ancash, 2025?}
+\newcommand{\problemaGeneral}{¿De qué manera la convergencia de tecnologías Internet of Things, Artificial Intelligence y Cloud Computing, a través de un prototipo de Smart Parking System, optimiza la gestión de movilidad urbana y contribuye al desarrollo de una Smart City en Huaraz - Áncash, 2025?}
 
 \newcommand{\problemaEspecificoUno}{¿Cómo integrar de manera sistémica tecnologías de Internet of Things, Artificial Intelligence y Cloud Computing para el prototipo de Smart Parking System?}
 
@@ -700,7 +700,7 @@ El desarrollo y validación experimental de la presente investigación se restri
 % =========================================================================
 % DECLARACIÓN DE VARIABLES GLOBALES DE OBJETIVOS
 % =========================================================================
-\newcommand{\objetivoGeneral}{Desarrollar un prototipo de Smart Parking System basado en la convergencia de tecnologías Internet of Things, Artificial Intelligence y Cloud Computing, que optimice la gestión de movilidad urbana y contribuya al desarrollo de una Smart City en Huaraz - Ancash, 2025.}
+\newcommand{\objetivoGeneral}{Desarrollar un prototipo de Smart Parking System basado en la convergencia de tecnologías Internet of Things, Artificial Intelligence y Cloud Computing, que optimice la gestión de movilidad urbana y contribuya al desarrollo de una Smart City en Huaraz - Áncash, 2025.}
 
 \newcommand{\objetivoEspecificoUno}{Integrar de manera sistémica las tecnologías de Internet of Things, Artificial Intelligence y Cloud Computing para el desarrollo del prototipo de Smart Parking System.}
 
@@ -731,9 +731,9 @@ El proyecto se justifica tecnológicamente por la convergencia estratégica de l
 \begin{itemize}[leftmargin=*]
 	\item \textbf{Necesidad técnica:} El sistema manual actual de la Municipalidad, basado en tickets físicos de papel, es incapaz de controlar en tiempo real el estado de los parqueos. Esto obliga a los controladores a depender de inspecciones visuales y trabajos manuales propensas a errores.
 	
-	\item \textbf{Transcendencia tecnológica:} Este proyecto constituye un hito de trascendencia tecnológica para la comunidad académica y local al adaptar y aplicar tecnologías emergentes que servirán como precedente técnico para futuros desarrollos en la región. El prototipo se implementa aplicando tres tecnologías claramente definidos: el Internet of Things(IoT) efectúa la captura y recepción de datos en tiempo real a través de dispositivos periféricos; la Inteligencia Artificial (IA) ejecuta el reconocimiento automático de placas vehiculares y el análisis inteligente del flujo operativo; la plataforma de Cloud Computing actúa como el núcleo central para el despliegue del sistema.
+	\item \textbf{Transcendencia tecnológica:} Este proyecto constituye un hito de trascendencia tecnológica para la comunidad académica y local al adaptar y aplicar tecnologías emergentes que servirán como precedente técnico para futuros desarrollos en la región. El prototipo se implementa aplicando tres tecnologías claramente definidas: el Internet of Things (IoT) efectúa la captura y recepción de datos en tiempo real a través de dispositivos periféricos; la Inteligencia Artificial (IA) ejecuta el reconocimiento automático de placas vehiculares y el análisis inteligente del flujo operativo; la plataforma de Cloud Computing actúa como el núcleo central para el despliegue del sistema.
 	
-	\item \textbf{Impacto asociado:} Las ventajas directas se reflejan en una mejor gestíon del espacio público y en un alivio del estrés vial de los ciudadanos. Asimismo, al reducir el tiempo de circulación innecesaria en las calles, el sistema genera un impacto ambiental positivo inmediato  mitigando la contaminación del aire en la ciudad.
+	\item \textbf{Impacto asociado:} Las ventajas directas se reflejan en una mejor gestión del espacio público y en un alivio del estrés vial de los ciudadanos. Asimismo, al reducir el tiempo de circulación innecesaria en las calles, el sistema genera un impacto ambiental positivo inmediato  mitigando la contaminación del aire en la ciudad.
 \end{itemize}
 
 \subsubsection{Justificación Legal}
@@ -755,7 +755,7 @@ La implementación del prototipo democratiza el acceso a la información en tiem
 
 \subsubsection{Justificación Económica}
 
-Desde la perspectiva de los \textbf{ingresos municipales}, la automatización del sistema incrementa significativamente la tasa de cumplimiento tributario en comparación con el modelo manual vigente. El cobro tradicional analógico está expuesto a limitaciones operativas críticas, fugas de capital y una evasión sistemática debido a las fallas intrínsecas del registro manual. Un sistema digitalizado sustentado en el reconocimiento automático de placas vehiculares elimina el factor de error humano y el retiro de unidades sin el abono respectivo, garantizando la captura íntegra del 100\% de las transacciones reales.
+Desde la perspectiva de los \textbf{ingresos municipales}, la automatización del sistema incrementa significativamente la tasa de cumplimiento tributario en comparación con el modelo manual vigente. El cobro tradicional analógico está expuesto a limitaciones operativas críticas, fugas de capital y una evasión sistemática debido a las fallas intrínsecas del registro manual. Un sistema digitalizado sustentado en el reconocimiento automático de placas vehiculares reduce el error humano en el registro y dificulta el retiro de unidades sin el abono respectivo, ya que cada entrada y salida queda registrada con su placa, su hora y su pago. Cuando la lectura de una placa no es confiable, el registro pasa a revisión del operador, de modo que ninguna transacción se pierde.
 
 Por otro lado, los \textbf{conductores} reducen el gasto diario provocado por el tráfico de búsqueda. Dar vueltas de 10 a 15 minutos solo para encontrar un lugar libre consume combustible innecesariamente de forma constante. Este gasto afecta la economía familiar además considerando que la flota en Áncash arrastra una notable ineficiencia, ya que los vehículos promedian más de 14 años de antigüedad (Asociación Automotriz del Perú [AAP], 2025). El proyecto optimiza este escenario ordenando el parqueo de las categorías M1, M2 y N1, que son las llamadas a cumplir con el derecho de parqueo local (Municipalidad Provincial de Huaraz [MPH], 2015).
 
@@ -768,7 +768,7 @@ Además, el impacto ambiental tiene un valor estratégico único por la ubicaci�
 
 \subsubsection{Justificación Operativa}
 
-El proyecto transforma la gestión diaria del parqueo vehicular al reemplazar el control manual por un flujo automatizado en tiempo real. El cobro y registro tradicional, ejecutado mediante inspectores con talonarios de papel, resulta lento, genera congestión y es propenso a errores en el conteo del tiempo. Al introducir tecnologías de Internet de las Cosas (IoT), Inteligencia Artificial (IA) y Cloud, el sistema detecta de forma automática e inmediata la disponibilidad de cada espacio en la calzada. Esto simplifica las tareas de fiscalización en campo, ya que la plataforma alerta directamente al personal municipal sobre la disponibillidad de los espacios y a los que incurren infracciones, optimizando así los recursos operativos de la comuna.
+El proyecto transforma la gestión diaria del parqueo vehicular al reemplazar el control manual por un flujo automatizado en tiempo real. El cobro y registro tradicional, ejecutado mediante inspectores con talonarios de papel, resulta lento, genera congestión y es propenso a errores en el conteo del tiempo. Al introducir tecnologías de Internet de las Cosas (IoT), Inteligencia Artificial (IA) y Cloud, el sistema detecta de forma automática e inmediata la disponibilidad de cada espacio en la calzada. Esto simplifica las tareas de fiscalización en campo, ya que el personal a cargo consulta en la plataforma la disponibilidad de los espacios y registra allí las infracciones que detecta, optimizando así los recursos operativos de la comuna.
 
 Finalmente, la digitalización integral proporciona a los gestores urbanos reportes estadísticos automáticos sobre las horas pico y patrones de ocupación de los vehículos. Esto convierte la administración del espacio público en un proceso ágil, moderno y basado en datos reales para futuras mejoras en el ordenamiento del tránsito urbano.
 
@@ -776,7 +776,7 @@ Finalmente, la digitalización integral proporciona a los gestores urbanos repor
 % =========================================================================
 % DECLARACIÓN DE VARIABLES GLOBALES DE HÍPOTESIS
 % =========================================================================
-\newcommand{\hipotesisGeneral}{La convergencia de tecnologías Internet of Things, Artificial Intelligence y Cloud Computing, mediante un prototipo de Smart Parking System, optimiza la gestión de movilidad urbana y contribuye al desarrollo de una Smart City en Huaraz - Ancash, 2025.}
+\newcommand{\hipotesisGeneral}{La convergencia de tecnologías Internet of Things, Artificial Intelligence y Cloud Computing, mediante un prototipo de Smart Parking System, optimiza la gestión de movilidad urbana y contribuye al desarrollo de una Smart City en Huaraz - Áncash, 2025.}
 
 \newcommand{\hipotesisEspecificoUno}{Implementar una  arquitectura de sistemas basada en tecnologías Internet of Things, Artificial Intelligence y Cloud Computing garantiza la escalabilidad, alta disponibilidad y procesamiento en tiempo real del sistema Smart Parking System.}
 
@@ -808,12 +808,12 @@ Finalmente, la digitalización integral proporciona a los gestores urbanos repor
 % Variable Independiente
 \newcommand{\variableIndependiente}{Tecnologías emergentes: \textit{Internet of Things} (IoT), \textit{Artificial Intelligence} (IA) y \textit{Cloud Computing}}
 
-\newcommand{\defConceptualVI}{Según explican Neustein, Mahalle, Joshi y Shinde (2023), constituye un ecosistema tecnológico de la Industria 4.0 sustentado en la integración de redes de sensores (IoT), procesamiento cognitivo mediante inteligencia artificial (IA) y almacenamiento distribuido (Cloud Computing) que transforma la prestación de servicios en los gobiernos locales.}
+\newcommand{\defConceptualVI}{Según explican Neustein et al. (2023), constituye un ecosistema tecnológico de la Industria 4.0 sustentado en la integración de redes de sensores (IoT), procesamiento cognitivo mediante inteligencia artificial (IA) y almacenamiento distribuido (Cloud Computing) que transforma la prestación de servicios en los gobiernos locales.}
 
 \newcommand{\defOperacionalVI}{La variable independiente se operará evaluando el funcionamiento técnico y la integración de los componentes del prototipo. Comprende tres dimensiones: \textit{Internet of Things} (IoT), medido a través de la tasa de transmisiones exitosas; \textit{Artificial Intelligence} (IA), evaluado mediante el porcentaje de acierto del reconocimiento de matrículas; y \textit{Cloud Computing}, medido según los tiempos de procesamiento y la disponibilidad de los servicios en la nube.}
 
 % Variable Dependiente
-\newcommand{\variableDependiente}{Prototipo de \textit{Smart Parking System} del eje \textit{Smart Mobility} para una \textit{Smart City} en Huaraz - Ancash, 2025}
+\newcommand{\variableDependiente}{Prototipo de \textit{Smart Parking System} del eje \textit{Smart Mobility} para una \textit{Smart City} en Huaraz - Áncash, 2025}
 
 \newcommand{\defConceptualVD}{Conforme lo establece la Presidencia del Consejo de Ministros (PCM, 2023) en la Política Nacional de Transformación Digital al 2030, las ciudades inteligentes se definen como aquellos entornos urbanos que utilizan tecnologías avanzadas para mejorar la calidad de vida de sus habitantes, optimizar la prestación de servicios públicos, y abordar problemas críticos como la movilidad, la gestión de recursos y la sostenibilidad ambiental.}
 
@@ -967,99 +967,73 @@ Finalmente, la digitalización integral proporciona a los gestores urbanos repor
 
 \subsubsection{Antecedente Internacional 1}
 
-Alymani et al. (2025), en su investigación realizada en Arabia Saudita, titulada \textit{``Enabling smart parking for smart cities using Internet of Things (IoT) and machine learning''}, publicada en la revista \textit{PeerJ Computer Science}, tuvieron como objetivo desarrollar un sistema de estacionamiento inteligente que aborde la congestión de estacionamiento en ciudades principales mediante reconocimiento automático de placas vehiculares y detección en tiempo real de espacios disponibles, con el propósito de mejorar la movilidad urbana, reducir el desperdicio de combustible y eliminar ineficiencias de tiempo para empleados, instituciones educativas y entidades gubernamentales.
+Alymani et al. (2025), en su investigación realizada en Arabia Saudita y publicada en la revista \textit{PeerJ Computer Science} con el título \textit{``Enabling smart parking for smart cities using Internet of Things (IoT) and machine learning''}, tuvieron como objetivo desarrollar un sistema de estacionamiento inteligente que reconozca de forma automática las placas vehiculares y detecte en tiempo real los espacios disponibles, para mejorar la movilidad urbana y reducir el desperdicio de combustible y de tiempo.
 
-La metodología empleada consistió en un sistema bifásico integrado mediante IoT y aprendizaje automático. La primera fase implementó una cámara en la puerta de estacionamiento equipada con algoritmo ANPR (Automatic Number Plate Recognition) que captura placas vehiculares y extrae números mediante técnica OCR (Optical Character Recognition), cross-referenciando los datos resultantes con registros de base de datos centralizada para autenticación de entrada sin intervención manual de personal de seguridad. La segunda fase integró cámaras en el estacionamiento que distinguen entre espacios vacíos y ocupados, almacenando datos en base de datos centralizada para visualización en tiempo real de espacios disponibles más cercanos mediante pantallas digitales en puertas de entrada. El modelo computacional se entrenó utilizando algoritmos SVM y YOLOv8, implementados en ambiente Python con paquete Ultralytics, ejecutándose en máquina Intel Core i5 de 4.5 GHz con 16GB RAM, configurado con tamaño de época de 100 para procesamiento de imágenes.
+El sistema se desarrolló en dos fases. En la primera, una cámara ubicada en la puerta del estacionamiento aplica reconocimiento automático de placas (ANPR) y OCR, y compara la placa leída con una base de datos centralizada para autorizar el ingreso sin intervención del personal de seguridad. En la segunda, cámaras dentro del estacionamiento y sensores infrarrojos conectados a un Arduino UNO distinguen los espacios vacíos de los ocupados, y la disponibilidad se muestra en pantallas digitales en las puertas de entrada. El modelo se entrenó con SVM y YOLOv8 en Python (Ultralytics), con un conjunto de 1381 imágenes de placas en inglés y en árabe, divididas en 80\% para entrenamiento y 20\% para validación.
 
-El dataset experimental comprendió 1,381 imágenes de placas vehiculares distribuidas en 788 imágenes de placas en inglés y 593 imágenes de placas en árabe, divididas en 80\% para entrenamiento del modelo y 20\% para validación. Los instrumentos incluyeron cámaras de reconocimiento de placas instaladas en puertas de acceso, sensores infrarrojos regulares con rango máximo de aproximación de 5 metros conectados a Arduino UNO 3 para monitoreo continuo de zonas de estacionamiento, y prototipo demostrador para evaluación de detección de placas mediante archivos de imagen y video en tiempo real.
+Los resultados mostraron tiempos promedio por imagen de 0.3 ms en el preprocesamiento, 2.9 ms en la inferencia y 3.0 ms en el posprocesamiento, y el modelo procesó cerca de tres veces más imágenes que las soluciones comerciales existentes. Las pruebas con neblina, viento, cielo despejado, de día y de noche, confirmaron su robustez en zonas bien iluminadas. Los autores concluyeron que el modelo trabaja en tres etapas (detección de la placa, identificación y reconocimiento de los caracteres) y que es replicable en entornos comerciales, aunque reconocieron que la propuesta todavía es temprana y que su escalamiento a nivel de ciudad queda como trabajo futuro.
 
-Los resultados experimentales demostraron velocidades promedio de procesamiento de 0.3 ms para preprocesamiento de imagen, 2.9 ms para verificación de interferencia, y 3.0 ms para postprocesamiento por imagen en el dataset completo. El modelo presentó excelente desempeño en comparación con soluciones estado del arte previamente definidas, procesando aproximadamente tres veces más imágenes que valores comerciales existentes. Las pruebas bajo condiciones climáticas variables (neblina, viento, clima despejado) y diferentes condiciones de iluminación (día y noche) confirmaron robustez del sistema para detección de placas en zonas de estacionamiento adecuadamente iluminadas. La precisión de clasificación del modelo superó expectativas al trabajar con imágenes en formato natural durante luz diurna sin procesamiento previo, demostrando efectividad en distancias variables entre cámara y placa vehicular.
-
-Los autores concluyeron que el modelo funciona eficientemente en tres fases secuenciales: detección de placa vehicular, identificación de caracteres en la placa, y reconocimiento final de caracteres. La segunda fase operativa mediante Arduino y sensores basados en IoT monitorea continuamente la zona de estacionamiento y espacio disponible más inmediato. El sistema demostró beneficios tangibles para replicación en modelos comerciales y orientados a negocios, alineándose con objetivos de Vision 2030 de Arabia Saudita para resolver desafíos relacionados con estacionamiento. Sin embargo, reconocieron limitaciones de escalabilidad del modelo al estar en etapas tempranas de desarrollo, proyectando expansión futura hacia integración macro a nivel ciudad donde información relativa a vehículos urbanos se integrará para análisis y gestión de estacionamiento, incluyendo sensores adicionales para detección de ocupación en tiempo real y modelos de machine learning para precios dinámicos de estacionamiento.
-
-Este antecedente se relaciona directamente con la presente investigación al compartir el enfoque de sistema de estacionamiento inteligente mediante IoT y machine learning, específicamente el uso de técnicas de reconocimiento de placas vehiculares (ANPR/OCR) comparables a la implementación de EasyOCR en el prototipo propuesto. Ambos estudios abordan detección de ocupación de espacios mediante procesamiento de imágenes en tiempo real, utilizan arquitecturas de aprendizaje profundo (YOLOv8 en ambos casos), y buscan reducir tiempo de búsqueda de estacionamiento mediante visualización de disponibilidad en pantallas digitales. La validación experimental en condiciones variables de iluminación y clima refuerza la viabilidad técnica de sistemas Smart Parking basados en visión por computadora para transformación de ciudades hacia modelos inteligentes sostenibles.
+Este antecedente se relaciona con la presente investigación porque combina el reconocimiento de placas en el acceso con la detección de ocupación por visión artificial, y muestra la disponibilidad en pantallas, como lo hace el prototipo propuesto. Ambos emplean modelos de la familia YOLO (YOLOv8 en ese estudio y YOLO26 en el presente prototipo) junto con OCR, que en este caso es EasyOCR. Sus pruebas con distintas condiciones de luz y de clima señalan aspectos que también deberán evaluarse en Huaraz.
 
 \subsubsection{Antecedente Internacional 2}
 
-Ala'anzy et al. (2025), en su investigación colaborativa entre China y Kazakhstan, con estudio de caso en la Universidad SDU de Kaskelen, Kazakhstan, titulada \textit{``Real time smart parking system based on IoT and fog computing evaluated through a practical case study''}, publicada en la revista \textit{Scientific Reports} (Nature Research), tuvieron como objetivo desarrollar un sistema de estacionamiento inteligente basado en computación fog que mejore la gestión de espacios de estacionamiento en tiempo real y la asignación de recursos, abordando los desafíos de congestión vehicular y eficiencia energética en entornos urbanos.
+Ala'anzy et al. (2025), en una investigación conjunta entre China y Kazajistán publicada en la revista \textit{Scientific Reports} con el título \textit{``Real time smart parking system based on IoT and fog computing evaluated through a practical case study''}, tuvieron como objetivo desarrollar un sistema de estacionamiento inteligente basado en computación \textit{fog} que mejore la gestión de los espacios en tiempo real y la asignación de recursos, frente a la congestión vehicular y al consumo energético en las ciudades.
 
-La metodología empleada se fundamentó en una arquitectura jerárquica de fog computing con cuatro capas para almacenamiento de datos, transferencia y utilización de recursos. El sistema integró cámaras inteligentes Wi-Fi como sensores para captura de imágenes cada 5 segundos, nodos fog para procesamiento local, y un componente de proveniencia (provenance) que proporciona información en tiempo real sobre disponibilidad de espacios. La simulación se realizó utilizando el toolkit iFogSim2, configurando tres áreas de estacionamiento con 2 a 3 cámaras por área, cada una conectada a un nodo fog central mediante servidor proxy. El modelo de aplicación incluyó módulos interconectados: cámara, Slot Finder (localizador de espacios), Slot Detector (detector de posición exacta), Slot Tracker (rastreador de estado en tiempo real), interfaz de usuario basada en la nube, y displays LED para indicadores visuales.
+Se propuso una arquitectura jerárquica de cuatro capas con cámaras inteligentes Wi-Fi que capturan imágenes cada 5 segundos, nodos \textit{fog} para el procesamiento local y un componente de proveniencia que informa la disponibilidad en tiempo real. La aplicación se organizó en módulos: cámara, \textit{Slot Finder}, \textit{Slot Detector}, \textit{Slot Tracker}, interfaz en la nube y pantallas LED. El desempeño se simuló con iFogSim2 en tres áreas de estacionamiento, con 2 a 3 cámaras cada una, y el caso real se evaluó en el estacionamiento de la Universidad SDU, en Kaskelen, durante las horas punta. Se midieron la latencia, el costo y el tiempo de ejecución, el uso de la red y el consumo energético, tanto en el escenario \textit{fog} como en el \textit{cloud}.
 
-El estudio de caso se implementó en el estacionamiento universitario SDU University Park durante horas pico, evaluando métricas clave como latencia end-to-end, costo de ejecución, tiempo de ejecución, uso de red y consumo energético en entornos fog y cloud. Los instrumentos de recolección de datos comprendieron cámaras inteligentes para captura de video continuo, sensores ultrasónicos integrados, simulador iFogSim2 para evaluación de rendimiento, y displays LED para retroalimentación visual en tiempo real.
+Los resultados mostraron que el enfoque \textit{fog} superó al modelo basado solo en la nube: redujo la latencia al procesar los datos cerca de las cámaras, disminuyó el uso de la red y mejoró el aprovechamiento de los espacios en las horas punta. Los autores concluyeron que la computación \textit{fog} es conveniente para aplicaciones urbanas de tiempo real con alta demanda, y que entregar información oportuna a los conductores reduce el tiempo que dedican a buscar estacionamiento.
 
-Los resultados demostraron que el enfoque basado en fog computing superó significativamente al modelo basado en cloud en términos de eficiencia y capacidad de respuesta. La latencia se redujo considerablemente mediante el procesamiento local en nodos fog, calculada mediante la suma del tiempo de captura de imágenes (CPU execution delay), tiempo de carga a nodo fog, y tiempo de visualización en LED. El sistema minimizó el uso de red y optimizó la utilización de espacios, reduciendo la necesidad de expansión de áreas de estacionamiento. La validación en el caso real de SDU University Park confirmó la efectividad del sistema para gestionar espacios durante horas pico, proporcionando información precisa y oportuna a los conductores.
-
-Los autores concluyeron que las arquitecturas fog computing presentan ventajas sustanciales sobre cloud computing para aplicaciones de tiempo real de alta demanda, destacando reducciones notables en latencia y costos operativos. El componente de proveniencia resultó fundamental para empoderar a usuarios con información en tiempo real, facilitando toma de decisiones informadas y reduciendo tiempo de búsqueda de estacionamiento. El estudio evidenció que la computación fog puede manejar eficientemente la demanda creciente de aplicaciones urbanas en tiempo real, contribuyendo al desarrollo de ciudades inteligentes sostenibles mediante reducción de congestión vehicular y optimización de recursos de transporte urbano.
-
-Este antecedente se relaciona directamente con la presente investigación al compartir el enfoque de sistema de estacionamiento inteligente basado en IoT, procesamiento en tiempo real, y arquitectura distribuida mediante tecnologías de cloud computing. Ambos estudios abordan la problemática de congestión vehicular urbana, optimización de búsqueda de estacionamiento, y generación de datos para gestión municipal eficiente, validando la viabilidad técnica de integrar sensores IoT, procesamiento de imágenes y arquitecturas escalables para transformación de ciudades hacia modelos smart city sostenibles.
+Este antecedente se relaciona con la presente investigación porque también integra cámaras, procesamiento en tiempo real, una plataforma en la nube y pantallas LED de disponibilidad. Además, su comparación entre los escenarios \textit{fog} y \textit{cloud} sirve como referencia para medir la latencia del prototipo, que procesa la información en servicios desplegados en la nube.
 
 \subsubsection{Antecedente Internacional 3}
 
-Hidrobo Moreno (2024), en su tesis de grado desarrollada en la Universidad Internacional SEK de Ecuador, campus Miguel de Cervantes en Quito, titulada \textit{``Diseño de un sistema prototipo de uso de parqueaderos bajo disponibilidad, mediante IoT y sensórica''}, tuvo como objetivo diseñar un prototipo de parqueo inteligente utilizando tecnologías de Internet de las Cosas (IoT) y sensórica para implementar un sistema eficiente de búsqueda de lugares disponibles, abordando la problemática de congestión vehicular en el campus universitario donde la ausencia de monitoreo de espacios disponibles generaba dificultades para los usuarios al buscar estacionamiento.
+Hidrobo Moreno (2024), en su tesis de grado desarrollada en la Universidad Internacional SEK, en Quito (Ecuador), titulada \textit{``Diseño de un sistema prototipo de uso de parqueaderos bajo disponibilidad, mediante IoT y sensórica''}, tuvo como objetivo diseñar un prototipo de parqueo inteligente con IoT y sensórica para facilitar la búsqueda de espacios disponibles en el campus Miguel de Cervantes, donde la falta de monitoreo dificultaba a los usuarios encontrar dónde estacionar.
 
-La metodología empleada fue de tipo experimental con enfoque mixto, utilizando entrevistas y cuestionarios para recopilar la perspectiva de los docentes usuarios del estacionamiento universitario. Se aplicó la metodología ágil Xtreme Programming (XP) para el desarrollo del prototipo, comprendiendo las fases de diseño inicial, implementación iterativa, pruebas y refinamiento continuo. La arquitectura del sistema integró un microcontrolador Raspberry Pi como unidad de procesamiento central, Node-Red para gestión de flujos de datos, comunicación mediante Python y Arduino, sensores de proximidad conectados a módulos ESP32 para detección vehicular, protocolo MQTT para transmisión de datos IoT hacia el servidor, y una interfaz web desarrollada en Visual Studio para visualización de disponibilidad en tiempo real.
+La investigación fue de tipo experimental con enfoque mixto. Se aplicaron entrevistas semiestructuradas y cuestionarios a los docentes que usan el estacionamiento, y el prototipo se desarrolló con la metodología ágil \textit{Extreme Programming} (XP). El sistema empleó una Raspberry Pi como unidad central de procesamiento, sensores ultrasónicos conectados a módulos ESP32, el protocolo MQTT para enviar los datos al servidor y Node-RED para los flujos de datos y el panel de monitoreo. Los usuarios consultaban la disponibilidad en una página web adaptable a celulares, a la que accedían con un código QR, y recibían avisos por Telegram y por correo electrónico.
 
-La población de estudio estuvo conformada por docentes usuarios del estacionamiento del campus Miguel de Cervantes de la Universidad Internacional SEK. Los instrumentos de recolección de datos incluyeron entrevistas semiestructuradas y cuestionarios aplicados a los usuarios del estacionamiento, sensores ultrasónicos para detección de presencia vehicular, códigos QR para acceso rápido a la plataforma web, integración con Telegram y correo electrónico para notificaciones push, dashboard de monitoreo implementado en Node-Red, y página web responsiva compatible con dispositivos móviles y computadoras de escritorio para consulta de espacios disponibles.
+Los resultados mostraron una mejora del 14\% en la eficiencia de la búsqueda frente al sistema manual anterior, y el estado de los espacios se actualizó en menos de 2 segundos después de cada cambio detectado por los sensores. El panel de Node-RED permitió a los administradores conocer los patrones de ocupación por horario. El autor concluyó que la combinación de IoT y sensórica permite identificar y sugerir espacios libres de forma eficiente, y que una interfaz sencilla, accesible desde cualquier dispositivo, es clave para que el sistema se use.
 
-Los resultados demostraron una mejora del 14\% en la eficiencia de búsqueda de estacionamiento comparado con el sistema manual previo. El prototipo logró la visualización efectiva del flujo vehicular en tiempo real, permitiendo a los usuarios identificar espacios libres antes de llegar al estacionamiento. La implementación de códigos QR facilitó el acceso instantáneo a la plataforma web sin necesidad de digitar URLs manualmente. El sistema de notificaciones mediante Telegram y correo electrónico permitió alertas proactivas sobre disponibilidad de espacios. El dashboard en Node-Red proporcionó herramientas de monitoreo y análisis para administradores del estacionamiento, incluyendo patrones de ocupación por horarios y estadísticas de uso. Las pruebas en ambiente real confirmaron la confiabilidad del sistema con actualización de estados en menos de 2 segundos tras detección de cambios por los sensores.
-
-El autor concluyó que la combinación de tecnologías IoT y sensórica avanzada demostró eficacia en la facilitación de sistemas altamente eficientes para identificación y sugerencia de espacios de estacionamiento disponibles, optimizando la gestión de espacios y mejorando la experiencia del usuario al reducir tiempo y estrés asociados con la búsqueda. La integración de Raspberry Pi, Node-Red, ESP32 y protocolo MQTT proporcionó una base sólida para procesamiento y manejo de datos con comunicación fluida entre componentes del sistema. La infraestructura de comunicación IoT garantizó un flujo constante de información entre sensores y servidor, permitiendo actualización dinámica de disponibilidad en la interfaz web. El diseño de interfaz de usuario intuitiva y adaptativa resultó crucial para la accesibilidad desde variedad de dispositivos, convirtiéndose en componente fundamental del sistema. La evaluación experimental en tiempo real validó el impacto positivo del prototipo en la optimización del uso de espacios, marcando un avance significativo hacia implementación de soluciones de estacionamiento inteligente sostenibles y eficientes en entornos universitarios.
-
-Este antecedente se relaciona con la presente investigación al compartir el enfoque de sistema de estacionamiento inteligente basado en IoT con sensórica para detección vehicular, procesamiento en tiempo real, y desarrollo de interfaces de usuario accesibles. Ambos proyectos abordan la problemática de congestión vehicular y optimización de búsqueda de estacionamiento mediante tecnologías emergentes, validando la viabilidad de integrar microcontroladores, sensores de proximidad, protocolos de comunicación IoT y plataformas web para mejorar eficiencia operativa y experiencia de usuario en contextos urbanos y universitarios.
+Este antecedente se relaciona con la presente investigación porque emplea sensores ultrasónicos con ESP32, comunicación MQTT y una interfaz web para consultar la disponibilidad en tiempo real, elementos que también forman parte del prototipo propuesto. Su mejora del 14\% en la búsqueda ofrece un valor de referencia para comparar los resultados que se obtengan en Huaraz.
 
 \subsubsection{Antecedente Nacional 1}
 
-Ruiz Cruzado et al. (2026), en su investigación desarrollada en la Universidad Nacional de Trujillo, La Libertad, Perú, titulada \textit{``Sistema de Smart Parking basado en IoT con comunicación MQTT y visualización en tiempo real''}, publicada en la revista \textit{Científica TechNoLogica}, tuvieron como objetivo desarrollar un sistema de gestión de estacionamiento inteligente basado en Internet de las Cosas para optimizar el monitoreo de plazas disponibles en entornos urbanos, abordando la problemática de congestión vehicular, pérdidas económicas, desperdicio de combustible e incremento de emisiones de CO2 generadas por la búsqueda ineficiente de espacios de estacionamiento.
+Ruiz Cruzado et al. (2026), en su investigación desarrollada en la Universidad Nacional de Trujillo y publicada en la revista \textit{Científica TechNoLogica} con el título \textit{``Sistema de Smart Parking basado en IoT con comunicación MQTT y visualización en tiempo real''}, tuvieron como objetivo desarrollar un sistema de estacionamiento inteligente basado en IoT para mejorar el monitoreo de plazas disponibles en entornos urbanos, ante la congestión, el desperdicio de combustible y las emisiones de CO2 que genera la búsqueda de estacionamiento.
 
-La metodología empleada se fundamentó en una arquitectura de cuatro capas que integró dispositivos IoT, middleware de flujos, persistencia de datos e interfaz de usuario. La capa física implementó seis módulos de sensores ultrasónicos HC-SR04 conectados a un microcontrolador ESP32-WROOM-32 (Espressif Systems) con CPU dual-core Xtensa LX6 a 240 MHz y conectividad WiFi 802.11 b/g/n integrada, configurado para publicar estados mediante protocolo MQTT hacia broker público HiveMQ Cloud. La capa de integración utilizó Node-RED v3.1.0 ejecutándose sobre Node.js v18.19.0 en contenedor Docker para suscribir tópicos MQTT, procesar cambios de estado, actualizar base de datos y gestionar lógica de reservas y notificaciones mediante nodos adicionales node-red-contrib-telegrambot v17.0.5 y node-red-node-mysql v3.0.0. La capa de datos empleó MySQL Community Server 8.0.36 con motor InnoDB y esquema normalizado soportando multipropietario mediante chat\_id como identificador de usuario. La capa de usuario comprendió dos interfaces complementarias: dashboard analítico desarrollado en Streamlit 1.31.0 con dependencias pandas 2.1.4, plotly 5.18.0 y mysql-connector-python 8.2.0 para visualizaciones interactivas; y bot conversacional en Telegram creado mediante BotFather e integrado vía API de Node-RED.
+Se diseñó una arquitectura de cuatro capas. En la capa física, seis sensores ultrasónicos HC-SR04 conectados a un ESP32-WROOM-32 publicaban el estado de cada plaza por MQTT a un \textit{broker} HiveMQ Cloud; el firmware se programó en Arduino IDE con las librerías PubSubClient y ArduinoJson. En la capa de integración, Node-RED, ejecutado en un contenedor Docker, procesaba los mensajes y actualizaba una base de datos MySQL 8.0. La capa de usuario contó con un panel analítico en Streamlit y un bot de Telegram para consultas y avisos. Antes del montaje físico, el circuito se validó en el simulador Wokwi.
 
-El desarrollo técnico implementó firmware en Arduino IDE 2.3.2 sobre framework ESP32 Arduino Core v2.0.17, utilizando librerías WiFi.h para conectividad inalámbrica, PubSubClient v2.8.0 para comunicación MQTT y ArduinoJson v6.21.3 para serialización de datos. Los instrumentos comprendieron hardware con ESP32-WROOM-32 (520 KB SRAM), seis sensores HC-SR04 (rango 2--400 cm, resolución 0.3 cm, ángulo de detección 15°) y LED indicador de actividad con resistencia limitadora de 220 \unit{\ohm}; software con Node-RED para orquestación de flujos mediante JavaScript, MySQL con prepared statements para prevención de inyección SQL, y Streamlit implementando patrón Model-View-Controller implícito con clase DatabaseManager encapsulando conexión mediante mysql.connector; y validación preliminar mediante Wokwi Online Simulator v1.0 utilizando diagramas JSON personalizados replicando conexionado físico.
+Los resultados mostraron un flujo de datos continuo y estable. Un filtro antirrebote de 2000 ms eliminó las transiciones falsas y solo confirmó los cambios cuando la presencia del vehículo era persistente; además, se descartaron las lecturas fuera del rango de 2 a 400 cm. Cada cambio se publicaba al instante y un reporte general cada 10 segundos; el bot avisaba a los usuarios suscritos cuando se liberaba una plaza y el panel se actualizaba en intervalos de 5 a 60 segundos. Los autores concluyeron que el filtro antirrebote fue determinante para reducir los falsos positivos, que la separación en capas facilitó la integración entre el hardware y el software, y que la solución es escalable, de bajo costo y cuida la privacidad del usuario.
 
-Los resultados demostraron flujo de datos continuo y estable con detección precisa de vehículos mediante filtro antirrebote de 2000 ms que eliminó transiciones espurias confirmando cambios de estado solo cuando la presencia vehicular fue persistente. La medición de distancia se estabilizó mediante filtro de software descartando valores fuera del rango de 2 a 400 cm, con latencia de publicación inmediata en tópico /changes tras confirmación de estado y reporte general en /status cada 10 segundos. La capa de integración en Node-RED procesó payloads JSON de hasta 1024 bytes sin fragmentación, ejecutando procedimientos almacenados en MySQL para actualización en tiempo real de tabla parking\_spaces. La lógica de integridad validó transiciones evitando que espacios marcados como ``reservado'' cambiaran a ``disponible'' por errores de lectura del sensor. El bot de Telegram envió notificaciones automáticas a usuarios registrados en tabla subscribers cada vez que se detectó liberación de plaza, respondiendo a comandos /status y /subscribe con formato Markdown y emojis. El dashboard en Streamlit mostró métricas agregadas y tasa de ocupación mediante gráficos gauge y pastel de librería Plotly, con mecanismo de auto-actualización refrescando datos satisfactoriamente en intervalo configurado de 5--60 segundos.
-
-Los autores concluyeron que se logró desarrollar exitosamente un sistema de parqueo inteligente que facilita movilidad más ágil reduciendo tiempo de búsqueda de estacionamiento y emisiones asociadas. El filtro antirrebote en el circuito fue determinante en reducir falsos positivos antes de publicación al broker MQTT en la nube. La arquitectura de cuatro capas permitió separación clara de responsabilidades entre hardware y software, facilitando interoperabilidad entre sensores y protocolos de comunicación. La orquestación de Node-RED combinada con bot de Telegram y dashboard en Streamlit confirmó que herramientas de código abierto permiten cerrar brecha entre captura de datos y toma de decisiones del usuario de forma efectiva y accesible. El sistema implementado demostró ser una solución escalable, de bajo costo y eficiente para infraestructura de ciudades modernas, destacando capacidad de resguardar privacidad del usuario mediante anonimización de datos vehiculares y mejorar toma de decisiones operacionales a través de clara separación de responsabilidades entre hardware y software, superando obstáculos de altos costos de implementación y vulnerabilidades en privacidad identificados en la literatura mediante alternativa basada en sensores ultrasónicos y microcontroladores ESP32.
-
-Este antecedente se relaciona directamente con la presente investigación al compartir el enfoque de sistema de estacionamiento inteligente basado en IoT con arquitectura distribuida por capas, sensórica de bajo costo (HC-SR04) y microcontroladores ESP32 para detección de disponibilidad, protocolo MQTT para comunicación en tiempo real, persistencia de datos en bases de datos relacionales, y desarrollo de interfaces de usuario accesibles mediante dashboards web y notificaciones móviles. Ambos estudios abordan la problemática de congestión vehicular urbana, optimización de búsqueda de estacionamiento y generación de datos para gestión municipal eficiente en contexto peruano, validando la viabilidad técnica de integrar tecnologías IoT de código abierto, procesamiento distribuido y arquitecturas escalables para transformación de ciudades hacia modelos smart city sostenibles en Perú.
+Este antecedente es el más cercano en hardware a la presente investigación, pues usa sensores HC-SR04, microcontroladores ESP32, MQTT, Docker y MySQL, que también forman parte del prototipo. Su filtro antirrebote y la validación del rango de lectura son prácticas que se aplican igualmente a los sensores de espacio del prototipo, y su contexto peruano respalda la viabilidad de estas tecnologías en el país.
 
 \subsubsection{Antecedente Nacional 2}
 
-Cabrera Altamirano y Quispe Velásquez (2025), en su tesis de grado desarrollada en la Pontificia Universidad Católica del Perú, Lima, titulada \textit{``Diseño de un sistema de computación de borde para el monitoreo de disponibilidad de estacionamientos de un campus universitario basado en técnicas de IA''}, tuvieron como objetivo diseñar e implementar un sistema de computación de borde que permita el monitoreo en tiempo real de la disponibilidad de estacionamientos en el campus universitario mediante técnicas de inteligencia artificial, abordando la problemática de tiempo perdido en búsqueda de espacios disponibles y congestión vehicular en entornos universitarios.
+Cabrera Altamirano y Quispe Velásquez (2025), en su tesis de grado desarrollada en la Pontificia Universidad Católica del Perú, titulada \textit{``Diseño de un sistema de computación de borde para el monitoreo de disponibilidad de estacionamientos de un campus universitario basado en técnicas de IA''}, tuvieron como objetivo diseñar e implementar un sistema de computación de borde que permita monitorear en tiempo real la disponibilidad de los estacionamientos de un campus universitario mediante técnicas de inteligencia artificial, ante el tiempo que se pierde buscando un espacio.
 
-La metodología empleada comprendió cinco etapas principales para el desarrollo del sistema: preprocesamiento de imágenes capturadas desde cámaras de vigilancia, procesamiento mediante algoritmos de visión computacional basados en inteligencia artificial (YOLO y Faster R-CNN), transmisión de datos procesados, almacenamiento en servicios de nube y visualización mediante aplicación móvil. El sistema implementó arquitectura de computación de borde (Edge Computing) utilizando dispositivos SBC (Single Board Computer) para procesamiento local de imágenes, reduciendo latencia y dependencia de conectividad constante a la nube. La arquitectura integró cámaras de vigilancia conectadas a dispositivos Raspberry Pi y Jetson Nano para inferencia de modelos de deep learning en tiempo real, servicios de Amazon Web Services (AWS) para almacenamiento de datos históricos y sincronización, y aplicación móvil desarrollada para consulta de disponibilidad por parte de usuarios finales.
+El desarrollo siguió cinco etapas: preprocesamiento de las imágenes de las cámaras de vigilancia, detección con algoritmos de visión computacional (YOLO y Faster R-CNN), transmisión de los datos, almacenamiento en la nube y visualización en una aplicación móvil. Las imágenes se procesaban localmente en computadoras de placa única (Raspberry Pi 4 y NVIDIA Jetson Nano), y los servicios de Amazon Web Services (S3, DynamoDB y API Gateway) guardaban el historial y comunicaban los datos con la aplicación. El caso de estudio fue el Estacionamiento B de la PUCP, con 30 plazas monitoreadas.
 
-El caso de estudio se implementó en el Estacionamiento B del campus de la Pontificia Universidad Católica del Perú (PUCP), comprendiendo 30 plazas de estacionamiento monitoreadas continuamente. Los instrumentos de recolección y procesamiento de datos incluyeron cámaras de vigilancia IP para captura de video en tiempo real, dispositivos Raspberry Pi 4 Model B y NVIDIA Jetson Nano como unidades de procesamiento de borde, algoritmos de visión computacional YOLO (You Only Look Once) y Faster R-CNN (Region-based Convolutional Neural Network) pre-entrenados y ajustados para detección de vehículos, servicios de infraestructura en nube AWS (Amazon S3 para almacenamiento, DynamoDB para base de datos NoSQL, API Gateway para comunicación), y aplicación móvil multiplataforma desarrollada para visualización de disponibilidad en tiempo real mediante interfaz gráfica intuitiva con mapa del estacionamiento.
+YOLO alcanzó la mayor velocidad, con unos 30 cuadros por segundo en la Jetson Nano, mientras que Faster R-CNN fue más preciso ante los cambios de iluminación y las oclusiones parciales, con una precisión superior al 90\%. El sistema redujo el tiempo de búsqueda frente al recorrido visual tradicional, y el procesamiento en el borde disminuyó la latencia y el uso del ancho de banda, e incluso mantuvo el funcionamiento básico durante los cortes de conexión. Los autores concluyeron que la propuesta es viable técnica y económicamente, y que partir de modelos preentrenados con ajuste fino acelera el desarrollo y mejora la precisión.
 
-Los resultados demostraron detección de vehículos con alta precisión en condiciones variables de operación. El algoritmo YOLO presentó mejor velocidad de procesamiento con capacidad de inferencia en tiempo real (aproximadamente 30 FPS en Jetson Nano), resultando óptimo para aplicaciones que requieren respuestas inmediatas. El algoritmo Faster R-CNN mostró mayor precisión en detección bajo condiciones variables de iluminación (día, noche, sombras) y oclusiones parciales, con tasa de precisión superior al 90\% en validación experimental. El sistema redujo significativamente el tiempo promedio de búsqueda de estacionamiento comparado con método tradicional de recorrido visual, permitiendo a usuarios consultar disponibilidad antes de llegar al campus mediante aplicación móvil. La arquitectura de computación de borde demostró ventajas operativas al procesar datos localmente, disminuyendo latencia de respuesta y consumo de ancho de banda hacia la nube, manteniendo funcionalidad básica incluso ante interrupciones temporales de conectividad.
-
-Los autores concluyeron que el prototipo desarrollado demuestra viabilidad técnica y económica de implementar sistema de monitoreo de estacionamientos basado en computación de borde e inteligencia artificial, ofreciendo solución eficiente, escalable y de bajo costo para campus universitarios y entornos urbanos. La combinación de Edge Computing con algoritmos de deep learning permite procesamiento distribuido que optimiza recursos computacionales y reduce dependencia de infraestructura centralizada en nube. La implementación de dispositivos SBC de bajo costo (Raspberry Pi, Jetson Nano) valida factibilidad económica de replicar el sistema en múltiples ubicaciones. El uso de modelos pre-entrenados (YOLO, Faster R-CNN) con fine-tuning específico para contexto de estacionamientos universitarios acelera desarrollo y mejora precisión de detección. La aplicación móvil como interfaz de usuario final democratiza acceso a información en tiempo real, mejorando experiencia de usuarios y contribuyendo a reducción de congestión vehicular y emisiones asociadas a búsqueda de estacionamiento.
-
-Este antecedente se relaciona directamente con la presente investigación al compartir el enfoque de sistema de estacionamiento inteligente basado en técnicas de inteligencia artificial, específicamente el uso de algoritmos de deep learning para detección de ocupación mediante procesamiento de imágenes (YOLO comparable a implementación de YOLO en prototipo propuesto). Ambos estudios abordan arquitecturas distribuidas mediante Edge Computing o Cloud Computing para procesamiento eficiente, desarrollo de interfaces de usuario accesibles para consulta de disponibilidad en tiempo real, y validación experimental en contextos reales peruanos (campus PUCP vs. estacionamientos públicos Huaraz). La implementación en entorno universitario peruano proporciona precedente validado de viabilidad técnica, económica y operacional de sistemas Smart Parking basados en IA para transformación hacia modelos de gestión urbana inteligente en Perú.
+Este antecedente se relaciona con la presente investigación porque aplica modelos YOLO para detectar la ocupación a partir de imágenes, combina el procesamiento local con servicios en la nube y ofrece la disponibilidad en una aplicación móvil, en un contexto peruano. Su comparación entre velocidad y precisión, así como su estrategia de ajuste fino de modelos preentrenados, son útiles para el prototipo, que también parte de un modelo YOLO preentrenado.
 
 \subsubsection{Antecedente Nacional 3}
 
-Romo Quispe et al. (2022), en su tesis de grado desarrollada en la Pontificia Universidad Católica del Perú, Lima, titulada \textit{``Diseño de un sistema de parqueo inteligente y calidad del aire visualizado en tiempo real en una aplicación Android en el marco de una ciudad inteligente para el distrito de La Punta - Callao''}, tuvieron como objetivo desarrollar una plataforma tecnológica en el marco de ciudad inteligente que brinde servicios de estacionamiento inteligente y monitoreo de calidad de aire en tiempo real, combinando tecnología con información para mejorar la calidad de vida, reducir coste energético e impacto medioambiental en el distrito de La Punta - Callao.
+Romo Quispe y Benites Romero (2022), en su tesis de grado desarrollada en la Pontificia Universidad Católica del Perú, titulada \textit{``Diseño de un sistema de parqueo inteligente y calidad del aire visualizado en tiempo real en una aplicación Android en el marco de una ciudad inteligente para el distrito de La Punta - Callao''}, tuvieron como objetivo desarrollar una plataforma de ciudad inteligente que brinde estacionamiento inteligente y monitoreo de la calidad del aire en tiempo real en el distrito de La Punta (Callao), para mejorar la calidad de vida y reducir el costo energético y el impacto ambiental.
 
-La metodología empleada comprendió cuatro fases principales de desarrollo: análisis del estado actual del distrito desde perspectiva social y tecnológica identificando causas y efectos del problema central, fundamentación tecnológica de Smart City con revisión de casos de implementación en otras ciudades y rol del Internet de las Cosas orientado a servicios al ciudadano, diseño de arquitectura seleccionando dimensiones adecuadas para el distrito con especificación de dispositivos IoT necesarios y desarrollo de sistema Android para aplicación móvil incluyendo pruebas de comunicación entre dispositivos, y evaluación de factibilidad económica mediante cálculo de costos de inversión, operación y mantenimiento así como ingresos potenciales determinando viabilidad mediante indicadores VAN (Valor Actual Neto) y TIR (Tasa Interna de Retorno). El sistema integró sensores de proximidad para detección de vehículos estacionados enviando información en tiempo real ante cambios detectados (libre/ocupado), sensores de calidad de aire y radiación UV configurados para medir niveles categorizados (aire bueno, moderado, malo, umbral de cuidado), servidor central para procesamiento y almacenamiento de datos, cámara IP ubicada en estacionamiento para vigilancia vehicular con transmisión streaming, y aplicación móvil Android para visualización de disponibilidad de estacionamientos con navegación mediante Google Maps y acceso a cámara de vigilancia.
+La metodología tuvo cuatro fases: el análisis de la situación social y tecnológica del distrito; la fundamentación sobre ciudades inteligentes y el rol del IoT; el diseño de la arquitectura, con los dispositivos IoT y una aplicación Android; y la evaluación económica mediante el VAN y la TIR. El sistema integró sensores de proximidad para detectar si cada plaza estaba libre u ocupada, sensores de calidad del aire y de radiación UV, una cámara IP con transmisión en vivo y un servidor central. El distrito se eligió por su perfil favorable: el 63.4\% de su población tiene educación superior y el 91.3\% de los hogares cuenta con celular.
 
-El caso de estudio se implementó en el distrito de La Punta, Provincia Constitucional del Callao, seleccionado por sus características socioeconómicas favorables: nivel educativo alto con 63.4\% de población con educación superior, 32.4\% educación secundaria y solo 0.2--0.4\% sin nivel educativo; penetración tecnológica significativa con 91.3\% de hogares con celular, 55\% con internet y 20.9\% con dos o más computadoras; nivel socioeconómico predominante B (87.5\%), C (10\%) y D (2.5\%); seguridad ciudadana con bajos índices de delincuencia excepto periodo estival por ingreso de 20--30 mil veraneantes; y potencial turístico con 104 monumentos, 2 playas, 1 reserva ecológica, 39 restaurantes y 6 plazas. Los instrumentos implementados comprendieron sensores de proximidad ultrasónicos o magnéticos para detección de presencia vehicular en plazas de estacionamiento, sensores de calidad de aire para medición de material particulado (PM2.5, PM10) y gases contaminantes, sensores de radiación UV para monitoreo de niveles de exposición, cámara IP con capacidad de streaming para vigilancia en tiempo real, servidor backend para procesamiento de datos y lógica de negocio, base de datos para almacenamiento histórico de ocupación y mediciones ambientales, aplicación móvil Android desarrollada con integración a Google Maps API para navegación y visualización de rutas, y protocolo de comunicación IoT para transmisión de datos entre dispositivos y servidor.
+Se logró la comunicación en tiempo real entre los sensores, el servidor y la aplicación. La aplicación Android mostró los estacionamientos libres y ocupados, trazó con Google Maps la ruta hacia el elegido, dio acceso a la cámara y alertó cuando la calidad del aire superaba los umbrales. Los autores concluyeron que el sistema es viable técnica y económicamente, con un VAN y una TIR positivos, y que el diseño es escalable y replicable en otros distritos, ya que una ciudad inteligente se construye a largo plazo.
 
-Los resultados demostraron implementación y configuración exitosa de sensores de proximidad para detección de vehículos estacionados, enviando información en tiempo real ante cualquier cambio detectado (libre/ocupado) con actualización inmediata en servidor. La implementación de sensores de calidad de aire y radiación UV logró obtener mediciones categorizadas para niveles de aire bueno, moderado, malo y umbral de cuidado, proporcionando información ambiental relevante para ciudadanos. Se logró comunicación exitosa entre todos los dispositivos IoT, servidor y aplicación móvil, transmitiendo información en tiempo real desde sensores hasta servidor con latencia mínima. La visualización mediante streaming de cámara IP ubicada en estacionamiento permitió vigilancia vehicular en tiempo real accesible desde aplicación móvil. La aplicación Android desarrollada permitió visualización de estacionamientos disponibles con indicadores gráficos de estado (libre/ocupado), cálculo y visualización de ruta óptima hacia estacionamiento seleccionado mediante integración con Google Maps, acceso directo a transmisión de cámara ubicada en plaza de estacionamiento, y consulta de niveles actuales de calidad del aire detectados por sensores ambientales con alertas cuando se superan umbrales de cuidado.
-
-Los autores concluyeron que se logró implementación exitosa de sistema Smart Parking integrado con monitoreo ambiental para distrito de La Punta - Callao, validando viabilidad técnica y económica mediante indicadores VAN y TIR positivos. El diseño propuesto es escalable y replicable en otros distritos adaptando requerimientos específicos, permitiendo agregar servicios adicionales según nuevas necesidades ciudadanas y avances tecnológicos, dado que desarrollo de Smart City es proceso a largo plazo. La integración de servicios de estacionamiento inteligente con monitoreo de calidad ambiental en plataforma única demuestra beneficios de enfoque holístico de ciudad inteligente. Las características socioeconómicas y tecnológicas favorables del distrito de La Punta (alto nivel educativo, penetración tecnológica significativa, nivel socioeconómico predominante B) facilitaron adopción y uso de sistema por parte de ciudadanos. La implementación de aplicación móvil Android como interfaz ciudadana democratizó acceso a servicios inteligentes, mejorando experiencia de usuario y contribuyendo a objetivos de movilidad sostenible y calidad de vida urbana.
-
-Este antecedente se relaciona directamente con la presente investigación al compartir el enfoque de sistema de estacionamiento inteligente basado en IoT con sensores de proximidad para detección de ocupación en tiempo real, desarrollo de plataforma tecnológica en marco de Smart City aplicada a contexto peruano (La Punta - Callao vs. Huaraz - Áncash), implementación de aplicación móvil para visualización de disponibilidad y navegación hacia espacios libres, y arquitectura distribuida con servidor backend para procesamiento y almacenamiento de datos. Ambos proyectos abordan problemática de congestión vehicular y optimización de búsqueda de estacionamiento mediante tecnologías emergentes IoT en ciudades peruanas, validando viabilidad de implementar sistemas Smart Parking escalables y replicables que contribuyan a transformación hacia modelos de gestión urbana inteligente y sostenible en Perú, con potencial de integración de servicios adicionales (monitoreo ambiental, vigilancia) según necesidades locales específicas.
+Este antecedente se relaciona con la presente investigación porque desarrolla un sistema de estacionamiento inteligente en el marco de una ciudad inteligente peruana, con detección de la ocupación en tiempo real y una aplicación móvil que muestra la disponibilidad y guía al conductor. Además, su análisis del perfil del distrito muestra que la adopción de estas soluciones depende del contexto local, un aspecto que también debe considerarse en Huaraz.
 
 \subsubsection{Antecedente Regional 1}
 
-Tarazona Martin (2022), en su tesis de grado desarrollada en la Universidad Católica los Ángeles de Chimbote, Escuela Profesional de Ingeniería de Sistemas, Huaraz, Áncash, Perú, titulada \textit{``Diseño de un sistema Web para la distribución de los espacios disponibles en los parques de estacionamiento vehicular de la municipalidad provincial de Huaraz - Huaraz; 2022''}, desarrollada en base a la línea de investigación de Ingeniería de Software, tuvo como objetivo general diseñar un sistema web para la distribución de los espacios disponibles en los parques de estacionamiento vehicular de la Municipalidad Provincial de Huaraz, abordando la problemática de dificultad para localizar espacios disponibles para parquear vehículos debido a la ausencia de herramienta tecnológica que facilite adecuado control de disponibilidad, beneficiando directamente a la Municipalidad Provincial de Huaraz y a los transportistas de la ciudad de Huaraz.
+Tarazona Martin (2022), en su tesis de grado desarrollada en la Universidad Católica Los Ángeles de Chimbote, en Huaraz (Áncash), titulada \textit{``Diseño de un sistema Web para la distribución de los espacios disponibles en los parques de estacionamiento vehicular de la municipalidad provincial de Huaraz - Huaraz; 2022''}, tuvo como objetivo diseñar un sistema web para distribuir los espacios disponibles en los parques de estacionamiento vehicular de la Municipalidad Provincial de Huaraz, ya que los conductores no contaban con una herramienta que les permitiera saber dónde había espacio libre.
 
-La metodología empleada fue de tipo descriptiva con enfoque cuantitativo, diseño no experimental y de corte transversal. La población de estudio estuvo conformada por 550 transportistas de la ciudad de Huaraz que utilizan regularmente los parques de estacionamiento vehicular administrados por la Municipalidad Provincial de Huaraz. Mediante muestreo probabilístico se determinó una muestra representativa de 47 transportistas de la ciudad de Huaraz para aplicación de instrumento de recolección de datos. Los instrumentos empleados comprendieron cuestionarios estructurados aplicados mediante técnica de encuesta, organizados en dos dimensiones principales: primera dimensión evaluando nivel de satisfacción con atención actual en parques de estacionamiento vehicular, y segunda dimensión evaluando percepción sobre necesidad de implementar sistema web para gestión de espacios disponibles.
+La investigación fue descriptiva, con enfoque cuantitativo, diseño no experimental y de corte transversal. La población estuvo conformada por 550 transportistas que usan los parques de estacionamiento municipales, y mediante muestreo probabilístico se obtuvo una muestra de 47. Se aplicó un cuestionario con dos dimensiones: la satisfacción con la atención actual y la necesidad de un sistema web.
 
-Los resultados obtenidos demostraron en la primera dimensión que el 80.00\% de los transportistas encuestados manifestaron que NO están satisfechos con la atención actual en los parques de estacionamiento vehicular, evidenciando deficiencias en el sistema tradicional de gestión y asignación de espacios que genera frustración en usuarios al no contar con información oportuna sobre disponibilidad. En la segunda dimensión, el 92.00\% de los transportistas encuestados manifestaron que SÍ existe la necesidad de implementar un sistema web para la distribución y visualización de espacios disponibles en los parques de estacionamiento vehicular, confirmando amplia aceptación y demanda por solución tecnológica que mejore acceso a información en tiempo real. La alta proporción de respuestas afirmativas en ambas dimensiones validó la hipótesis general que establece que el diseño de un sistema web ayuda a controlar los parqueos de estacionamiento vehicular que administra la Municipalidad Provincial de Huaraz.
+El 80\% de los encuestados manifestó no estar satisfecho con la atención actual en los parques de estacionamiento, y el 92\% consideró necesario implementar un sistema web para conocer los espacios disponibles. Con estos resultados, el autor concluyó que se confirma la hipótesis planteada y que el sistema web permitiría a la municipalidad mejorar el control y la distribución de los espacios.
 
-El autor concluyó que el diseño de un sistema web para la distribución de los espacios disponibles en los parques de estacionamiento vehicular de la Municipalidad Provincial de Huaraz obtuvo resultados semejantes a la hipótesis planteada, evidenciando así la necesidad imperante de diseñar el sistema web para mejorar gestión operativa. Los altos porcentajes de insatisfacción con el sistema actual (80\%) y de demanda por implementación de sistema web (92\%) confirman que existe brecha tecnológica significativa en la gestión de estacionamientos municipales que afecta negativamente experiencia de usuarios transportistas. La implementación de sistema web permitiría a la Municipalidad Provincial de Huaraz optimizar control y distribución de espacios disponibles, reduciendo tiempo de búsqueda de estacionamiento, mejorando satisfacción de usuarios y contribuyendo a reducción de congestión vehicular en zona urbana de Huaraz. El diseño propuesto proporciona base tecnológica para modernización de servicios municipales alineada con tendencias de transformación digital en gobiernos locales peruanos.
-
-Este antecedente se relaciona directamente con la presente investigación al compartir el mismo contexto geográfico (ciudad de Huaraz, Áncash, Perú) y la misma entidad beneficiaria (Municipalidad Provincial de Huaraz), abordando problemática de gestión de estacionamientos vehicular mediante soluciones tecnológicas basadas en sistemas de información. Ambos proyectos buscan optimizar distribución y control de espacios de estacionamiento disponibles, mejorar experiencia de usuarios (transportistas/conductores) mediante acceso a información en tiempo real, y contribuir a reducción de congestión vehicular en zona urbana de Huaraz. La validación de necesidad mediante encuestas a transportistas (92\% demanda implementación) proporciona evidencia empírica local que respalda viabilidad y aceptación de sistemas de gestión de estacionamiento inteligente en Huaraz. Este antecedente confirma que existe demanda ciudadana y institucional en Huaraz para implementación de soluciones tecnológicas que modernicen gestión municipal de estacionamientos, validando pertinencia y relevancia de desarrollar prototipo de Smart Parking con tecnologías IoT, AI y Cloud Computing para ciudad de Huaraz como caso de estudio representativo de necesidades de ciudades intermedias peruanas en transformación hacia modelos Smart City.
+Este antecedente es especialmente relevante porque se desarrolló en la misma ciudad y sobre los parqueos de la misma municipalidad que abarca la presente investigación. Sus resultados aportan evidencia local de que los conductores de Huaraz no están satisfechos con la gestión actual y demandan información sobre la disponibilidad, lo que justifica pasar de un sistema web a un prototipo que mida la ocupación de forma automática con IoT, IA y Cloud Computing.
 
 \subsection{Bases Teóricas}
 
@@ -1069,11 +1043,11 @@ Según expone Halaweh (2013), las tecnologías emergentes se definen como innova
 
 \subsubsection{Internet of Things}
 
-Según define IBM (s.f.), el \textit{Internet of Things} (IoT) se refiere a una red de objetos físicos —como dispositivos, vehículos o electrodomésticos— que incorporan sensores, software y conectividad de red con el propósito de recopilar e intercambiar datos a través de Internet. Bajo este principio de funcionamiento, estos objetos inteligentes tienen la capacidad de comunicarse entre sí y con plataformas centralizadas para ejecutar tareas de forma autónoma. En el entorno de la ingeniería, este ecosistema automatizado permite el monitoreo en tiempo real de parámetros físicos y flujos operativos complejos, sirviendo como la infraestructura base para el despliegue de soluciones integradas y la recopilación de datos abiertos indispensables en el diseño de ciudades inteligentes.
+Según define IBM (s.f.-b), el \textit{Internet of Things} (IoT) se refiere a una red de objetos físicos —como dispositivos, vehículos o electrodomésticos— que incorporan sensores, software y conectividad de red con el propósito de recopilar e intercambiar datos a través de Internet. Bajo este principio de funcionamiento, estos objetos inteligentes tienen la capacidad de comunicarse entre sí y con plataformas centralizadas para ejecutar tareas de forma autónoma. En el entorno de la ingeniería, este ecosistema automatizado permite el monitoreo en tiempo real de parámetros físicos y flujos operativos complejos, sirviendo como la infraestructura base para el despliegue de soluciones integradas y la recopilación de datos abiertos indispensables en el diseño de ciudades inteligentes.
 
 \subsubsection{Artificial Intelligence}
 
-Según define IBM (s.f.), la Inteligencia Artificial (IA) constituye una tecnología avanzada que faculta a las computadoras y sistemas computacionales para simular capacidades cognitivas humanas como el aprendizaje, la comprensión, la resolución de problemas y la toma de decisiones autónomas. En este ecosistema técnico, los dispositivos dotados de esta tecnología adquieren la facultad de procesar e identificar objetos a través de la visión artificial, asimilando patrones complejos a partir de la adquisición constante de nueva información. El núcleo operativo de estas soluciones inteligentes se sustenta en subconjuntos como el aprendizaje automático (\textit{Machine Learning}), el cual permite entrenar algoritmos matemáticos y redes neuronales para predecir comportamientos o automatizar la clasificación de datos sin necesidad de una programación explícita. Para un sistema de gestión de tránsito, este paradigma cognitivo resulta fundamental, ya que provee los algoritmos necesarios para procesar flujos de video, reconocer caracteres y determinar el estado de ocupación de las calzadas de manera totalmente independiente y libre de error humano.
+Según define IBM (s.f.-a), la Inteligencia Artificial (IA) constituye una tecnología avanzada que faculta a las computadoras y sistemas computacionales para simular capacidades cognitivas humanas como el aprendizaje, la comprensión, la resolución de problemas y la toma de decisiones autónomas. En este ecosistema técnico, los dispositivos dotados de esta tecnología adquieren la facultad de procesar e identificar objetos a través de la visión artificial, asimilando patrones complejos a partir de la adquisición constante de nueva información. El núcleo operativo de estas soluciones inteligentes se sustenta en subconjuntos como el aprendizaje automático (\textit{Machine Learning}), el cual permite entrenar algoritmos matemáticos y redes neuronales para predecir comportamientos o automatizar la clasificación de datos sin necesidad de una programación explícita. Para un sistema de gestión de tránsito, este paradigma cognitivo resulta fundamental, ya que provee los algoritmos necesarios para procesar flujos de video, reconocer caracteres y determinar el estado de ocupación de las calzadas de manera totalmente independiente y libre de error humano.
 
 \subsubsection{Cloud Computing}
 
@@ -1143,7 +1117,7 @@ Finalmente, el desarrollo del sistema se fundamenta teóricamente en el concepto
 \subsection{Tipo y diseño de la investigación}
 
 \subsubsection{Tipo de investigación}
-Según Hernández-Sampieri y Mendoza (2018), la investigación aplicada se fundamenta en la utilización de conocimientos científicos para resolver problemas prácticos y concretos en un entorno real. Bajo este lineamiento metodológico, el presente estudio es de tipo \textbf{aplicada}, debido a que estará orientada al desarrollo de un prototipo de \textit{Smart Parking System} que integre tecnologías de \textit{Internet of Things} (IoT), \textit{Artificial Intelligence} (IA) y \textit{Cloud Computing}, con el propósito de contribuir a la gestión digital de estacionamientos, mejoramiento de la movilidad urbana y una inicitiva hacia una \textit{smart city} en Huaraz, Áncash.
+Según Hernández-Sampieri y Mendoza (2018), la investigación aplicada se fundamenta en la utilización de conocimientos científicos para resolver problemas prácticos y concretos en un entorno real. Bajo este lineamiento metodológico, el presente estudio es de tipo \textbf{aplicada}, debido a que estará orientada al desarrollo de un prototipo de \textit{Smart Parking System} que integre tecnologías de \textit{Internet of Things} (IoT), \textit{Artificial Intelligence} (IA) y \textit{Cloud Computing}, con el propósito de contribuir a la gestión digital de estacionamientos, mejoramiento de la movilidad urbana y una iniciativa hacia una \textit{smart city} en Huaraz, Áncash.
 
 \subsubsection{Enfoque de la investigación}
 Según el planteamiento de Hernández-Sampieri y Mendoza (2018), la ruta cuantitativa representa un conjunto de procesos secuenciales y probatorios donde se recolectan datos numéricos para probar hipótesis con base en el análisis estadístico. Bajo este lineamiento, el enfoque de la investigación será \textbf{cuantitativo}, puesto que la evaluación del prototipo se realizará mediante la recopilación y el análisis de datos numéricos obtenidos durante las pruebas funcionales y técnicas. Para ello, se considerarán indicadores como el porcentaje de transmisiones exitosas de datos IoT, la precisión del reconocimiento de matrículas vehiculares, los tiempos de procesamiento y respuesta de los servicios IA, la disponibilidad de los componentes en la nube y los tiempos requeridos para consultar la disponibilidad de estacionamientos.
@@ -1159,13 +1133,18 @@ De acuerdo con Hernández-Sampieri y Mendoza (2018), los estudios explicativos s
 \subsection{Población y muestra}
 
 \subsubsection{Población}
-La población está constituida por la totalidad de parqueos destinadas al estacionamiento vehicular público regulado y consolidado de la ciudad de Huaraz, bajo la competencia operativa de la Municipalidad Provincial de Huaraz y en el marco de la Ordenanza Municipal N.° 011-MPH-2015.
+La población está constituida por la totalidad de \textbf{parqueos} destinados al estacionamiento vehicular público regulado de la ciudad de Huaraz, bajo la competencia operativa de la Municipalidad Provincial de Huaraz, en el marco de la Ordenanza Municipal N.° 011-MPH-2015, que aprueba las zonas de estacionamiento, y de la Ordenanza Municipal N.° 214-MPH-2021, que regula la tasa por estacionamiento vehicular.
 
 \subsubsection{Muestra}
-La muestra se seleccionó de manera no probabilística e intencionada (por conveniencia), debido a las condiciones logísticas y al alcance experimental del prototipo. La muestra está conformada por un entorno controlado de \textbf{15 espacios de estacionamiento (cajones de parqueo)} distribuidos dentro de las calzadas reguladas de la ciudad. Sobre este escenario se ejecutarán los escenarios de prueba del prototipo para establecer las comparaciones cuantitativas de rendimiento frente al modelo tradicional.
+La muestra se seleccionó de manera no probabilística e intencionada (por conveniencia), debido a las condiciones logísticas y al alcance experimental del prototipo. La muestra está conformada por \textbf{dos (2) parqueos}, seleccionados porque cada uno representa una de las dos modalidades de estacionamiento público de la ciudad:
+\begin{itemize}[leftmargin=*]
+	\item \textbf{Parqueo San Martín} (Jr. San Martín, aprox. 20 espacios): parqueo con control de acceso de entrada y salida, donde se evaluará el registro automático de entradas y salidas mediante el reconocimiento de placas vehiculares.
+	\item \textbf{Parqueo Las Banderas} (Av. Simón Bolívar, aprox. 10 espacios): parqueo en la vía pública, sin control de acceso, donde se evaluará la detección de la ocupación de cada espacio mediante sensores y visión artificial.
+\end{itemize}
+Sobre ambos parqueos se ejecutarán los escenarios de prueba del prototipo para establecer las comparaciones cuantitativas de rendimiento frente al modelo tradicional.
 
 \subsubsection{Unidad de Análisis}
-La unidad de análisis está constituida por cada uno de los \textbf{cajones de estacionamiento o espacios de parqueo individuales} seleccionados en el entorno de evaluación. Es sobre estas unidades específicas donde los dispositivos de \textit{Internet of Things} (IoT) capturan los estados de ocupación, los algoritmos de Inteligencia Artificial (IA) ejecutan el procesamiento de visión artificial para el reconocimiento de matrículas, y la plataforma de \textit{Cloud Computing} centraliza los datos, con la finalidad de optimizar la gestión de la movilidad urbana en las condiciones de prueba establecidas.
+La unidad de análisis está constituida por cada \textbf{parqueo} de la muestra. En cada parqueo se registran los eventos de entrada y salida de vehículos y el estado de ocupación de sus espacios: es allí donde los dispositivos de \textit{Internet of Things} (IoT) capturan los estados de ocupación, los algoritmos de Inteligencia Artificial (IA) ejecutan el procesamiento de visión artificial para el reconocimiento de matrículas, y la plataforma de \textit{Cloud Computing} centraliza los datos, con la finalidad de optimizar la gestión de la movilidad urbana en las condiciones de prueba establecidas.
 
 \subsection{Instrumentos de recolección de datos}
 
@@ -1173,11 +1152,11 @@ Para registrar de manera válida y confiable la información de las variables ba
 
 \begin{enumerate}
 	\item \textbf{Ficha de Registro Técnico (Métrica de Ingeniería):} Consiste en un formato estructurado digital (automatizado mediante \textit{logs} y registros en las bases de datos del sistema) diseñado para capturar cuantitativamente las variables técnicas de la solución informática. Este instrumento registrará la tasa de transmisiones de datos exitosas de los dispositivos IoT, el porcentaje de precisión en el reconocimiento de matrículas vehiculares y el tiempo de respuesta de los microservicios en la nube.
-	\item \textbf{Cuestionario de Aceptación y Usabilidad (Métrica Humana):} Consiste en un cuestionario estructurado compuesto por ítems cerrados en escala de tipo Likert (1-5). Este instrumento será aplicado de manera directa a los conductores que interactúen con los 30 espacios de estacionamiento que conforman el entorno piloto, con la finalidad de medir de forma empírica el nivel de satisfacción respecto al uso del aplicativo móvil y la visualización de los datos.
+	\item \textbf{Cuestionario de Aceptación y Usabilidad (Métrica Humana):} Consiste en un cuestionario estructurado compuesto por ítems cerrados en escala de tipo Likert (1-5). Este instrumento será aplicado de manera directa a los conductores que utilicen los dos parqueos que conforman la muestra, con la finalidad de medir de forma empírica el nivel de satisfacción respecto al uso del aplicativo móvil y la visualización de los datos.
 \end{enumerate}
 
 \subsection{Contrastación de las hipótesis}
-La contrastación de las hipótesis se realizará mediante un enfoque cuantitativo basado en estadística inferencial. Al trabajar con un diseño de preprueba y posprueba sobre un mismo grupo piloto de 30 espacios de estacionamiento, los datos de rendimiento técnico y usabilidad serán procesados mediante pruebas de comparación de medias para muestras relacionadas. Se aplicará la prueba paramétrica \textit{T de Student} o su alternativa no paramétrica de rangos con signo de \textit{Wilcoxon}, dependiendo de la normalidad que muestren las distribuciones de datos. Estos análisis matemáticos permitirán comparar formalmente el escenario manual tradicional frente al automatizado por el prototipo, determinando con un nivel de confianza del 95\% (significancia del 5\%) si la convergencia tecnológica optimiza de manera estadísticamente significativa la gestión de la movilidad urbana.
+La contrastación de las hipótesis se realizará mediante un enfoque cuantitativo basado en estadística inferencial. Al trabajar con un diseño de preprueba y posprueba sobre los dos parqueos que conforman la muestra, los datos de rendimiento técnico y usabilidad serán procesados mediante pruebas de comparación de medias para muestras relacionadas. Se aplicará la prueba paramétrica \textit{T de Student} o su alternativa no paramétrica de rangos con signo de \textit{Wilcoxon}, dependiendo de la normalidad que muestren las distribuciones de datos. Estos análisis matemáticos permitirán comparar formalmente el escenario manual tradicional frente al automatizado por el prototipo, determinando con un nivel de confianza del 95\% (significancia del 5\%) si la convergencia tecnológica optimiza de manera estadísticamente significativa la gestión de la movilidad urbana.
 
 \clearpage
 \section{ASPECTOS ADMINISTRATIVOS}
@@ -1203,27 +1182,27 @@ El desarrollo del presente proyecto de investigación se planifica bajo una meto
 		\hline
 		Revisión bibliográfica y estado del arte & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &   &   &   &   &   &   &    &    &    \\
 		\hline
-		Definición de requisitos operativos y de red &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &   &   &   &   &   &    &    &    \\
+		Definición de requisitos operativos &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &   &   &   &   &   &    &    &    \\
 		\hline
 		Diseño de la arquitectura del sistema &   &   & \cellcolor{gray!30}X &   &   &   &   &   &   &    &    &    \\
 		\hline
 		\multicolumn{13}{|l|}{\textbf{FASE 2: Desarrollo del Sistema (Capa Lógica)}} \\
 		\hline
-		Servicios de backend (Auth y Parking-service) &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &   &   &   &    &    &    \\
+		Backend &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &   &   &   &    &    &    \\
 		\hline
-		Servicios de telemetría e IA (IoT y IA-service) &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &   &    &    &    \\
+		Frontend &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &   &    &    &    \\
 		\hline
-		Desarrollo del panel web (Angular) &   &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &    &    &    \\
+		App Móvil &   &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X &   &    &    &    \\
 		\hline
-		Desarrollo del aplicativo móvil (Flutter) &   &   &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X &    &    &    \\
+		Modelos IA y Firmware IoT &   &   &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X &    &    &    \\
 		\hline
-		Programación de firmware embebido (ESP32) &   &   &   &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X &    &    &    \\
+		Docker &   &   &   &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X &    &    &    \\
+		\hline
+		Integración en Cloud (GCP) &   &   &   &   &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X  &    &    \\
 		\hline
 		\multicolumn{13}{|l|}{\textbf{FASE 3: Implementación y Pruebas}} \\
 		\hline
-		Despliegue e integración en Cloud (GCP) &   &   &   &   &   &   &   &   & \cellcolor{gray!30}X & \cellcolor{gray!30}X  &    &    \\
-		\hline
-		Instalación física y calibración del hardware &   &   &   &   &   &   &   &   &   & \cellcolor{gray!30}X  &    &    \\
+		Pruebas unitarias &   &   &   &   &   &   &   &   &   & \cellcolor{gray!30}X  &    &    \\
 		\hline
 		Pruebas funcionales de integración y logs &   &   &   &   &   &   &   &   &   & \cellcolor{gray!30}X  & \cellcolor{gray!30}X  &    \\
 		\hline
@@ -1237,7 +1216,7 @@ El desarrollo del presente proyecto de investigación se planifica bajo una meto
 		\hline
 		\multicolumn{13}{|l|}{\textbf{FASE 5: Cierre del Proyecto}} \\
 		\hline
-		Redacción del informe de tesis integral & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X  & \cellcolor{gray!30}X  & \cellcolor{gray!30}X  \\
+		Redacción del proyecto de tesis integral & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X & \cellcolor{gray!30}X  & \cellcolor{gray!30}X  & \cellcolor{gray!30}X  \\
 		\hline
 		Revisiones del asesor y correcciones finales &   &   &   &   &   &   &   &   &   &    &    & \cellcolor{gray!30}X  \\
 		\hline
@@ -1282,9 +1261,9 @@ A continuación, se consolidan los costos asociados a los bienes tangibles, lice
 	\midrule
 	\multicolumn{3}{l}{\textbf{Recursos No Disponibles (Inversión Requerida)}} \\
 	\midrule
-	Infraestructura Cloud & Créditos y consumo de servicios en Cloud & 250.00 \\
-	Hardware Embebido & Microcontroladores ESP32, sensores y cableado piloto & 50.00 \\
-	Cámara de Captura & Dispositivo óptico de alta definición & 125.00 \\
+	Infraestructura Cloud & Monto referencial: Google Cloud durante 4 meses (meses 9 a 12): 2 máquinas virtuales de Compute Engine (microservicios y bases de datos) encendidas en horario de pruebas, discos, IP pública y Cloud Storage, descontando el crédito gratuito de prueba & 700.00 \\
+	Hardware Embebido & Microcontroladores ESP32-S3 y ESP32-C6, sensores HC-SR04, servomotores, paneles LED HUB75, pantalla del kiosco, fuentes y cableado & 1345.00 \\
+	Cámara de Captura & Tres placas ESP32-S3 con cámara (OV2640 y OV5640 gran angular) & 255.00 \\
 	Servicios de Red & Dominio web público temporal y servicio de conectividad de alta velocidad & 175.00 \\
 	Materiales de escritorio & Impresiones, encuadernación y consumibles de oficina & 150.00 \\
 	\addlinespace
@@ -1293,7 +1272,7 @@ A continuación, se consolidan los costos asociados a los bienes tangibles, lice
 	\multicolumn{3}{l}{\textbf{Resumen General de Inversión}} \\
 	\midrule
 	\textbf{Total Recursos Disponibles} & Valorización de activos propios en uso & S/ 0.00 \\
-	\textbf{Total Inversión Requerida} & Monto líquido a financiar para la ejecución del piloto & S/ 750.00 \\
+	\textbf{Total Inversión Requerida} & Monto líquido a financiar para la ejecución del piloto & S/ 2625.00 \\
 \end{longtable}
 \endgroup
 
@@ -1322,30 +1301,24 @@ En sintonía con las directrices administrativas, el origen de los recursos econ
 	\bottomrule
 	\endlastfoot
 	
-	Autofinanciación (Capital del tesista) & 750.00 & 100\% \\
+	Autofinanciación (Capital del tesista) & 2625.00 & 100\% \\
 	Fuentes externas (Subvenciones / Terceros) & 0.00 & 0\% \\
 	\addlinespace
 	\midrule
-	\textbf{TOTAL} & \textbf{750.00} & \textbf{100\%} \\
+	\textbf{TOTAL} & \textbf{2625.00} & \textbf{100\%} \\
 \end{longtable}
 \endgroup
 
 \paragraph{Autofinanciación}
-El proyecto es \textbf{100\% autofinanciado} por el investigador principal. El tesista asume directamente el aporte de los recursos disponibles preexistentes y cubrirá con capital propio la inversión líquida total de \textbf{S/. 750.00} requerida para la adquisición del hardware embebido, cloud y los consumibles del prototipo, garantizando la viabilidad económica del desarrollo.
+El proyecto es \textbf{100\% autofinanciado} por el investigador principal. El tesista asume directamente el aporte de los recursos disponibles preexistentes y cubrirá con capital propio la inversión líquida total de \textbf{S/ 2625.00} requerida para la adquisición del hardware embebido, cloud y los consumibles del prototipo, garantizando la viabilidad económica del desarrollo.
 
 \paragraph{De fuentes externas}
-El presente proyecto de tesis \textbf{no contempla financiamiento a través de fuentes externas ni subvenciones de terceros}. Las coordinaciones logísticas con la Municipalidad Provincial de Huaraz para delimitar el piloto de 30 espacios se ejecutan bajo un marco de cooperación académica, sin generar transferencias financieras ni asignación presupuestal directa hacia la investigación.
+El presente proyecto de tesis \textbf{no contempla financiamiento a través de fuentes externas ni subvenciones de terceros}. Las coordinaciones logísticas con la Municipalidad Provincial de Huaraz para delimitar el piloto en los dos parqueos de la muestra se ejecutan bajo un marco de cooperación académica, sin generar transferencias financieras ni asignación presupuestal directa hacia la investigación.
 
 \clearpage
 \section{REFERENCIAS BIBLIOGRÁFICAS}
 
 \begin{thebibliography}{99}
-	
-	\bibitem{aapantiguedad2025}
-	Asociación Automotriz del Perú. (Diciembre de 2025).
-	\textit{Informe del Sector Automotor}.
-	Gerencia de Estudios Económicos y Estadísticas de la AAP.
-	\url{https://aap.org.pe/storage/estadisticas/informes-mensuales/1768240598052.pdf}
 	
 	\bibitem{alaanzy2025}
 	Ala'anzy, M. A., Abilakim, A., Zhanuzak, R., \& Li, L. (2025).
@@ -1358,6 +1331,12 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	Enabling smart parking for smart cities using Internet of Things (IoT) and machine learning.
 	\textit{PeerJ Computer Science}, \textit{11}, e2544.
 	https://doi.org/10.7717/peerj-cs.2544
+	
+	\bibitem{aapantiguedad2025}
+	Asociación Automotriz del Perú. (diciembre de 2025).
+	\textit{Informe del Sector Automotor}.
+	Gerencia de Estudios Económicos y Estadísticas de la AAP.
+	\url{https://aap.org.pe/storage/estadisticas/informes-mensuales/1768240598052.pdf}
 	
 	\bibitem{burbano2021smartparking}
 	Burbano, L. (17 de agosto de 2021).
@@ -1385,7 +1364,7 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	\url{https://www.cip.org.pe/publicaciones/2024/junio/portal/plan-directo-para-ciudades-inteligentes.pdf}
 	
 	\bibitem{diariocorreo2018}
-	Diario Correo. (2018, 20 de agosto).
+	Diario Correo. (20 de agosto de 2018).
 	Proyectan sensores y App para uso de parqueo en Huancayo.
 	\textit{Diario Correo}.
 	\url{https://diariocorreo.pe/edicion/huancayo/proyectan-censores-y-app-para-uso-de-parqueo-en-huancayo-836939/}
@@ -1396,17 +1375,17 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	IBM Think Topics.
 	\url{https://www.ibm.com/mx-es/think/topics/smart-city}
 	
-	\bibitem{ibm2024}
-	Gomstyn, A., \& Jonker, A. (s.f.).
-	¿Qué es una ciudad inteligente?
-	\textit{IBM Think Topics}.
-	\url{https://www.ibm.com/es-es/think/topics/smart-city}
+	\bibitem{googlecloud2025whatis}
+	Google Cloud. (s.f.).
+	\textit{What is Cloud Computing?}
+	Google Cloud Learn.
+	\url{https://cloud.google.com/learn/what-is-cloud-computing}
 	
 	\bibitem{halaweh2013emerging}
-	Halaweh, Mohanad. (2013).
-	Emerging Technology: What is it.
+	Halaweh, M. (2013).
+	Emerging technology: What is it?
 	\textit{Journal of Technology Management \& Innovation}, \textit{8}(3), 108--115.
-	\url{https://dx.doi.org/10.4067/S0718-27242013000400010}
+	https://doi.org/10.4067/S0718-27242013000400010
 	
 	\bibitem{hernandez2018metodologia}
 	Hernández-Sampieri, R., \& Mendoza, C. P. (2018).
@@ -1421,28 +1400,16 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	https://repositorio.uisek.edu.ec/handle/123456789/5221
 	
 	\bibitem{ibm2025ai}
-	IBM. (s.f.).
+	IBM. (s.f.-a).
 	\textit{What is artificial intelligence (AI)?}
 	IBM Think Topics.
 	\url{https://www.ibm.com/think/topics/artificial-intelligence}
 	
 	\bibitem{ibm2025iot}
-	IBM. (s.f.).
+	IBM. (s.f.-b).
 	\textit{What is the Internet of Things (IoT)?}
 	IBM Think Topics.
 	\url{https://www.ibm.com/think/topics/internet-of-things}
-	
-	\bibitem{inaigem2025glaciares}
-	Instituto Nacional de Investigación en Glaciares y Ecosistemas de Alta Montaña. (2025).
-	\textit{Carbono negro: El hollín que derrite glaciares}.
-	INAIGEM.
-	\url{https://repositorio.inaigem.gob.pe/items/82b2814c-27ef-4009-a6a7-de9dae83edda}
-	
-	\bibitem{ineipoblacion2025}
-	Instituto Nacional de Estadística e Informática. (31 de diciembre de 2025).
-	\textit{Perú: Población Total Proyectada al 30 de Junio de cada año, según Departamento, Provincia y Distrito, 2018-2026}.
-	Plataforma digital única del Estado Peruano.
-	\url{https://www.gob.pe/institucion/inei/informes-publicaciones/6894980-peru-poblacion-total-proyectada-al-30-de-junio-de-cada-ano-segun-departamento-provincia-y-distrito-2018-2026}
 	
 	\bibitem{inacalciudades2024}
 	Instituto Nacional de Calidad. (10 de abril de 2024).
@@ -1450,11 +1417,17 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	Plataforma digital única del Estado Peruano.
 	\url{https://www.gob.pe/institucion/inacal/noticias/933913-inacal-aprobo-04-normas-tecnicas-peruanas-sobre-ciudades-y-comunidades-sostenibles}
 	
-	\bibitem{googlecloud2025whatis}
-	Google Cloud. (s.f.).
-	\textit{What is Cloud Computing?}
-	Google Cloud Learn.
-	\url{https://cloud.google.com/learn/what-is-cloud-computing?hl=eu}
+	\bibitem{ineipoblacion2025}
+	Instituto Nacional de Estadística e Informática. (31 de diciembre de 2025).
+	\textit{Perú: Población Total Proyectada al 30 de Junio de cada año, según Departamento, Provincia y Distrito, 2018-2026}.
+	Plataforma digital única del Estado Peruano.
+	\url{https://www.gob.pe/institucion/inei/informes-publicaciones/6894980-peru-poblacion-total-proyectada-al-30-de-junio-de-cada-ano-segun-departamento-provincia-y-distrito-2018-2026}
+	
+	\bibitem{inaigem2025glaciares}
+	Instituto Nacional de Investigación en Glaciares y Ecosistemas de Alta Montaña. (2025).
+	\textit{Carbono negro: El hollín que derrite glaciares}.
+	INAIGEM.
+	\url{https://repositorio.inaigem.gob.pe/items/82b2814c-27ef-4009-a6a7-de9dae83edda}
 	
 	\bibitem{mtc2024}
 	Ministerio de Transportes y Comunicaciones [MTC]. (2024).
@@ -1477,7 +1450,7 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	Neustein, A., Mahalle, P. N., Joshi, P., \& Shinde, G. R. (Eds.). (2023).
 	\textit{AI, IoT, big data and cloud computing for Industry 4.0}.
 	Springer.
-	\url{https://springer.com}
+	https://doi.org/10.1007/978-3-031-29713-7
 	
 	\bibitem{obrien2026smarttrans}
 	O'Brien, K. (s.f.).
@@ -1491,11 +1464,11 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	Electrónica Online: Administración y Gestión de ERP.
 	\url{https://electronicaonline.net/erp/administracion-y-gestion-de-erp/prototipo/}
 	
-	\bibitem{pcmpntd2023}
-	Presidencia del Consejo de Ministros. (28 de julio de 2023).
-	\textit{Política Nacional de Transformación Digital al 2030}.
+	\bibitem{pcmciudades2022}
+	Presidencia del Consejo de Ministros. (8 de julio de 2022).
+	\textit{Informe para el despliegue de ciudades inteligentes y sostenibles en el Perú}.
 	Plataforma digital única del Estado Peruano.
-	\url{https://www.gob.pe/44545-politica-nacional-de-transformacion-digital}
+	\url{https://www.gob.pe/institucion/pcm/informes-publicaciones/3303193-informe-para-el-despliegue-de-ciudades-inteligentes-y-sostenibles-en-el-peru}
 	
 	\bibitem{pcm2023pntd_doc}
 	Presidencia del Consejo de Ministros. (2023).
@@ -1503,24 +1476,18 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	Plataforma digital única del Estado Peruano.
 	\url{https://cdn.www.gob.pe/uploads/document/file/4932850/Pol%C3%ADtica%20Nacional%20de%20Transformaci%C3%B3n%20Digital%20al%202030.pdf?v=1691014709}
 	
-	\bibitem{pcmciudades2022}
-	Presidencia del Consejo de Ministros. (8 de julio de 2022).
-	\textit{Informe para el despliegue de ciudades inteligentes y sostenibles en el Perú}.
-	Plataforma digital única del Estado Peruano.
-	\url{https://www.gob.pe/institucion/pcm/informes-publicaciones/3303193-informe-para-el-despliegue-de-ciudades-inteligentes-y-sostenibles-en-el-peru}
-	
-	\bibitem{ruizcruzado2026}
-	Ruiz Cruzado, C. V. P., Diaz Diaz, F. A., Saldaña Amaya, J. F., Mostacero Bazán, K. A., \& Quesquén Rodas, C. M. (2026).
-	Sistema de Smart Parking basado en IoT con comunicación MQTT y visualización en tiempo real.
-	\textit{Científica TechNoLogica}, \textit{1}(1), 48--55.
-	https://doi.org/10.17268/tech1.1.2026.06
-	
 	\bibitem{romo2022}
 	Romo Quispe, A., \& Benites Romero, F. (2022).
 	\textit{Diseño de un sistema de parqueo inteligente y calidad del aire visualizado en tiempo real en una aplicación Android en el marco de una ciudad inteligente para el distrito de La Punta - Callao}
 	[Tesis de grado, Pontificia Universidad Católica del Perú].
 	Repositorio Institucional PUCP.
 	http://hdl.handle.net/20.500.12404/21383
+	
+	\bibitem{ruizcruzado2026}
+	Ruiz Cruzado, C. V. P., Diaz Diaz, F. A., Saldaña Amaya, J. F., Mostacero Bazán, K. A., \& Quesquén Rodas, C. M. (2026).
+	Sistema de Smart Parking basado en IoT con comunicación MQTT y visualización en tiempo real.
+	\textit{Científica TechNoLogica}, \textit{1}(1), 48--55.
+	https://doi.org/10.17268/tech1.1.2026.06
 	
 	\bibitem{tarazona2022}
 	Tarazona Martin, J. D. (2022).
@@ -1597,8 +1564,8 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 		\textbf{Variable Dependiente (V.D.):} \newline
 		\variableDependiente{} \newline &
 		
-		\textbf{Población:} Totalidad de parqueos en centro Huaraz. \newline
-		\textbf{Muestra:} Entorno de 15 espacios de estacionamiento. \newline
+		\textbf{Población:} Totalidad de parqueos públicos regulados de Huaraz. \newline
+		\textbf{Muestra:} 2 parqueos: San Martín (con control de acceso) y Las Banderas (vía pública). \newline
 		\textbf{Técnica:} Observación automatizada y encuesta dirigida. \\
 		\bottomrule
 	\end{tabularx}
@@ -1613,10 +1580,10 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 A continuación, se presentan las estructuras operativas de los instrumentos diseñados para la captura de las métricas técnicas y humanas durante las fases de preprueba y posprueba de la investigación:
 
 \subsubsection{2.1. Ficha de Registro Técnico (Métricas de la Solución Tecnológica)}
-Este instrumento se implementa a nivel de código fuente mediante \textit{logs} automáticos en los microservicios y persistencia de datos en la infraestructura en la nube, evaluando el comportamiento del sistema sobre las unidades de análisis (15 cajones de estacionamiento):
+Este instrumento se implementa a nivel de código fuente mediante \textit{logs} automáticos en los microservicios y persistencia de datos en la infraestructura en la nube, evaluando el comportamiento del sistema sobre las unidades de análisis (los dos parqueos de la muestra):
 
 \begin{enumerate}
-	\item \textbf{Capa IoT:} Registro automatizado del ID del sensor, marca de tiempo del evento, estado de ocupación (0/1) y verificación de paridad de tramas enviadas exitosamente al \textit{iot-service}.
+	\item \textbf{Capa IoT:} Registro automatizado del ID del sensor, marca de tiempo del evento, estado de ocupación (0/1) y confirmación de que cada mensaje enviado por HTTP o MQTT quedó registrado en el \textit{iot-service}.
 	\item \textbf{Capa IA:} Almacenamiento analítico del porcentaje de confianza de la red convolucional YOLO para detección física, y tasa de acierto de caracteres extraídos por EasyOCR comparados con la placa real.
 	\item \textbf{Capa Cloud:} Registro de latencias de las solicitudes HTTP en el \textit{API Gateway}, tiempos de persistencia de operaciones en milisegundos y monitoreo de la tasa de disponibilidad de los microservicios backend.
 \end{enumerate}
@@ -1669,11 +1636,59 @@ Instrumento estructurado compuesto por un banco exacto de 10 ítems cerrados en 
 	\label{fig:architecture-smart-parking-system-anexo}
 	\vspace{0.15cm}
 	
-	\includegraphics[width=1\textwidth]{architecture_smart_parking_system.png}
+	\includegraphics[width=1\textwidth]{anexos/arquitectura_sistema.pdf}
 	
 	\begin{flushleft}
 		\setlength{\parskip}{0pt}
 		\small \textit{Nota.} Arquitectura de sistema. \\ Fuente: Elaboración propia.
+	\end{flushleft}
+\end{figure}
+
+% =========================================================================
+% ANEXO 4: SOLICITUD DE AUTORIZACIÓN A LA MUNICIPALIDAD PROVINCIAL DE HUARAZ
+% =========================================================================
+\clearpage
+\subsection{Anexo 4: Solicitud de autorización a la Municipalidad Provincial de Huaraz}
+
+\noindent A continuación, se presenta la solicitud de autorización para realizar el estudio de tesis, presentada a la Municipalidad Provincial de Huaraz.
+
+\vspace{-0.2cm}
+\begin{figure}[H]
+	\centering
+	\captionsetup{format=plain, labelformat=simple, labelsep=newline, labelfont=bf, textfont=it, singlelinecheck=off}
+	\caption{Solicitud de autorización presentada a la Municipalidad Provincial de Huaraz}
+	\label{fig:anexo-solicitud-mph}
+	\vspace{0.15cm}
+	
+	\fbox{\includegraphics[height=0.66\textheight, width=0.95\textwidth, keepaspectratio]{anexos/solicitud.pdf}}
+	
+	\begin{flushleft}
+		\setlength{\parskip}{0pt}
+		\small \textit{Nota.} Solicitud recibida por trámite documentario el 22 de julio de 2025 (Expediente ED 135908). \\ Fuente: Elaboración propia.
+	\end{flushleft}
+\end{figure}
+
+% =========================================================================
+% ANEXO 5: CARTA DE AUTORIZACIÓN DE LA MUNICIPALIDAD PROVINCIAL DE HUARAZ
+% =========================================================================
+\clearpage
+\subsection{Anexo 5: Carta de autorización de la Municipalidad Provincial de Huaraz}
+
+\noindent A continuación, se presenta la carta con la que la Municipalidad Provincial de Huaraz autorizó la realización del trabajo de investigación.
+
+\vspace{-0.2cm}
+\begin{figure}[H]
+	\centering
+	\captionsetup{format=plain, labelformat=simple, labelsep=newline, labelfont=bf, textfont=it, singlelinecheck=off}
+	\caption{Carta de autorización para realizar el trabajo de investigación}
+	\label{fig:anexo-autorizacion-mph}
+	\vspace{0.15cm}
+	
+	\fbox{\includegraphics[height=0.66\textheight, width=0.95\textwidth, keepaspectratio]{anexos/autorización.pdf}}
+	
+	\begin{flushleft}
+		\setlength{\parskip}{0pt}
+		\small \textit{Nota.} Carta N.° 000127-2025-MPHZ/GAF/SGRRHH, del 24 de julio de 2025, con firma digital. \\ Fuente: Municipalidad Provincial de Huaraz (2025).
 	\end{flushleft}
 \end{figure}
 
