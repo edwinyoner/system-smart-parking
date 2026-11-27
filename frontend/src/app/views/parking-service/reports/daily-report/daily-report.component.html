@@ -1,1 +1,190 @@
-<p>daily-report works!</p>
+<!-- src/app/views/parking-service/reports/daily-report/daily-report.component.html -->
+
+<div class="print-header">
+  <h4 class="mb-0">Smart Parking System · Reporte diario</h4>
+  @if (report) {
+    <div>{{ longDate(report.date) }} · generado el {{ generatedAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+  }
+</div>
+
+<!-- Filtros -->
+<c-card class="mb-3 d-print-none">
+  <c-card-body class="d-flex flex-wrap align-items-end gap-2">
+    <div>
+      <label class="form-label small mb-1" for="date">Día</label>
+      <div class="input-group">
+        <button type="button" class="btn btn-outline-secondary" title="Día anterior" (click)="shiftDay(-1)">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <input id="date" type="date" class="form-control" [max]="today" [(ngModel)]="date" (change)="apply()" />
+        <button type="button" class="btn btn-outline-secondary" title="Día siguiente" [disabled]="date >= today" (click)="shiftDay(1)">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+    <div>
+      <label class="form-label small mb-1" for="parking">Parqueo</label>
+      <select id="parking" class="form-select" [(ngModel)]="parkingId" (change)="apply()">
+        <option [ngValue]="null">Todos los parqueos</option>
+        @for (p of parkings; track p.id) { <option [ngValue]="p.id">{{ p.name }}</option> }
+      </select>
+    </div>
+    @if (date !== today) {
+      <button type="button" cButton color="secondary" variant="outline" (click)="date = today; apply()">Hoy</button>
+    }
+    <div class="ms-auto d-flex gap-2">
+      @if (canExport && report) {
+        <button type="button" cButton color="secondary" variant="outline" (click)="exportCsv()">
+          <i class="fa-solid fa-file-csv me-1"></i>CSV
+        </button>
+        <button type="button" cButton color="secondary" variant="outline" (click)="print()">
+          <i class="fa-solid fa-file-pdf me-1"></i>PDF
+        </button>
+      }
+    </div>
+  </c-card-body>
+</c-card>
+
+@if (errorMessage) {
+  <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ errorMessage }}
+  </c-alert>
+}
+
+@if (loading) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else if (report) {
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h5 class="mb-0 text-capitalize">{{ longDate(report.date) }}</h5>
+    <small class="text-body-secondary d-print-none">
+      @if (isToday) { <span class="live-dot"></span>En vivo · datos hasta las {{ report.until | date: 'HH:mm' }} }
+      @else { Día completo }
+    </small>
+  </div>
+
+  @if (incomeFailed) {
+    <c-alert color="warning" class="py-2 d-print-none">
+      <i class="fa-solid fa-circle-exclamation me-2"></i>No se pudieron consultar los cobros (payment-service); se muestra el resto del reporte.
+    </c-alert>
+  }
+
+  <!-- Totales del día -->
+  @let t = report.totals;
+  <div class="kpis mb-3">
+    <div class="kpi">
+      <span class="kpi-value">{{ t.vehicles }}</span>
+      <span class="kpi-label">Vehículos que estuvieron</span>
+      <span class="kpi-hint">{{ t.stays }} estadías</span>
+    </div>
+    <div class="kpi"><span class="kpi-value">{{ t.entries }}</span><span class="kpi-label">Entradas</span></div>
+    <div class="kpi"><span class="kpi-value">{{ t.exits }}</span><span class="kpi-label">Salidas</span></div>
+    <div class="kpi">
+      <span class="kpi-value">{{ t.insideAtClose }}</span>
+      <span class="kpi-label">{{ isToday ? 'Dentro ahora' : 'Dentro al cierre' }}</span>
+    </div>
+    <div class="kpi"><span class="kpi-value">{{ minutesLabel(t.averageStayMinutes) }}</span><span class="kpi-label">Tiempo promedio</span></div>
+    <div class="kpi">
+      <span class="kpi-value">{{ income ? ('S/ ' + (income.totals.net | number: '1.2-2')) : '-' }}</span>
+      <span class="kpi-label">Cobrado neto</span>
+      @if (income) { <span class="kpi-hint">{{ income.totals.payments }} pagos</span> }
+    </div>
+    <div class="kpi">
+      <span class="kpi-value">{{ t.infractions }}</span>
+      <span class="kpi-label">Infracciones</span>
+      @if (t.cancelled) { <span class="kpi-hint">{{ t.cancelled }} estadías canceladas</span> }
+    </div>
+  </div>
+
+  @if (report.parkings.length === 0) {
+    <div class="text-center py-5 text-body-secondary">
+      <i class="fa-solid fa-square-parking fa-3x mb-3"></i>
+      <p class="mb-0">No hay parqueos activos.</p>
+    </div>
+  } @else {
+    <!-- Vehículos por zona -->
+    @if (chartLabels.length > 0) {
+      <c-card class="mb-3">
+        <c-card-header><strong>Vehículos que estuvieron, por parqueo y zona</strong></c-card-header>
+        <c-card-body>
+          <app-report-chart [labels]="chartLabels" [series]="chartSeries" [horizontal]="true" [height]="chartHeight"
+                            label="Vehículos que estuvieron en cada zona"></app-report-chart>
+        </c-card-body>
+      </c-card>
+    }
+
+    <!-- Cada parqueo con sus zonas -->
+    @for (p of report.parkings; track p.parkingId) {
+      @let net = collected(p.parkingId);
+      <c-card class="mb-3">
+        <c-card-header class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <strong><i class="fa-solid fa-square-parking me-2 text-body-secondary"></i>{{ p.parkingName }}</strong>
+          <small class="text-body-secondary">
+            {{ p.summary.vehicles }} vehículos · {{ p.totalSpaces }} espacios
+            @if (net != null) { · S/ {{ net | number: '1.2-2' }} cobrado }
+            @if (p.peakHour != null) { · hora pico {{ hourLabel(p.peakHour) }} ({{ p.peakOccupied }} a la vez) }
+          </small>
+        </c-card-header>
+        <c-card-body class="p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Zona</th>
+                  <th class="num">Espacios</th>
+                  <th class="num">Vehículos</th>
+                  <th class="num">Entradas</th>
+                  <th class="num">Salidas</th>
+                  <th class="num">{{ isToday ? 'Dentro ahora' : 'Al cierre' }}</th>
+                  <th class="num">Tiempo prom.</th>
+                  <th class="num">Infracciones</th>
+                  <th class="num">Hora pico</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (z of p.zones; track z.zoneId) {
+                  <tr>
+                    <td>
+                      <a class="d-print-none" [routerLink]="['/zones', z.zoneId]">{{ z.zoneName }}</a>
+                      <span class="d-none d-print-inline">{{ z.zoneName }}</span>
+                      <small class="text-body-secondary ms-1">{{ z.zoneCode }}</small>
+                    </td>
+                    <td class="num">{{ z.totalSpaces }}</td>
+                    <td class="num"><strong>{{ z.summary.vehicles }}</strong></td>
+                    <td class="num">{{ z.summary.entries }}</td>
+                    <td class="num">{{ z.summary.exits }}</td>
+                    <td class="num">{{ z.summary.insideAtClose }}</td>
+                    <td class="num">{{ minutesLabel(z.summary.averageStayMinutes) }}</td>
+                    <td class="num">{{ z.summary.infractions }}</td>
+                    <td class="num">{{ z.peakHour != null ? hourLabel(z.peakHour) + ' (' + z.peakOccupied + ')' : '-' }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="9" class="text-body-secondary">El parqueo no tiene zonas.</td></tr>
+                }
+                @if (p.zones.length > 1) {
+                  <tr class="total-row">
+                    <td>Total del parqueo</td>
+                    <td class="num">{{ p.totalSpaces }}</td>
+                    <td class="num">{{ p.summary.vehicles }}</td>
+                    <td class="num">{{ p.summary.entries }}</td>
+                    <td class="num">{{ p.summary.exits }}</td>
+                    <td class="num">{{ p.summary.insideAtClose }}</td>
+                    <td class="num">{{ minutesLabel(p.summary.averageStayMinutes) }}</td>
+                    <td class="num">{{ p.summary.infractions }}</td>
+                    <td class="num">{{ p.peakHour != null ? hourLabel(p.peakHour) + ' (' + p.peakOccupied + ')' : '-' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    }
+
+    <p class="small text-body-secondary">
+      <i class="fa-solid fa-circle-info me-1"></i>
+      "Vehículos" cuenta cada vehículo una vez, aunque haya entrado varias veces, e incluye los que ya estaban de días
+      anteriores; el total del parqueo puede ser menor que la suma de sus zonas si un vehículo pasó por varias.
+      La hora pico es la de más vehículos dentro a la vez. Los espacios son los actuales.
+    </p>
+  }
+}

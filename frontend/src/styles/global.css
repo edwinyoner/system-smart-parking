@@ -281,7 +281,8 @@
     padding-inline-start: 0 !important;
   }
 
-  app-default-footer {
+  app-default-footer,
+  app-default-header {
     display: none !important;
   }
 }

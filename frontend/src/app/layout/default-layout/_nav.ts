@@ -193,16 +193,19 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Reporte Diario",
     url: "/reports/daily",
     icon: "fa-solid fa-calendar-day",
+    requiredPermissions: ["reports.view"],
   },
   {
     name: "Reporte de Ingresos",
     url: "/reports/revenue",
     icon: "fa-solid fa-sack-dollar",
+    requiredPermissions: ["reports.view"],
   },
   {
     name: "Reporte de Ocupación",
     url: "/reports/occupancy",
-    icon: "fa-solid fa-chart-pie",
+    icon: "fa-solid fa-chart-column",
+    requiredPermissions: ["reports.view"],
   },
 
   // ==================== NO TOCAR - INICIO ====================

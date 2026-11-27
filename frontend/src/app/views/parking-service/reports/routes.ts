@@ -1,6 +1,8 @@
 // src/app/views/parking-service/reports/routes.ts
 import { Routes } from '@angular/router';
+import { RoleGuard } from '../../../core/guards/role.guard';
 
+/** Reportes (permiso reports.view; exportar a CSV y PDF con reports.export) */
 export const routes: Routes = [
   {
     path: '',
@@ -10,16 +12,19 @@ export const routes: Routes = [
   {
     path: 'daily',
     loadComponent: () => import('./daily-report/daily-report.component').then(m => m.DailyReportComponent),
-    data: { title: 'Reporte Diario' }
+    canActivate: [RoleGuard],
+    data: { title: 'Reporte Diario', requiredPermissions: ['reports.view'] }
   },
   {
     path: 'revenue',
     loadComponent: () => import('./revenue-report/revenue-report.component').then(m => m.RevenueReportComponent),
-    data: { title: 'Reporte de Ingresos' }
+    canActivate: [RoleGuard],
+    data: { title: 'Reporte de Ingresos', requiredPermissions: ['reports.view'] }
   },
   {
     path: 'occupancy',
     loadComponent: () => import('./occupancy-report/occupancy-report.component').then(m => m.OccupancyReportComponent),
-    data: { title: 'Reporte de Ocupación' }
+    canActivate: [RoleGuard],
+    data: { title: 'Reporte de Ocupación', requiredPermissions: ['reports.view'] }
   }
 ];

@@ -1,1 +1,188 @@
-<p>revenue-report works!</p>
+<!-- src/app/views/parking-service/reports/revenue-report/revenue-report.component.html -->
+
+<div class="print-header">
+  <h4 class="mb-0">Smart Parking System · Reporte de ingresos</h4>
+  @if (report) {
+    <div>Del {{ report.from | date: 'dd/MM/yyyy' }} al {{ report.to | date: 'dd/MM/yyyy' }} · generado el {{ generatedAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+  }
+</div>
+
+<!-- Filtros -->
+<c-card class="mb-3 d-print-none">
+  <c-card-body>
+    <div class="d-flex flex-wrap gap-2 mb-2">
+      @for (p of presets; track p.value) {
+        <button type="button" class="btn btn-sm" [class.btn-primary]="preset === p.value"
+                [class.btn-outline-secondary]="preset !== p.value" (click)="setPreset(p.value)">{{ p.label }}</button>
+      }
+    </div>
+    <div class="d-flex flex-wrap align-items-end gap-2">
+      <div>
+        <label class="form-label small mb-1" for="from">Desde</label>
+        <input id="from" type="date" class="form-control" [max]="today" [(ngModel)]="from" (change)="onDatesChanged()" />
+      </div>
+      <div>
+        <label class="form-label small mb-1" for="to">Hasta</label>
+        <input id="to" type="date" class="form-control" [min]="from" [(ngModel)]="to" (change)="onDatesChanged()" />
+      </div>
+      <div>
+        <label class="form-label small mb-1" for="parking">Parqueo</label>
+        <select id="parking" class="form-select" [(ngModel)]="parkingId" (change)="apply()">
+          <option [ngValue]="null">Todos los parqueos</option>
+          @for (p of parkings; track p.id) { <option [ngValue]="p.id">{{ p.name }}</option> }
+        </select>
+      </div>
+      <div class="ms-auto d-flex gap-2">
+        @if (canExport && report) {
+          <button type="button" cButton color="secondary" variant="outline" (click)="exportCsv()">
+            <i class="fa-solid fa-file-csv me-1"></i>CSV
+          </button>
+          <button type="button" cButton color="secondary" variant="outline" (click)="print()">
+            <i class="fa-solid fa-file-pdf me-1"></i>PDF
+          </button>
+        }
+      </div>
+    </div>
+  </c-card-body>
+</c-card>
+
+@if (errorMessage) {
+  <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ errorMessage }}
+  </c-alert>
+}
+
+@if (loading) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else if (report) {
+  @let t = report.totals;
+  <div class="kpis mb-3">
+    <div class="kpi">
+      <span class="kpi-value text-success">S/ {{ t.net | number: '1.2-2' }}</span>
+      <span class="kpi-label">Neto cobrado</span>
+      <span class="kpi-hint">S/ {{ averagePerDay | number: '1.2-2' }} por día</span>
+    </div>
+    <div class="kpi"><span class="kpi-value">S/ {{ t.gross | number: '1.2-2' }}</span><span class="kpi-label">Cobrado</span></div>
+    <div class="kpi">
+      <span class="kpi-value" [class.text-danger]="t.refunded > 0">S/ {{ t.refunded | number: '1.2-2' }}</span>
+      <span class="kpi-label">Devuelto</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-value">{{ t.payments }}</span>
+      <span class="kpi-label">Pagos</span>
+      <span class="kpi-hint">{{ daysWithIncome }} de {{ report.byDay.length }} días con cobros</span>
+    </div>
+    <div class="kpi"><span class="kpi-value">S/ {{ t.stays | number: '1.2-2' }}</span><span class="kpi-label">Por estadías</span></div>
+    <div class="kpi"><span class="kpi-value">S/ {{ t.fines | number: '1.2-2' }}</span><span class="kpi-label">Por multas</span></div>
+  </div>
+
+  <c-card class="mb-3">
+    <c-card-header><strong>Neto cobrado por día</strong></c-card-header>
+    <c-card-body>
+      @if (t.payments === 0) {
+        <p class="text-body-secondary mb-0">No hubo cobros en este rango.</p>
+      } @else {
+        <app-report-chart [labels]="chartLabels" [series]="chartSeries" [format]="money"
+                          label="Neto cobrado por día"></app-report-chart>
+      }
+    </c-card-body>
+  </c-card>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-5">
+      <c-card class="h-100">
+        <c-card-header><strong>Por tipo de pago</strong></c-card-header>
+        <c-card-body class="p-0">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>Tipo</th><th class="num">Pagos</th><th class="num">Neto</th><th>Participación</th></tr></thead>
+            <tbody>
+              @for (pt of report.byPaymentType; track pt.code) {
+                <tr>
+                  <td>{{ pt.name ?? pt.code }}</td>
+                  <td class="num">{{ pt.payments }}</td>
+                  <td class="num">S/ {{ pt.net | number: '1.2-2' }}</td>
+                  <td>
+                    <div class="share">
+                      <div class="share-track"><div class="share-fill" [style.width.%]="percent(pt.net, t.net)"></div></div>
+                      <span class="share-value">{{ percent(pt.net, t.net) }} %</span>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4" class="text-body-secondary px-3">Sin cobros.</td></tr>
+              }
+            </tbody>
+          </table>
+        </c-card-body>
+      </c-card>
+    </div>
+    <div class="col-lg-7">
+      <c-card class="h-100">
+        <c-card-header><strong>Por parqueo</strong></c-card-header>
+        <c-card-body class="p-0">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr><th>Parqueo</th><th class="num">Pagos</th><th class="num">Estadías</th><th class="num">Multas</th><th class="num">Neto</th><th>Participación</th></tr>
+              </thead>
+              <tbody>
+                @for (p of report.byParking; track p.parkingId) {
+                  <tr>
+                    <td>{{ p.parkingName ?? 'Sin parqueo' }}</td>
+                    <td class="num">{{ p.payments }}</td>
+                    <td class="num">S/ {{ p.stays | number: '1.2-2' }}</td>
+                    <td class="num">S/ {{ p.fines | number: '1.2-2' }}</td>
+                    <td class="num"><strong>S/ {{ p.net | number: '1.2-2' }}</strong></td>
+                    <td>
+                      <div class="share">
+                        <div class="share-track"><div class="share-fill" [style.width.%]="percent(p.net, t.net)"></div></div>
+                        <span class="share-value">{{ percent(p.net, t.net) }} %</span>
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="6" class="text-body-secondary px-3">Sin cobros.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+  </div>
+
+  <c-card class="mb-3">
+    <c-card-header><strong>Detalle por día</strong></c-card-header>
+    <c-card-body class="p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead><tr><th class="ps-3">Fecha</th><th class="num">Pagos</th><th class="num">Cobrado</th><th class="num">Devuelto</th><th class="num pe-3">Neto</th></tr></thead>
+          <tbody>
+            @for (d of report.byDay; track d.date) {
+              <tr [class.text-body-secondary]="d.payments === 0">
+                <td class="ps-3">{{ d.date | date: 'EEE dd/MM/yyyy' }}</td>
+                <td class="num">{{ d.payments }}</td>
+                <td class="num">S/ {{ d.gross | number: '1.2-2' }}</td>
+                <td class="num">S/ {{ d.refunded | number: '1.2-2' }}</td>
+                <td class="num pe-3">S/ {{ d.net | number: '1.2-2' }}</td>
+              </tr>
+            }
+            <tr class="total-row">
+              <td class="ps-3">Total</td>
+              <td class="num">{{ t.payments }}</td>
+              <td class="num">S/ {{ t.gross | number: '1.2-2' }}</td>
+              <td class="num">S/ {{ t.refunded | number: '1.2-2' }}</td>
+              <td class="num pe-3">S/ {{ t.net | number: '1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <p class="small text-body-secondary">
+    <i class="fa-solid fa-circle-info me-1"></i>
+    Cuentan los pagos cobrados según el día del cobro; una devolución se resta en ese mismo día. Los QR pendientes,
+    vencidos o anulados no suman.
+  </p>
+}

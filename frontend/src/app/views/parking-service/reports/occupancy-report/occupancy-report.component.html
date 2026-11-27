@@ -1,1 +1,152 @@
-<p>occupancy-report works!</p>
+<!-- src/app/views/parking-service/reports/occupancy-report/occupancy-report.component.html -->
+
+<div class="print-header">
+  <h4 class="mb-0">Smart Parking System · Reporte de ocupación por hora</h4>
+  @if (report) {
+    <div>
+      {{ report.parkingName }}@if (report.zoneName) { · {{ report.zoneName }} } · {{ longDate(report.date) }}
+      · generado el {{ generatedAt | date: 'dd/MM/yyyy HH:mm' }}
+    </div>
+  }
+</div>
+
+<!-- Filtros -->
+<c-card class="mb-3 d-print-none">
+  <c-card-body class="d-flex flex-wrap align-items-end gap-2">
+    <div>
+      <label class="form-label small mb-1" for="date">Día</label>
+      <div class="input-group">
+        <button type="button" class="btn btn-outline-secondary" title="Día anterior" (click)="shiftDay(-1)">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <input id="date" type="date" class="form-control" [max]="today" [(ngModel)]="date" (change)="apply()" />
+        <button type="button" class="btn btn-outline-secondary" title="Día siguiente" [disabled]="date >= today" (click)="shiftDay(1)">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+    <div>
+      <label class="form-label small mb-1" for="parking">Parqueo</label>
+      <select id="parking" class="form-select" [(ngModel)]="parkingId" (change)="onParkingChanged()">
+        @for (p of parkings; track p.id) { <option [ngValue]="p.id">{{ p.name }}</option> }
+      </select>
+    </div>
+    <div>
+      <label class="form-label small mb-1" for="zone">Zona</label>
+      <select id="zone" class="form-select" [(ngModel)]="zoneId" (change)="apply()" [disabled]="!report">
+        <option [ngValue]="null">Todo el parqueo</option>
+        @for (z of report?.zones ?? []; track z.id) { <option [ngValue]="z.id">{{ z.name }} ({{ z.code }})</option> }
+      </select>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      @if (canExport && report) {
+        <button type="button" cButton color="secondary" variant="outline" (click)="exportCsv()">
+          <i class="fa-solid fa-file-csv me-1"></i>CSV
+        </button>
+        <button type="button" cButton color="secondary" variant="outline" (click)="print()">
+          <i class="fa-solid fa-file-pdf me-1"></i>PDF
+        </button>
+      }
+    </div>
+  </c-card-body>
+</c-card>
+
+@if (errorMessage) {
+  <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ errorMessage }}
+  </c-alert>
+}
+
+@if (loading) {
+  <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+} @else if (parkings.length === 0 && !report) {
+  <div class="text-center py-5 text-body-secondary">
+    <i class="fa-solid fa-square-parking fa-3x mb-3"></i>
+    <p class="mb-0">No hay parqueos activos.</p>
+  </div>
+} @else if (report) {
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h5 class="mb-0">
+      {{ report.parkingName }}@if (report.zoneName) { · {{ report.zoneName }} }
+      <small class="text-body-secondary text-capitalize ms-1">{{ longDate(report.date) }}</small>
+    </h5>
+    @if (isToday) {
+      <small class="text-body-secondary d-print-none">En vivo · datos hasta las {{ report.until | date: 'HH:mm' }}</small>
+    }
+  </div>
+
+  <div class="kpis mb-3">
+    <div class="kpi"><span class="kpi-value">{{ report.capacity }}</span><span class="kpi-label">Espacios</span></div>
+    <div class="kpi">
+      <span class="kpi-value" [class.text-danger]="peakPercent >= high">{{ report.peakOccupied }}</span>
+      <span class="kpi-label">Máximo a la vez</span>
+      <span class="kpi-hint">{{ peakPercent }} % de la capacidad</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-value">{{ hourLabel(report.peakHour) }}</span>
+      <span class="kpi-label">Hora pico</span>
+    </div>
+    <div class="kpi"><span class="kpi-value">{{ report.vehicles }}</span><span class="kpi-label">Vehículos que estuvieron</span></div>
+    <div class="kpi"><span class="kpi-value">{{ report.entries }}</span><span class="kpi-label">Entradas</span></div>
+    <div class="kpi"><span class="kpi-value">{{ report.exits }}</span><span class="kpi-label">Salidas</span></div>
+  </div>
+
+  <c-card class="mb-3">
+    <c-card-header><strong>Ocupación por hora</strong></c-card-header>
+    <c-card-body>
+      <app-report-chart [labels]="chartLabels" [series]="chartSeries" [height]="300"
+                        label="Máximo de vehículos dentro y entradas por hora, con la capacidad"></app-report-chart>
+    </c-card-body>
+  </c-card>
+
+  <c-card class="mb-3">
+    <c-card-header><strong>Detalle por hora</strong></c-card-header>
+    <c-card-body class="p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ps-3">Hora</th>
+              <th class="num">Al inicio</th>
+              <th class="num">Máximo</th>
+              <th>Ocupación máxima</th>
+              <th class="num">Entradas</th>
+              <th class="num">Salidas</th>
+              <th class="num pe-3">Vehículos</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (h of report.hours; track h.hour) {
+              @let pct = percent(h.maxOccupied, report.capacity);
+              <tr [class.future-row]="h.future" [class.table-active]="h.hour === report.peakHour">
+                <td class="ps-3">{{ hourRange(h.hour) }}</td>
+                @if (h.future) {
+                  <td colspan="6" class="text-body-secondary">Aún no llega</td>
+                } @else {
+                  <td class="num">{{ h.occupiedAtStart }}</td>
+                  <td class="num"><strong>{{ h.maxOccupied }}</strong></td>
+                  <td>
+                    <div class="share">
+                      <div class="share-track"><div class="share-fill" [class.high]="pct >= high" [style.width.%]="pct > 100 ? 100 : pct"></div></div>
+                      <span class="share-value">{{ pct }} %</span>
+                    </div>
+                  </td>
+                  <td class="num">{{ h.entries }}</td>
+                  <td class="num">{{ h.exits }}</td>
+                  <td class="num pe-3">{{ h.vehicles }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </c-card-body>
+  </c-card>
+
+  <p class="small text-body-secondary">
+    <i class="fa-solid fa-circle-info me-1"></i>
+    Calculado con la hora real de entrada y salida de cada estadía. "Al inicio" son los vehículos dentro al empezar la
+    hora; "Máximo", los que hubo a la vez en algún momento de la hora. La capacidad es la actual; en rojo, desde el
+    {{ high }} %.
+  </p>
+}
