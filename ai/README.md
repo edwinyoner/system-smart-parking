@@ -11,7 +11,7 @@ despliegan**. Se ejecutan a mano, en la computadora del desarrollador.
 ```text
 ai/ (local)                                    ia-service (producción)
  ├─ polígonos de cada espacio (JSON) ────────►  POST /api/v1/parking-vision
- └─ pesos ajustados (.pt) (futuro) ──────────►  YOLO_MODEL_PATH, sin cambiar el código
+ └─ pesos ajustados (.pt) (futuro) ──────────►  YOLO_PLATE_MODEL_PATH, sin cambiar el código
 ```
 
 ## Contenido actual
@@ -47,8 +47,6 @@ Detalle: [`parking-configuration/README.md`](parking-configuration/README.md) y
 
 - **Dataset real de placas peruanas** (fotos de las cámaras, etiquetadas): los scripts de
   `plate-training/` ya están listos para entrenar y evaluar con él.
-- En ia-service: un modelo de placas aparte del de ocupación (`YOLO_PLATE_MODEL_PATH`) y
-  Ultralytics 8.4 (hoy 8.3.50). Ver [`plate-training/README.md`](plate-training/README.md#6-usarlo-en-ia-service-pendiente).
 - Guardar los polígonos de cada zona en el sistema.
 
 ## Reglas

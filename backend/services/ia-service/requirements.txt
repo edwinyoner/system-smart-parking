@@ -8,8 +8,8 @@ torch
 torchvision
 torchaudio
 
-# Deep Learning - YOLO
-ultralytics==8.3.50
+# Deep Learning - YOLO (YOLO26 necesita 8.4 o posterior; la misma versión que ai/plate-training)
+ultralytics==8.4.220
 
 # Deep Learning - OCR
 easyocr==1.7.2

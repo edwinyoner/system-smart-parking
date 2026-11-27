@@ -130,13 +130,10 @@ class ParkingOccupancyDetector:
         device: Dispositivo de inferencia - 'cpu', 'cuda:0', etc. (default: 'cpu')
     """
 
-    # Clases de vehículos según COCO dataset (usado por YOLO)
-    VEHICLE_CLASSES = {
-        2: 'car',
-        3: 'motorcycle',
-        5: 'bus',
-        7: 'truck'
-    }
+    # Clases de vehículos del modelo general (COCO). Se buscan por NOMBRE en el modelo cargado,
+    # no por número: así un modelo sin vehículos (por ejemplo, uno solo de placas) se detecta
+    # al cargar en lugar de marcar todos los espacios como libres
+    VEHICLE_CLASS_NAMES = ('car', 'motorcycle', 'bus', 'truck')
 
     def __init__(
             self,
@@ -151,7 +148,19 @@ class ParkingOccupancyDetector:
         # Cargar modelo YOLO
         logger.info(f"Cargando modelo YOLO desde {model_path}...")
         self.model = YOLO(model_path)
+        self.vehicle_classes = self.find_vehicle_classes(self.model.names)
+        if not self.vehicle_classes:
+            raise ValueError(
+                f"El modelo {model_path} no detecta vehículos (car, motorcycle, bus, truck): la "
+                "ocupación necesita el modelo general en YOLO_MODEL_PATH, no el de placas"
+            )
         logger.info(f"Modelo YOLO cargado en dispositivo: {device}")
+
+    @classmethod
+    def find_vehicle_classes(cls, names) -> Dict[int, str]:
+        """{id: nombre} de las clases de vehículo presentes en el modelo"""
+        items = names.items() if isinstance(names, dict) else enumerate(names)
+        return {int(i): str(n) for i, n in items if str(n).lower() in cls.VEHICLE_CLASS_NAMES}
 
     def detect_occupancy(
             self,
@@ -258,7 +267,8 @@ class ParkingOccupancyDetector:
             image,
             conf=self.confidence_threshold,
             device=self.device,
-            verbose=False
+            verbose=False,
+            classes=list(self.vehicle_classes)
         )
 
         vehicle_detections = []
@@ -271,7 +281,7 @@ class ParkingOccupancyDetector:
                 class_id = int(box.cls[0])
 
                 # Filtrar solo vehículos
-                if class_id not in self.VEHICLE_CLASSES:
+                if class_id not in self.vehicle_classes:
                     continue
 
                 confidence = float(box.conf[0])
@@ -285,7 +295,7 @@ class ParkingOccupancyDetector:
                     'bbox': (x1, y1, x2, y2),
                     'confidence': confidence,
                     'class_id': class_id,
-                    'class_name': self.VEHICLE_CLASSES[class_id],
+                    'class_name': self.vehicle_classes[class_id],
                     'center': (center_x, center_y)
                 })
 

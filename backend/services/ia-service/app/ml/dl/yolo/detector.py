@@ -30,7 +30,11 @@ class YOLO26Detector:
     def __init__(self):
         """Inicializa el detector YOLO26"""
         self.model: Optional[YOLO] = None
-        self.model_path: str = settings.YOLO_MODEL_PATH
+        # Modelo propio de placas si está configurado; si no, el general (COCO)
+        self.model_path: str = settings.YOLO_PLATE_MODEL_PATH or settings.YOLO_MODEL_PATH
+        self.dedicated: bool = bool(settings.YOLO_PLATE_MODEL_PATH)
+        # IDs de las clases "placa" del modelo; None = se acepta cualquier clase
+        self.plate_class_ids: Optional[List[int]] = None
         self.confidence_threshold: float = settings.YOLO_CONFIDENCE_THRESHOLD
         self.iou_threshold: float = settings.YOLO_IOU_THRESHOLD
         self.device: str = settings.YOLO_DEVICE
@@ -56,6 +60,7 @@ class YOLO26Detector:
             # Cargar modelo YOLO
             # Ultralytics descarga automáticamente si no existe
             self.model = YOLO(self.model_path)
+            self.plate_class_ids = self._find_plate_classes(self.model.names)
 
             # Configurar dispositivo (CPU o GPU)
             if self.device == "cuda":
@@ -74,6 +79,26 @@ class YOLO26Detector:
                 message="No se pudo cargar el modelo YOLO",
                 details={"error": str(e), "path": self.model_path}
             )
+
+
+    @staticmethod
+    def _find_plate_classes(names) -> Optional[List[int]]:
+        """
+        Busca en el modelo las clases que son placas (por nombre, sin importar mayúsculas).
+        Con un modelo de placas solo se aceptan esas detecciones; con el general (COCO, sin
+        clase placa) se devuelve None y se recorta el objeto de mayor confianza, como antes.
+        """
+        wanted = {n.strip().lower() for n in settings.YOLO_PLATE_CLASS_NAMES}
+        items = names.items() if isinstance(names, dict) else enumerate(names)
+        ids = sorted(int(i) for i, n in items if str(n).strip().lower() in wanted)
+        if ids:
+            logger.info(f"Modelo de placas: clases {ids} ({', '.join(str(names[i]) for i in ids)})")
+            return ids
+        logger.warning(
+            "El modelo YOLO no tiene una clase de placa: se recorta el objeto de mayor confianza "
+            "(suele ser el vehículo). Entrena uno con ai/plate-training y configura YOLO_PLATE_MODEL_PATH"
+        )
+        return None
 
 
     def detect_plates(
@@ -113,7 +138,8 @@ class YOLO26Detector:
                 iou=self.iou_threshold,
                 device=self.device,
                 verbose=False,
-                max_det=settings.YOLO_MAX_DETECTIONS
+                max_det=settings.YOLO_MAX_DETECTIONS,
+                classes=self.plate_class_ids
             )
 
             # Procesar resultados
@@ -202,6 +228,8 @@ class YOLO26Detector:
         info = {
             "loaded": self.is_loaded,
             "model_path": self.model_path,
+            "dedicated_plate_model": self.dedicated,
+            "plate_classes": self.plate_class_ids,
             "last_loaded": self.load_time.isoformat() if self.load_time else None,
             "device": self.device,
             "confidence_threshold": self.confidence_threshold,

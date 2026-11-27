@@ -41,7 +41,7 @@ Respuesta del reconocimiento: `status` (`SUCCESS`, `NO_PLATE_DETECTED`, `OCR_FAI
 |---|---|
 | FastAPI / Uvicorn | 0.115.5 / 0.32.1 |
 | PyTorch | CPU |
-| Ultralytics (YOLO26, modelo `yolo26n.pt`) | 8.3.50 |
+| Ultralytics (YOLO26, modelo `yolo26n.pt`) | 8.4.220 |
 | EasyOCR | 1.7.2 |
 | MongoDB (Motor / PyMongo) | 3.6.0 / 4.9.2 |
 
@@ -78,8 +78,11 @@ curl -s localhost:8084/api/health
 ```
 
 Variables principales de `.env`: `APP_PORT` (8084), `MONGODB_URL`, `MONGODB_DB_NAME`,
-`MONGODB_ENABLED`, `MONGODB_RETENTION_DAYS`, `YOLO_MODEL_PATH` (`yolo26n.pt`), `PRELOAD_MODELS`
-(carga YOLO y EasyOCR al arrancar, una sola vez para ambos escenarios).
+`MONGODB_ENABLED`, `MONGODB_RETENTION_DAYS`, `YOLO_MODEL_PATH` (`yolo26n.pt`, modelo general:
+vehículos para la ocupación aérea), `YOLO_PLATE_MODEL_PATH` (modelo de placas entrenado con
+`ai/plate-training`; vacío = usa el general), `PRELOAD_MODELS` (carga YOLO y EasyOCR al arrancar).
+
+Tras actualizar `requirements.txt` (Ultralytics 8.4): `.venv/bin/pip install -r requirements.txt`.
 
 > Si mueves la carpeta del proyecto, el entorno `.venv` se rompe: vuelve a crearlo.
 

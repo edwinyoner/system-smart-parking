@@ -42,7 +42,13 @@ class Settings(BaseSettings):
     # ====================================
     # Deep Learning - YOLO Configuration
     # ====================================
+    # Modelo general (COCO): detecta vehículos para la ocupación aérea (escenario B)
     YOLO_MODEL_PATH: str = "yolo26n.pt"
+    # Modelo de placas (escenario A), entrenado con ai/plate-training. Vacío = usa el general,
+    # que no tiene clase "placa" y recorta el objeto de mayor confianza (suele ser el vehículo)
+    YOLO_PLATE_MODEL_PATH: str = ""
+    # Nombres de clase que cuentan como placa en el modelo de placas
+    YOLO_PLATE_CLASS_NAMES: List[str] = ["license_plate", "plate", "license-plate"]
     YOLO_CONFIDENCE_THRESHOLD: float = 0.25
     YOLO_IOU_THRESHOLD: float = 0.45
     YOLO_MAX_DETECTIONS: int = 10

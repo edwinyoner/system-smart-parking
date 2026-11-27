@@ -126,8 +126,11 @@ Colección `plate_recognitions` de la base definida en `MONGODB_DB_NAME` (en des
 ## 7. Trabajo futuro (en `ai/`, no en ia-service)
 
 - Ajuste fino (*fine-tuning*) de YOLO26 con un dataset propio de placas peruanas etiquetadas
-  (clase única `license_plate`), y reemplazo del archivo de pesos en `YOLO_MODEL_PATH` sin
-  cambiar el código del servicio.
+  (clase única `license_plate`). Los scripts ya están en `ai/plate-training`; falta el dataset.
+  El servicio ya está preparado: el modelo de placas se configura en `YOLO_PLATE_MODEL_PATH`,
+  **aparte** del modelo general de `YOLO_MODEL_PATH`, que sigue detectando vehículos para la
+  ocupación aérea. Con un modelo propio, el detector acepta solo sus clases de placa; sin él,
+  recorta el objeto de mayor confianza, como hasta ahora.
 - Preprocesamiento del recorte (escala de grises, contraste) antes del OCR.
 - Medir precisión, exhaustividad y tiempo por imagen sobre un conjunto de prueba de Huaraz.
 

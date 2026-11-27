@@ -97,16 +97,18 @@ Mide con el conjunto de **prueba** (fotos que el modelo no vio) y guarda
 Sirven para los resultados de la tesis (comparar el modelo general con el ajustado). Solo miden
 la **detección**; la lectura del texto (EasyOCR) se mide aparte.
 
-## 6. Usarlo en ia-service (pendiente)
+## 6. Usarlo en ia-service
 
-Antes de copiar `best.pt` a ia-service hay dos ajustes allí:
+ia-service ya está preparado (Ultralytics 8.4.220, la misma versión de este entrenamiento):
 
-1. **Un modelo para cada cosa.** Hoy las placas y la ocupación aérea comparten `YOLO_MODEL_PATH`.
-   El modelo de placas no detecta vehículos, así que ia-service necesita una variable aparte
-   (por ejemplo `YOLO_PLATE_MODEL_PATH`) y seguir usando COCO para la ocupación.
-2. **Actualizar Ultralytics** (`ultralytics==8.3.50` en `requirements.txt`, anterior a YOLO26) a
-   la misma versión 8.4 con que se entrenó. En la prueba, la 8.3.50 cargó y usó el modelo
-   entrenado, pero conviene no depender de eso.
+1. Copiar `best.pt` a ia-service, por ejemplo `app/ml/dl/models/placas-v1.pt`.
+2. En su `.env`: `YOLO_PLATE_MODEL_PATH=app/ml/dl/models/placas-v1.pt`.
+3. Reiniciar. `GET /api/v1/recognitions/status` debe mostrar `dedicated_plate_model: true` y
+   `plate_classes: [0]`.
+
+`YOLO_MODEL_PATH` **no se cambia**: es el modelo general (COCO) que detecta los vehículos para la
+ocupación aérea. Si por error se pone allí el de placas, la ocupación se niega a arrancar con un
+mensaje claro, en vez de marcar todos los espacios como libres.
 
 ## Archivos
 
