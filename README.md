@@ -90,10 +90,10 @@ Sitios piloto: **Parqueo San Martín** y **Parqueo Las Banderas** (Huaraz).
 
 | Escenario | Hardware | IA | Resultado |
 |---|---|---|---|
-| **A. Parqueo con barrera** | ESP32-CAM en entrada y salida | YOLO26 + EasyOCR (lectura de placa) | Abre o cierra la estadía del vehículo |
+| **A. Parqueo con barrera** | ESP32-S3 con cámara en entrada y salida | YOLO26 + EasyOCR (lectura de placa) | Abre o cierra la estadía del vehículo |
 | **B. Parqueo abierto (calle)** | Cámara aérea | YOLO26 con un polígono por espacio | Estado de cada espacio |
-| **Sensores** | HC-SR04 + ESP32 (MQTT) | — | Confirma o corrige la ocupación de un espacio |
-| **Paneles** | ESP32 + pantalla LED (MQTT o HTTP) | — | Muestran disponibles y ocupados |
+| **Sensores** | HC-SR04 + ESP32-C6 (MQTT) | — | Confirma o corrige la ocupación de un espacio |
+| **Paneles** | ESP32-S3 + paneles LED HUB75 (MQTT o HTTP) | — | Muestran disponibles y ocupados |
 
 Reglas principales:
 
@@ -170,7 +170,7 @@ system-smart-parking/
 ├── database/            Scripts sueltos de prueba
 ├── docs/                Documento de tesis (LaTeX)
 ├── frontend/            Panel administrativo Angular
-├── iot/                 Firmware de los ESP32 (por hacer)
+├── iot/                 Firmware de los ESP32 (C++ / PlatformIO): cámara, panel LED y sensor
 └── mobile/smart_parking App Flutter para conductores
 ```
 
@@ -230,7 +230,7 @@ flutter run -d macos --dart-define=API_BASE_URL=http://localhost:8080/api
 | ia-service: reconocimiento de placas y ocupación aérea, registro mínimo en MongoDB | Completo (sin modelo propio de placas peruanas) |
 | Panel web Angular | Casi completo |
 | App móvil Flutter (versión 1, pública y sin login) | Completa |
-| Firmware ESP32 | Por hacer |
+| Firmware ESP32 | Cámara de entrada/salida, panel LED y sensor listos (compilan; falta probar con las placas). Cámara aérea y kiosco: pendientes del backend |
 | Despliegue en Google Cloud | Por hacer |
 
 ---
