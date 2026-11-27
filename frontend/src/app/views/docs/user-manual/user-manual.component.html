@@ -1,165 +1,151 @@
-<!-- HEADER -->
-<c-row class="mb-4">
-  <c-col>
-    <div class="page-header">
-      <h1 class="page-title">
-        <fa-icon [icon]="icons.book" class="me-3"></fa-icon>
-        Manual de Usuario
-      </h1>
-      <p class="page-subtitle">
-        Guía completa para utilizar el Sistema Smart Parking
-      </p>
-      <button cButton color="light" class="download-btn" (click)="downloadPDF()">
-        <fa-icon [icon]="icons.download" class="me-2"></fa-icon>
-        Descargar PDF
-      </button>
-    </div>
-  </c-col>
-</c-row>
+<!-- Bloque reutilizable: contenido de una subsección -->
+<ng-template #subsectionBody let-sub>
+  <div class="subsection-content">
+    <p class="mb-2">{{ sub.content }}</p>
 
-<!-- QUICK LINKS -->
-<c-row class="mb-4">
-  <c-col>
-    <c-card class="quick-links-card">
+    @if (sub.permission || sub.route) {
+      <div class="meta mb-3">
+        @if (sub.permission) {
+          <span class="perm"><fa-icon [icon]="icons.key" class="me-1"></fa-icon>Permiso: <code>{{ sub.permission }}</code></span>
+        }
+        @if (sub.route) {
+          <a class="d-print-none" [routerLink]="sub.route">Abrir en el panel</a>
+        }
+      </div>
+    }
+
+    @if (sub.steps?.length) {
+      <div class="block steps">
+        <h6><fa-icon [icon]="icons.play" class="me-2"></fa-icon>Cómo se hace</h6>
+        <ol>
+          @for (step of sub.steps; track $index) { <li>{{ step }}</li> }
+        </ol>
+      </div>
+    }
+
+    @if (sub.tips?.length) {
+      <div class="block tips">
+        <h6><fa-icon [icon]="icons.check" class="me-2"></fa-icon>Bueno saber</h6>
+        <ul>
+          @for (tip of sub.tips; track $index) { <li>{{ tip }}</li> }
+        </ul>
+      </div>
+    }
+
+    @if (sub.warnings?.length) {
+      <div class="block warnings">
+        <h6><fa-icon [icon]="icons.warning" class="me-2"></fa-icon>Tenga en cuenta</h6>
+        <ul>
+          @for (w of sub.warnings; track $index) { <li>{{ w }}</li> }
+        </ul>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<!-- CABECERA -->
+<div class="page-header mb-4">
+  <div>
+    <h1 class="page-title"><fa-icon [icon]="icons.book" class="me-3"></fa-icon>Manual de usuario</h1>
+    <p class="page-subtitle mb-0">Cómo usar el panel de Smart Parking System, paso a paso.</p>
+  </div>
+  <button type="button" class="btn btn-light d-print-none" (click)="print()" title="Imprimir o guardar como PDF">
+    <fa-icon [icon]="icons.print" class="me-2"></fa-icon>Imprimir / PDF
+  </button>
+</div>
+
+<!-- ========================= EN PANTALLA ========================= -->
+<div class="d-print-none">
+  <!-- Búsqueda -->
+  <div class="search mb-3">
+    <fa-icon [icon]="icons.search" class="search-icon"></fa-icon>
+    <input type="search" class="form-control" placeholder="Buscar en el manual (por ejemplo: tarifa, QR, operador)"
+           [ngModel]="query()" (ngModelChange)="query.set($event)" aria-label="Buscar en el manual" />
+    @if (query()) {
+      <button type="button" class="btn btn-link clear" (click)="query.set('')" title="Limpiar">
+        <fa-icon [icon]="icons.clear"></fa-icon>
+      </button>
+    }
+  </div>
+
+  @if (searching()) {
+    <!-- Resultados de búsqueda -->
+    <c-card>
       <c-card-body>
         <h5 class="mb-3">
-          <fa-icon [icon]="icons.rocket" class="me-2"></fa-icon>
-          Acceso Rápido
+          {{ searchResults().length }} {{ searchResults().length === 1 ? 'resultado' : 'resultados' }} para "{{ query() }}"
         </h5>
-        <div class="quick-links-grid">
-          @for (section of manualSections; track section.id) {
-            <button
-              class="quick-link-btn"
-              [class.active]="activeTab() === section.id"
-              (click)="setActiveTab(section.id)"
-            >
-              <fa-icon [icon]="section.icon" size="2x" class="mb-2"></fa-icon>
-              <span>{{ section.title }}</span>
-            </button>
-          }
-        </div>
-      </c-card-body>
-    </c-card>
-  </c-col>
-</c-row>
-
-<!-- MANUAL CONTENT -->
-<c-row>
-  <c-col>
-    <c-card class="manual-card">
-      <c-card-body>
-        
-        <!-- TABS NAVIGATION -->
-        <ul cNav variant="tabs" role="tablist" class="mb-4">
-          @for (section of manualSections; track section.id) {
-            <li cNavItem>
-              <button
-                cNavLink
-                [active]="activeTab() === section.id"
-                (click)="setActiveTab(section.id)"
-              >
-                <fa-icon [icon]="section.icon" class="me-2"></fa-icon>
-                {{ section.title }}
-              </button>
-            </li>
-          }
-        </ul>
-
-        <!-- TABS CONTENT -->
-        @for (section of manualSections; track section.id) {
-          @if (activeTab() === section.id) {
-            <div class="tab-content-section">
-              <h3 class="section-title mb-4">
-                <fa-icon [icon]="section.icon" class="me-2" [style.color]="'var(--color-' + section.color + ')'"></fa-icon>
-                {{ section.title }}
-              </h3>
-
-              <c-accordion [flush]="false">
-                @for (subsection of section.subsections; track subsection.id) {
-                  <c-accordion-item>
-                    <ng-template cTemplateId="accordionHeader">
-                      <button cAccordionButton>
-                        <strong>{{ subsection.title }}</strong>
-                      </button>
-                    </ng-template>
-                    <ng-template cTemplateId="accordionBody">
-                      <div class="subsection-content">
-                        
-                        <!-- Content -->
-                        <p class="subsection-description">{{ subsection.content }}</p>
-
-                        <!-- Steps -->
-                        @if (subsection.steps && subsection.steps.length > 0) {
-                          <div class="steps-container">
-                            <h6 class="steps-title">
-                              <fa-icon [icon]="icons.play" class="me-2"></fa-icon>
-                              Pasos a Seguir:
-                            </h6>
-                            <ol class="steps-list">
-                              @for (step of subsection.steps; track $index) {
-                                <li>{{ step }}</li>
-                              }
-                            </ol>
-                          </div>
-                        }
-
-                        <!-- Tips -->
-                        @if (subsection.tips && subsection.tips.length > 0) {
-                          <div class="tips-container">
-                            <h6 class="tips-title">
-                              <fa-icon [icon]="icons.check" class="me-2"></fa-icon>
-                              Consejos Útiles:
-                            </h6>
-                            <ul class="tips-list">
-                              @for (tip of subsection.tips; track $index) {
-                                <li>{{ tip }}</li>
-                              }
-                            </ul>
-                          </div>
-                        }
-
-                        <!-- Warnings -->
-                        @if (subsection.warnings && subsection.warnings.length > 0) {
-                          <div class="warnings-container">
-                            <h6 class="warnings-title">
-                              <fa-icon [icon]="icons.warning" class="me-2"></fa-icon>
-                              Advertencias:
-                            </h6>
-                            <ul class="warnings-list">
-                              @for (warning of subsection.warnings; track $index) {
-                                <li>{{ warning }}</li>
-                              }
-                            </ul>
-                          </div>
-                        }
-
-                      </div>
-                    </ng-template>
-                  </c-accordion-item>
-                }
-              </c-accordion>
-            </div>
-          }
+        @for (r of searchResults(); track r.subsection.id) {
+          <div class="result">
+            <small class="text-body-secondary">
+              <fa-icon [icon]="r.section.icon" class="me-1"></fa-icon>{{ r.section.title }}
+            </small>
+            <h6 class="fw-bold mt-1">{{ r.subsection.title }}</h6>
+            <ng-container *ngTemplateOutlet="subsectionBody; context: { $implicit: r.subsection }"></ng-container>
+          </div>
+        } @empty {
+          <p class="text-body-secondary mb-0">No hay coincidencias. Prueba con otra palabra.</p>
         }
-
       </c-card-body>
     </c-card>
-  </c-col>
-</c-row>
-
-<!-- FOOTER HELP -->
-<c-row class="mt-4">
-  <c-col>
-    <c-card class="help-card">
-      <c-card-body class="text-center">
-        <fa-icon [icon]="icons.question" size="3x" class="mb-3 text-primary"></fa-icon>
-        <h5>¿Necesitas más ayuda?</h5>
-        <p class="text-muted">Si tienes dudas adicionales, no dudes en contactar a nuestro equipo de soporte.</p>
-        <button cButton color="primary" routerLink="/support">
-          <fa-icon [icon]="icons.book" class="me-2"></fa-icon>
-          Ir a Soporte Técnico
+  } @else {
+    <!-- Secciones -->
+    <div class="section-grid mb-4">
+      @for (section of manualSections; track section.id) {
+        <button type="button" class="section-btn" [class.active]="activeTab() === section.id" (click)="setActiveTab(section.id)">
+          <fa-icon [icon]="section.icon" size="lg"></fa-icon>
+          <span>{{ section.title }}</span>
+          <small>{{ section.subsections.length }} temas</small>
         </button>
-      </c-card-body>
-    </c-card>
-  </c-col>
-</c-row>
+      }
+    </div>
+
+    @for (section of manualSections; track section.id) {
+      @if (activeTab() === section.id) {
+        <c-card>
+          <c-card-body>
+            <h4 class="section-title mb-3">
+              <fa-icon [icon]="section.icon" class="me-2"></fa-icon>{{ section.title }}
+            </h4>
+            <c-accordion [alwaysOpen]="true">
+              @for (sub of section.subsections; track sub.id; let first = $first) {
+                <c-accordion-item [visible]="first">
+                  <ng-template cTemplateId="accordionHeader">
+                    <button cAccordionButton><strong>{{ sub.title }}</strong></button>
+                  </ng-template>
+                  <ng-template cTemplateId="accordionBody">
+                    <ng-container *ngTemplateOutlet="subsectionBody; context: { $implicit: sub }"></ng-container>
+                  </ng-template>
+                </c-accordion-item>
+              }
+            </c-accordion>
+          </c-card-body>
+        </c-card>
+      }
+    }
+  }
+
+  <!-- Ayuda -->
+  <c-card class="mt-4">
+    <c-card-body class="text-center">
+      <fa-icon [icon]="icons.question" size="2x" class="mb-2 text-primary"></fa-icon>
+      <h6 class="fw-bold">¿No encuentras lo que buscas?</h6>
+      <p class="small text-body-secondary">Consulta las preguntas frecuentes o escribe a soporte.</p>
+      <a class="btn btn-outline-primary btn-sm" routerLink="/support">Ir a Soporte técnico</a>
+    </c-card-body>
+  </c-card>
+</div>
+
+<!-- ========================= IMPRESIÓN: manual completo ========================= -->
+<div class="print-only">
+  <p class="small">Smart Parking System · Prototipo académico (UNASAM). No es un sistema oficial de la Municipalidad Provincial de Huaraz.</p>
+  @for (section of manualSections; track section.id; let i = $index) {
+    <section class="print-section">
+      <h2>{{ i + 1 }}. {{ section.title }}</h2>
+      @for (sub of section.subsections; track sub.id; let j = $index) {
+        <h3>{{ i + 1 }}.{{ j + 1 }} {{ sub.title }}</h3>
+        <ng-container *ngTemplateOutlet="subsectionBody; context: { $implicit: sub }"></ng-container>
+      }
+    </section>
+  }
+</div>

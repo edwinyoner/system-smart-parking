@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   CardComponent,
@@ -10,76 +10,110 @@ import {
   ProgressComponent
 } from '@coreui/angular';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import {
   faCircleInfo,
-  faRocket,
   faCode,
-  faServer,
-  faMobileAlt,
-  faCloud,
-  faShieldAlt,
-  faChartLine,
   faUsers,
   faGraduationCap,
-  faUniversity,
-  faMapMarkerAlt,
+  faBuildingColumns,
+  faLocationDot,
   faEnvelope,
-  faBrain,
+  faCamera,
+  faWaveSquare,
+  faTv,
+  faSquareParking,
+  faRoute,
+  faMap,
+  faDiagramProject,
+  faLayerGroup,
   faMicrochip,
-  faDatabase,
-  faLaptopCode,
-  faCog,
-  faNetworkWired,
-  faDisplay,
-  faCar
+  faBrain,
+  faCloud,
+  faTowerBroadcast,
+  faCrosshairs,
+  faFont
 } from '@fortawesome/free-solid-svg-icons';
-import { 
-  faGithub,
-  faLinkedin, 
-  faJava, 
-  faAngular, 
-  faDocker, 
-  faPython, 
-  faGolang,
-  faAndroid,
-  faApple
-} from '@fortawesome/free-brands-svg-icons';
+import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 
-interface Technology {
-  name: string;
-  category: string;
-  icon?: any;
-  version?: string;
-  color: string;
-  description: string;
+/** Pilares tecnológicos de la tesis: se marcan en el diagrama. */
+type Pillar = 'iot' | 'ia' | 'cloud';
+
+/** Logo de una tecnología: SVG en src/assets/tech o, si no hay logo oficial, un ícono genérico. */
+interface Logo {
+  label: string;
+  src?: string;
+  icon?: IconDefinition;
 }
 
-interface Feature {
-  title: string;
-  description: string;
-  icon: any;
-  color: string;
+/** Ruta de un logo dentro de los assets del panel. */
+const logo = (file: string, label: string): Logo => ({ src: `assets/tech/${file}.svg`, label });
+
+const L = {
+  angular: logo('angular', 'Angular'),
+  typescript: logo('typescript', 'TypeScript'),
+  flutter: logo('flutter', 'Flutter'),
+  dart: logo('dart', 'Dart'),
+  microcontroller: { label: 'Microcontrolador', icon: faMicrochip } as Logo,
+  espressif: logo('espressif', 'ESP32'),
+  c: logo('c', 'C'),
+  cpp: logo('cplusplus', 'C++'),
+  mqtt: logo('mqtt', 'MQTT'),
+  mosquitto: logo('eclipsemosquitto', 'Eclipse Mosquitto'),
+  spring: logo('spring', 'Spring'),
+  java: logo('java', 'Java'),
+  go: logo('go', 'Go'),
+  python: logo('python', 'Python'),
+  fastapi: logo('fastapi', 'FastAPI'),
+  pytorch: logo('pytorch', 'PyTorch'),
+  opencv: logo('opencv', 'OpenCV'),
+  postgresql: logo('postgresql', 'PostgreSQL'),
+  oracle: logo('oracle', 'Oracle'),
+  sqlserver: logo('microsoftsqlserver', 'SQL Server'),
+  mysql: logo('mysql', 'MySQL'),
+  mongodb: logo('mongodb', 'MongoDB'),
+  redis: logo('redis', 'Redis'),
+  docker: logo('docker', 'Docker'),
+  gcp: logo('googlecloud', 'Google Cloud')
+};
+
+interface ClientNode {
+  name: string;
+  audience: string;
+  logo: Logo;
+  items: string[];
+  protocol: string;
+  pillar?: Pillar;
 }
 
-interface Microservice {
+interface ServiceNode {
   name: string;
-  tech: string;
-  database: string;
   port: number;
-  status: string;
-  description: string;
-  icon: any;
-  color: string;
+  architecture: string;
+  role: string;
+  logo: Logo;
+  stack: string;
+  databases: { logo: Logo; name: string; detail: string }[];
+  pillar?: Pillar;
 }
 
-interface ClientChannel {
-  name: string;
-  platform: string;
-  target: string;
-  status: string;
-  description: string;
-  icon: any;
-  color: string;
+interface TechGroup {
+  title: string;
+  pillar?: Pillar;
+  items: { logo: Logo; name: string; version: string; use: string }[];
+}
+
+interface Scenario {
+  title: string;
+  hardware: string;
+  ai: string;
+  result: string;
+  icon: IconDefinition;
+}
+
+interface Phase {
+  title: string;
+  items: { text: string; done: boolean }[];
 }
 
 @Component({
@@ -99,406 +133,306 @@ interface ClientChannel {
   templateUrl: './about.component.html',
   styleUrls: ['./about.component.css']
 })
-export class AboutComponent implements OnInit {
+export class AboutComponent {
 
-  // Iconos
   icons = {
     info: faCircleInfo,
-    rocket: faRocket,
     code: faCode,
-    server: faServer,
-    mobile: faMobileAlt,
-    cloud: faCloud,
-    shield: faShieldAlt,
-    chart: faChartLine,
     users: faUsers,
     graduation: faGraduationCap,
-    university: faUniversity,
-    location: faMapMarkerAlt,
+    university: faBuildingColumns,
+    location: faLocationDot,
     email: faEnvelope,
+    parking: faSquareParking,
+    route: faRoute,
+    diagram: faDiagramProject,
+    layers: faLayerGroup,
     github: faGithub,
-    linkedin: faLinkedin,
-    brain: faBrain,
-    chip: faMicrochip,
-    database: faDatabase,
-    laptop: faLaptopCode,
-    settings: faCog,
-    network: faNetworkWired,
-    display: faDisplay,
-    car: faCar,
-    java: faJava,
-    angular: faAngular,
-    docker: faDocker,
-    python: faPython,
-    golang: faGolang,
-    android: faAndroid,
-    apple: faApple
+    linkedin: faLinkedin
   };
 
-  // Información del sistema
+  logos = L;
+
+  /** Nombre e ícono de cada pilar (leyenda y marcas del diagrama). */
+  pillars: Record<Pillar, { label: string; short: string; icon: IconDefinition }> = {
+    iot: { label: 'Internet of Things', short: 'IoT', icon: faTowerBroadcast },
+    ia: { label: 'Artificial Intelligence', short: 'IA', icon: faBrain },
+    cloud: { label: 'Cloud Computing', short: 'Cloud', icon: faCloud }
+  };
+  pillarOrder: Pillar[] = ['iot', 'ia', 'cloud'];
+
+  /** Datos de un pilar (en las plantillas el contexto de ng-template no tiene tipo). */
+  pillarOf(p: Pillar) {
+    return this.pillars[p];
+  }
+
   systemInfo = {
     name: 'Smart Parking System',
     version: '1.0.0',
-    releaseDate: 'Marzo 2026',
-    status: 'Producción',
-    description: 'Sistema integral de gestión de estacionamientos inteligentes con IA, IoT y 3 canales de cliente (Web, Móvil, Displays LED) para la Municipalidad de Huaraz, desarrollado como proyecto de tesis.',
-    university: 'Universidad Nacional Santiago Antúnez de Mayolo',
-    faculty: 'Facultad de Ingeniería de Sistemas e Informática',
-    location: 'Huaraz, Áncash - Perú'
+    releaseDate: 'Noviembre 2026',
+    stage: 'Prototipo académico',
+    description:
+      'Prototipo de Smart Parking con tecnologías de Internet of Things, Artificial Intelligence y ' +
+      'Cloud Computing para una Smart City en Huaraz - Áncash.',
+    university: 'Universidad Nacional Santiago Antúnez de Mayolo (UNASAM)',
+    faculty: 'Facultad de Ciencias · Escuela de Ingeniería de Sistemas e Informática',
+    company: 'Winner Systems Corporation S.A.C.',
+    location: 'Huaraz, Áncash - Perú',
+    pilots: 'Parqueo San Martín y Parqueo Las Banderas',
+    advisor: 'M.Sc. Franz Martín Villanueva Cochachin'
   };
 
-  // Canales de Cliente (3 tipos)
-  clientChannels: ClientChannel[] = [
+  // ==================== DIAGRAMA DE ARQUITECTURA ====================
+
+  /** Los tres clientes del sistema (fuera de la nube). */
+  clients: ClientNode[] = [
     {
-      name: 'Web Angular',
-      platform: 'Angular 20 + CoreUI',
-      target: 'Operadores y Administradores',
-      status: 'Operativo (93%)',
-      description: 'Dashboard administrativo con 14/15 módulos completos. Control total del sistema, transacciones, reportes y gestión.',
-      icon: this.icons.angular,
-      color: 'danger'
+      name: 'Web',
+      audience: 'Administradores, autoridades y operadores',
+      logo: L.angular,
+      items: ['Panel de gestión y operación diaria'],
+      protocol: 'HTTPS · REST · JWT'
     },
     {
-      name: 'App Móvil Flutter',
-      platform: 'Flutter 3.x (iOS/Android)',
-      target: 'Ciudadanos/Conductores',
-      status: 'Planificado',
-      description: 'Consulta de disponibilidad en tiempo real, mapas interactivos, navegación GPS y reservas (versión futura).',
-      icon: this.icons.mobile,
-      color: 'info'
+      name: 'App Móvil',
+      audience: 'Conductores y ciudadanos',
+      logo: L.flutter,
+      items: ['Disponibilidad pública, sin login'],
+      protocol: 'HTTPS · REST pública'
     },
     {
-      name: 'Displays LED ESP32',
-      platform: 'ESP32 + Panel LED 64x32',
-      target: 'Información Pública',
-      status: 'Planificado',
-      description: 'Pantallas en avenidas principales mostrando disponibilidad en tiempo real (actualización cada 10s).',
-      icon: this.icons.display,
-      color: 'warning'
+      name: 'Microcontroladores (IoT)',
+      audience: 'Parqueos y avenidas',
+      logo: L.microcontroller,
+      items: ['ESP32-CAM: entrada, salida y vista aérea', 'ESP32 + sensores ultrasónicos HC-SR04', 'ESP32 + paneles LED de disponibilidad'],
+      protocol: 'ESP32-CAM: HTTP → Gateway · ESP32 de sensores y paneles: MQTT → Broker',
+      pillar: 'iot'
     }
   ];
 
-  // Microservicios con MongoDB en ia-service
-  microservices: Microservice[] = [
+  /** Caché compartida: hoy la usa iot-service; preparada para el gateway y auth-service. */
+  sharedCache = { logo: L.redis, name: 'Redis 7', detail: 'Caché compartida y límite de peticiones · hoy: iot-service' };
+
+  /** Microservicios de negocio, cada uno con su propia base de datos. */
+  services: ServiceNode[] = [
     {
-      name: 'Auth Service',
-      tech: 'Java 25 + Spring Boot 3.x',
-      database: 'PostgreSQL 15',
+      name: 'auth-service',
       port: 8081,
-      status: 'Operativo',
-      description: 'Autenticación JWT, gestión de usuarios, roles y permisos con assignedParkings',
-      icon: this.icons.shield,
-      color: 'success'
+      architecture: 'Hexagonal',
+      role: 'Usuarios, roles, permisos y tokens',
+      logo: L.java,
+      stack: 'Java 25 · Spring Boot',
+      databases: [{ logo: L.postgresql, name: 'PostgreSQL 18', detail: 'auth_service_db' }]
     },
     {
-      name: 'Parking Service',
-      tech: 'Java 25 + Spring Boot 3.x',
-      database: 'Oracle 23ai',
+      name: 'parking-service',
       port: 8082,
-      status: 'Operativo',
-      description: 'Core de negocio: parkings, transacciones, pagos, infracciones. 15 módulos completos.',
-      icon: this.icons.server,
-      color: 'primary'
+      architecture: 'Hexagonal',
+      role: 'Parqueos, estadías, ocupación y disponibilidad',
+      logo: L.java,
+      stack: 'Java 25 · Spring Boot',
+      databases: [{ logo: L.oracle, name: 'Oracle 21c XE', detail: 'XEPDB1' }]
     },
     {
-      name: 'IoT Service',
-      tech: 'Go 1.21 + Gin Framework',
-      database: 'MySQL 8.0',
+      name: 'payment-service',
+      port: 8085,
+      architecture: 'Hexagonal',
+      role: 'Cobros con QR y efectivo',
+      logo: L.java,
+      stack: 'Java 25 · Spring Boot',
+      databases: [{ logo: L.sqlserver, name: 'SQL Server 2022', detail: 'payment_service_db' }]
+    },
+    {
+      name: 'iot-service',
       port: 8083,
-      status: 'En Desarrollo',
-      description: 'Orquestador IoT: ESP32-CAM (placas), ESP32 Displays (info pública), sensores HC-SR04',
-      icon: this.icons.chip,
-      color: 'info'
+      architecture: 'Por capas',
+      role: 'Orquesta cámaras, sensores y paneles',
+      logo: L.go,
+      stack: 'Go 1.26 · Gin · MQTT',
+      databases: [{ logo: L.mysql, name: 'MySQL 8.0', detail: 'iot_service_db' }],
+      pillar: 'iot'
     },
     {
-      name: 'IA Service',
-      tech: 'Python 3.11 + FastAPI',
-      database: 'MongoDB 7.x (NoSQL)',
+      name: 'ia-service',
       port: 8084,
-      status: 'En Desarrollo',
-      description: 'Reconocimiento con YOLOv8 + EasyOCR. Analytics ML, métricas de confianza y mejora continua del modelo',
-      icon: this.icons.brain,
-      color: 'warning'
+      architecture: 'Por capas, sin estado',
+      role: 'Lectura de placas y ocupación por visión',
+      logo: L.python,
+      stack: 'Python 3.12 · FastAPI · YOLO26 · EasyOCR',
+      databases: [{ logo: L.mongodb, name: 'MongoDB', detail: 'ia_service_db' }],
+      pillar: 'ia'
     }
   ];
 
-  // Características con Mejora Continua de IA
-  features: Feature[] = [
-    {
-      title: '3 Canales de Cliente',
-      description: 'Angular Web (operadores), Flutter Móvil (ciudadanos), ESP32 Displays LED (información pública en avenidas). Cobertura total de usuarios.',
-      icon: this.icons.mobile,
-      color: 'primary'
-    },
-    {
-      title: 'Gestión en Tiempo Real',
-      description: 'Monitoreo continuo con auto-refresh cada 30s, dashboard interactivo, alertas visuales y WebSocket para updates instantáneos.',
-      icon: this.icons.chart,
-      color: 'info'
-    },
-    {
-      title: 'Arquitectura de Microservicios',
-      description: '4 servicios independientes con 4 bases de datos (PostgreSQL, Oracle, MySQL, MongoDB). Diversificación tecnológica completa: 3 RDBMS + 1 NoSQL.',
-      icon: this.icons.network,
-      color: 'success'
-    },
-    {
-      title: 'Seguridad Enterprise',
-      description: 'JWT con assignedParkings, control de acceso granular por operador, auditoría completa (createdBy/updatedBy) y encriptación.',
-      icon: this.icons.shield,
-      color: 'danger'
-    },
-    {
-      title: 'IA con Mejora Continua',
-      description: 'YOLOv8 + EasyOCR con MongoDB para analytics. Guarda métricas, detecta errores comunes (O vs 0, I vs 1) y genera datasets para reentrenamiento con placas peruanas reales.',
-      icon: this.icons.brain,
-      color: 'warning'
-    },
-    {
-      title: 'Hardware IoT Dual',
-      description: 'ESP32-CAM (captura y reconocimiento), ESP32 Displays LED (info pública), HC-SR04 (ocupación). Integración completa.',
-      icon: this.icons.chip,
-      color: 'purple'
-    }
-  ];
+  // ==================== TECNOLOGÍAS ====================
 
-  // Stack tecnológico con MongoDB
-  technologies: Technology[] = [
-    // Frontend & Clientes
+  techGroups: TechGroup[] = [
     {
-      name: 'Angular',
-      category: 'Frontend Web',
-      icon: this.icons.angular,
-      version: '20',
-      color: 'danger',
-      description: 'Framework SPA con standalone components'
-    },
-    {
-      name: 'Flutter',
-      category: 'App Móvil',
-      icon: this.icons.mobile,
-      version: '3.x',
-      color: 'info',
-      description: 'iOS + Android (ciudadanos)'
-    },
-    {
-      name: 'TypeScript',
-      category: 'Frontend Web',
-      icon: this.icons.code,
-      version: '5.x',
-      color: 'info',
-      description: 'Tipado estático para JavaScript'
-    },
-    {
-      name: 'CoreUI',
-      category: 'Frontend Web',
-      icon: this.icons.laptop,
-      version: '5.x',
-      color: 'purple',
-      description: 'Framework de componentes UI'
-    },
-    
-    // Backend - Microservicios
-    {
-      name: 'Java',
-      category: 'Backend - Auth/Parking',
-      icon: this.icons.java,
-      version: '25',
-      color: 'danger',
-      description: 'Spring Boot 3.x + Spring Framework 6.x'
-    },
-    {
-      name: 'Go',
-      category: 'Backend - IoT',
-      icon: this.icons.golang,
-      version: '1.21',
-      color: 'info',
-      description: 'iot-service con Gin Framework'
-    },
-    {
-      name: 'Python',
-      category: 'Backend - IA',
-      icon: this.icons.python,
-      version: '3.11',
-      color: 'warning',
-      description: 'ia-service con FastAPI + YOLO'
-    },
-    
-    // Bases de Datos (4 diferentes: 3 SQL + 1 NoSQL)
-    {
-      name: 'Oracle Database',
-      category: 'Base de Datos SQL',
-      icon: this.icons.database,
-      version: '23ai',
-      color: 'danger',
-      description: 'parking-service (core de negocio)'
-    },
-    {
-      name: 'PostgreSQL',
-      category: 'Base de Datos SQL',
-      icon: this.icons.database,
-      version: '15',
-      color: 'info',
-      description: 'auth-service (autenticación)'
-    },
-    {
-      name: 'MySQL',
-      category: 'Base de Datos SQL',
-      icon: this.icons.database,
-      version: '8.0',
-      color: 'primary',
-      description: 'iot-service (dispositivos IoT)'
-    },
-    {
-      name: 'MongoDB',
-      category: 'Base de Datos NoSQL',
-      icon: this.icons.database,
-      version: '7.x',
-      color: 'success',
-      description: 'ia-service (analytics ML + métricas)'
-    },
-    {
-      name: 'Redis',
-      category: 'Cache',
-      icon: this.icons.database,
-      version: '7',
-      color: 'danger',
-      description: 'Cache + Pub/Sub para displays'
-    },
-    
-    // Infraestructura
-    {
-      name: 'Spring Cloud',
-      category: 'Infraestructura',
-      icon: this.icons.cloud,
-      version: '2023.x',
-      color: 'success',
-      description: 'Gateway + Config + Eureka'
-    },
-    {
-      name: 'RabbitMQ',
-      category: 'Message Broker',
-      icon: this.icons.network,
-      version: '3.12',
-      color: 'warning',
-      description: 'Event-driven async processing'
-    },
-    {
-      name: 'MinIO',
-      category: 'Object Storage',
-      icon: this.icons.database,
-      version: 'Latest',
-      color: 'info',
-      description: 'Almacenamiento imágenes ESP32-CAM'
-    },
-    {
-      name: 'Docker',
-      category: 'DevOps',
-      icon: this.icons.docker,
-      version: 'Latest',
-      color: 'info',
-      description: 'Contenedorización de servicios'
-    }
-  ];
-
-  // Estadísticas (ahora son 4 BD)
-  projectStats = [
-    { label: 'Canales de Cliente', value: 3, icon: this.icons.mobile, color: 'primary' },
-    { label: 'Microservicios', value: 4, icon: this.icons.server, color: 'info' },
-    { label: 'Bases de Datos', value: 4, icon: this.icons.database, color: 'success' },
-    { label: 'Componentes Angular', value: 90, icon: this.icons.angular, color: 'danger' },
-    { label: 'Endpoints API', value: 155, icon: this.icons.code, color: 'warning' },
-    { label: 'Tablas de BD', value: 35, icon: this.icons.database, color: 'purple' } // ACTUALIZADO (32 + 3 colecciones MongoDB)
-  ];
-
-  // Fases del proyecto con MongoDB
-  projectPhases = [
-    {
-      phase: 'Fase 1 - Core System',
-      status: 'Completado',
-      progress: 100,
+      title: 'Clientes',
       items: [
-        { text: 'auth-service: JWT, roles, permisos, usuarios (PostgreSQL)', done: true },
-        { text: 'parking-service Backend: 15 módulos de dominio completos (Oracle)', done: true },
-        { text: 'Frontend Angular 20: Dashboard + 14/15 módulos operativos', done: true },
-        { text: 'Control de acceso por operador con assignedParkings', done: true },
-        { text: 'Infrastructure: Gateway, Config Server, Eureka Server', done: true }
+        { logo: L.angular, name: 'Angular', version: '20', use: 'Panel web' },
+        { logo: L.typescript, name: 'TypeScript', version: '5.9', use: 'Lenguaje del panel' },
+        { logo: L.flutter, name: 'Flutter', version: '3.38', use: 'App móvil' },
+        { logo: L.dart, name: 'Dart', version: '3.10', use: 'Lenguaje de la app' }
       ]
     },
     {
-      phase: 'Fase 2 - Frontend Completo',
-      status: 'En Progreso',
-      progress: 93,
+      title: 'Backend',
       items: [
-        { text: 'Parking, Zone, Space, Shift, Rate, ParkingShiftRate', done: true },
-        { text: 'DocumentType, PaymentType, OperatorAssignment', done: true },
-        { text: 'Transaction (Entry, Exit, Payment, List, Detail)', done: true },
-        { text: 'Customer, Vehicle, CustomerVehicle', done: true },
-        { text: 'Infraction (pendiente - último módulo)', done: false }
+        { logo: L.java, name: 'Java', version: '25', use: 'auth, parking y payment' },
+        { logo: L.spring, name: 'Spring Boot', version: '3.5', use: 'Microservicios Java' },
+        { logo: L.go, name: 'Go', version: '1.26', use: 'iot-service' },
+        { logo: L.python, name: 'Python', version: '3.12', use: 'ia-service' },
+        { logo: L.fastapi, name: 'FastAPI', version: '0.115', use: 'API de ia-service' }
       ]
     },
     {
-      phase: 'Fase 3 - IoT & IA Services',
-      status: 'Planificado',
-      progress: 0,
+      title: 'Bases de datos',
       items: [
-        { text: 'iot-service: Go + MySQL + REST API + WebSocket', done: false },
-        { text: 'ia-service: Python + FastAPI + YOLOv8 + EasyOCR + MongoDB', done: false },
-        { text: 'MongoDB Collections: plate_recognitions, model_metrics, training_datasets', done: false },
-        { text: 'Analytics ML: confianza promedio, errores comunes, mejora continua', done: false },
-        { text: 'Event-driven con RabbitMQ (async processing)', done: false },
-        { text: 'Endpoint público para ESP32 Displays LED', done: false }
+        { logo: L.postgresql, name: 'PostgreSQL', version: '18', use: 'auth-service' },
+        { logo: L.oracle, name: 'Oracle', version: '21c XE', use: 'parking-service' },
+        { logo: L.sqlserver, name: 'SQL Server', version: '2022', use: 'payment-service' },
+        { logo: L.mysql, name: 'MySQL', version: '8.0', use: 'iot-service' },
+        { logo: L.mongodb, name: 'MongoDB', version: 'Community', use: 'ia-service' },
+        { logo: L.redis, name: 'Redis', version: '7', use: 'Caché de disponibilidad y límite de peticiones' }
       ]
     },
     {
-      phase: 'Fase 4 - App Móvil Flutter',
-      status: 'Planificado',
-      progress: 0,
+      title: 'Internet of Things',
+      pillar: 'iot',
       items: [
-        { text: 'Flutter 3.x: UI/UX diseño para iOS + Android', done: false },
-        { text: 'Mapa interactivo con disponibilidad en tiempo real', done: false },
-        { text: 'Integración Google Maps + WebSocket', done: false },
-        { text: 'Filtros por cercanía y tipo de vehículo', done: false },
-        { text: '(Futuro) Login ciudadano + reservas + pagos', done: false }
+        { logo: L.espressif, name: 'ESP32 / ESP32-CAM', version: '—', use: 'Cámaras, sensores y paneles' },
+        { logo: L.cpp, name: 'C / C++', version: '—', use: 'Firmware de los microcontroladores' },
+        { logo: { label: 'HC-SR04', icon: faWaveSquare }, name: 'HC-SR04', version: '—', use: 'Sensor ultrasónico por espacio' },
+        { logo: L.mqtt, name: 'MQTT', version: '3.1.1', use: 'Protocolo de sensores y paneles' },
+        { logo: L.mosquitto, name: 'Eclipse Mosquitto', version: '2', use: 'Broker MQTT' }
       ]
     },
     {
-      phase: 'Fase 5 - Hardware IoT',
-      status: 'Planificado',
-      progress: 0,
+      title: 'Artificial Intelligence',
+      pillar: 'ia',
       items: [
-        { text: 'ESP32-CAM (2-3 unidades): Firmware captura automática', done: false },
-        { text: 'ESP32 Displays LED (3-5 unidades): Firmware consulta backend', done: false },
-        { text: 'Paneles LED 64x32 en avenidas principales', done: false },
-        { text: 'HC-SR04: Sensores de ocupación por espacio', done: false },
-        { text: 'Instalación piloto en 1 parking de Huaraz', done: false }
+        { logo: { label: 'YOLO26', icon: faCrosshairs }, name: 'YOLO26 (Ultralytics)', version: '8.3', use: 'Detección de placas y vehículos' },
+        { logo: { label: 'EasyOCR', icon: faFont }, name: 'EasyOCR', version: '1.7', use: 'Lectura de la placa' },
+        { logo: L.pytorch, name: 'PyTorch', version: 'CPU', use: 'Motor de los modelos' },
+        { logo: L.opencv, name: 'OpenCV', version: '4', use: 'Procesamiento de imágenes' }
+      ]
+    },
+    {
+      title: 'Cloud Computing',
+      pillar: 'cloud',
+      items: [
+        { logo: L.spring, name: 'Spring Cloud', version: '2025.0', use: 'Gateway, Config Server y Eureka' },
+        { logo: L.docker, name: 'Docker', version: 'Compose', use: 'Contenedores de datos y broker' },
+        { logo: L.gcp, name: 'Google Cloud', version: '—', use: 'Despliegue previsto: Compute Engine y Cloud Storage' }
       ]
     }
   ];
 
-  // Equipo de desarrollo
+  // ==================== CÓMO FUNCIONA ====================
+
+  scenarios: Scenario[] = [
+    {
+      title: 'A. Parqueo con barrera',
+      hardware: 'ESP32-CAM en la entrada y en la salida',
+      ai: 'YOLO26 + EasyOCR leen la placa',
+      result: 'Con 85 % de confianza o más registra la estadía sola; con menos, pasa a "Por revisar".',
+      icon: faCamera
+    },
+    {
+      title: 'B. Parqueo abierto (calle)',
+      hardware: 'Cámara aérea',
+      ai: 'YOLO26 con un polígono por espacio',
+      result: 'Si el centro de un vehículo cae dentro del polígono, el espacio está ocupado.',
+      icon: faMap
+    },
+    {
+      title: 'Sensores HC-SR04',
+      hardware: 'Sensor ultrasónico + ESP32 por MQTT',
+      ai: 'Distancia de 80 cm o menos = vehículo',
+      result: 'Confirma el espacio real del vehículo o libera uno que quedó vacío.',
+      icon: faWaveSquare
+    },
+    {
+      title: 'Paneles LED',
+      hardware: 'ESP32 + panel LED por MQTT',
+      ai: 'Reciben los números al instante',
+      result: 'Junto al parqueo: sus disponibles y ocupados. En avenidas: todos los parqueos, uno cada 10 s.',
+      icon: faTv
+    }
+  ];
+
+  // ==================== AVANCE ====================
+
+  /** El porcentaje de cada fase se calcula con los puntos terminados. */
+  phases: Phase[] = [
+    {
+      title: 'Infraestructura y seguridad',
+      items: [
+        { text: 'Config Server, Eureka y API Gateway', done: true },
+        { text: 'JWT con permisos del rol activo', done: true },
+        { text: 'Tokens de servicio entre microservicios', done: true },
+        { text: 'Secretos fuera del repositorio', done: true }
+      ]
+    },
+    {
+      title: 'Gestión de parqueos y operación',
+      items: [
+        { text: 'Parqueos, zonas y espacios', done: true },
+        { text: 'Turnos, tarifas y horario por parqueo', done: true },
+        { text: 'Operadores por parqueo o zona', done: true },
+        { text: 'Entradas, salidas, revisión de placas y mapa de ocupación', done: true },
+        { text: 'Cobro de multas desde el panel', done: false }
+      ]
+    },
+    {
+      title: 'Pagos',
+      items: [
+        { text: 'Tipos de pago, QR y efectivo', done: true },
+        { text: 'Pago antes de salir y devoluciones', done: true },
+        { text: 'QR dibujado como imagen', done: false },
+        { text: 'Comprobante interno de estacionamiento', done: false }
+      ]
+    },
+    {
+      title: 'IoT e inteligencia artificial',
+      items: [
+        { text: 'Cámara → IA → registro de la estadía', done: true },
+        { text: 'Sensores y paneles por MQTT', done: true },
+        { text: 'Registro mínimo de lecturas en MongoDB', done: true },
+        { text: 'Ocupación por visión aérea de punta a punta', done: false },
+        { text: 'Modelo ajustado con placas peruanas', done: false }
+      ]
+    },
+    {
+      title: 'App móvil',
+      items: [
+        { text: 'Versión 1 pública: lista, mapa, detalle y espacios', done: true },
+        { text: 'Cuenta del conductor con Google', done: false }
+      ]
+    },
+    {
+      title: 'Hardware, piloto y nube',
+      items: [
+        { text: 'Firmware de ESP32-CAM, sensores y paneles', done: false },
+        { text: 'Instalación piloto en Huaraz', done: false },
+        { text: 'Despliegue en Google Cloud', done: false }
+      ]
+    }
+  ];
+
   teamMembers = [
     {
-      name: 'Edwin Yoner',
-      role: 'Full Stack Developer & Arquitecto',
-      email: 'edwin.yoner@winner-systems.com',
+      name: 'Edwin Yoner Flores Rupay',
+      role: 'Tesista · Desarrollo full stack y arquitectura',
+      email: 'edwinyoner@winner-systems.com',
       github: 'edwinyoner',
       linkedin: 'edwinyoner'
     }
   ];
 
-  ngOnInit(): void {}
-
-  getTechnologyColor(color: string): string {
-    const colorMap: Record<string, string> = {
-      primary: '#00E5FF',
-      secondary: '#9E9E9E',
-      info: '#00BCD4',
-      success: '#00C853',
-      warning: '#FFC400',
-      danger: '#FF1744',
-      purple: '#9C27B0'
-    };
-    return colorMap[color] || '#2C3E50';
+  progressOf(phase: Phase): number {
+    const done = phase.items.filter(i => i.done).length;
+    return Math.round((done / phase.items.length) * 100);
   }
 }

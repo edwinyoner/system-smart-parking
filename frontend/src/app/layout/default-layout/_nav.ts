@@ -199,49 +199,7 @@ export const navItems: INavDataWithPermissions[] = [
     icon: "fa-solid fa-chart-pie",
   },
 
-  // ==================== MONITOREO IOT (FUTURO) ====================
-  {
-    title: true,
-    name: "IoT (Próximamente)",
-    class: "nav-title",
-  },
-  {
-    name: "Dashboard IoT",
-    url: "#",
-    icon: "fa-solid fa-microchip",
-    badge: { color: "secondary", text: "PRONTO" },
-    // attributes: { disabled: true },
-  },
-
-  // ==================== INTELIGENCIA ARTIFICIAL (FUTURO) ====================
-  {
-    title: true,
-    name: "IA (Próximamente)",
-    class: "nav-title",
-  },
-  {
-    name: "Dashboard AI",
-    url: "#",
-    icon: "fa-solid fa-brain",
-    badge: { color: "secondary", text: "PRONTO" },
-    // attributes: { disabled: true },
-  },
-
   // ==================== NO TOCAR - INICIO ====================
-  // CONFIGURACIÓN
-  {
-    title: true,
-    name: "CONFIGURACIÓN DEL SISTEMA",
-    class: "nav-title",
-    requiredPermissions: ["users.delete"],
-  },
-  {
-    name: "Configuración General",
-    url: "/settings/general",
-    icon: "fa-solid fa-gear",
-    requiredPermissions: ["users.delete"],
-  },
-
   // SOPORTE
   {
     title: true,
@@ -252,7 +210,6 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Soporte Técnico",
     url: "/support",
     icon: "fa-solid fa-headset",
-    badge: { color: "success", text: "EN LÍNEA" },
   },
 
   // DOCUMENTACIÓN

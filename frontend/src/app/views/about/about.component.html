@@ -1,485 +1,326 @@
-<!-- HEADER -->
-<c-row class="mb-4">
-  <c-col>
-    <div class="page-header">
-      <div class="logo-container mb-3">
-        <fa-icon [icon]="icons.rocket" size="4x" class="system-logo"></fa-icon>
-      </div>
-      <h1 class="page-title">{{ systemInfo.name }}</h1>
-      <p class="page-subtitle">{{ systemInfo.description }}</p>
-      <div class="version-info">
-        <c-badge color="success">Versión {{ systemInfo.version }}</c-badge>
-        <c-badge color="info" class="ms-2">{{ systemInfo.status }}</c-badge>
-        <c-badge color="warning" class="ms-2">{{ systemInfo.releaseDate }}</c-badge>
-      </div>
+<!-- Logo de una tecnología (SVG oficial o, si no hay, un ícono genérico) -->
+<ng-template #logoTpl let-l let-size="size">
+  <span class="logo-plate" [class.lg]="size === 'lg'" [class.as-icon]="!!l.icon" [title]="l.label">
+    @if (l.icon) {
+      <fa-icon [icon]="l.icon"></fa-icon>
+    } @else {
+      <img [src]="l.src" [alt]="l.label" loading="lazy" />
+    }
+  </span>
+</ng-template>
+
+<!-- Marca de pilar (IoT, IA, Cloud) -->
+<ng-template #pillarTpl let-p>
+  <span class="pillar" [ngClass]="p"><fa-icon [icon]="pillarOf(p).icon"></fa-icon>{{ pillarOf(p).short }}</span>
+</ng-template>
+
+<!-- CABECERA -->
+<div class="page-header mb-4">
+  <div class="d-flex align-items-center justify-content-center gap-3 mb-2">
+    <fa-icon [icon]="icons.parking" size="2x" class="header-icon"></fa-icon>
+    <h1 class="page-title mb-0">{{ systemInfo.name }}</h1>
+  </div>
+  <p class="page-subtitle">{{ systemInfo.description }}</p>
+  <div class="d-flex justify-content-center flex-wrap gap-2">
+    <span class="header-pill">Versión {{ systemInfo.version }}</span>
+    <span class="header-pill">{{ systemInfo.stage }}</span>
+    <span class="header-pill">{{ systemInfo.releaseDate }}</span>
+  </div>
+</div>
+
+<div class="notice mb-4">
+  <fa-icon [icon]="icons.info" class="me-2"></fa-icon>
+  <span>
+    <strong>Prototipo académico de tesis (UNASAM).</strong> Alineado con el Plan Director de Ciudades Inteligentes
+    (PCM, 2024) y las normas NTP-ISO 37120, 37122, 37106, 37123 y 37101:2024 de INACAL. No es un sistema oficial de la
+    Municipalidad Provincial de Huaraz.
+  </span>
+</div>
+
+<!-- ============================ ARQUITECTURA ============================ -->
+<c-card class="mb-4 arch-card">
+  <div class="arch-header">
+    <h2 class="arch-title">Arquitectura del Sistema</h2>
+    <p class="arch-subtitle">Smart Parking System</p>
+    <div class="arch-pillars">
+      @for (p of pillarOrder; track p) {
+        <span class="pillar lg" [ngClass]="p"><fa-icon [icon]="pillars[p].icon"></fa-icon>{{ pillars[p].label }}</span>
+      }
     </div>
-  </c-col>
-</c-row>
+  </div>
 
-<!-- INFORMACIÓN INSTITUCIONAL -->
-<c-row class="mb-4">
-  <c-col>
-    <c-card class="institutional-card">
-      <c-card-header>
-        <fa-icon [icon]="icons.university" class="me-2"></fa-icon>
-        Información Institucional
-      </c-card-header>
-      <c-card-body>
-        <c-row>
-          <c-col xs="12" md="4" class="mb-3 mb-md-0">
-            <div class="info-item">
-              <fa-icon [icon]="icons.university" size="2x" class="mb-2 text-primary"></fa-icon>
-              <h6>Universidad</h6>
-              <p>{{ systemInfo.university }}</p>
-            </div>
-          </c-col>
-          <c-col xs="12" md="4" class="mb-3 mb-md-0">
-            <div class="info-item">
-              <fa-icon [icon]="icons.graduation" size="2x" class="mb-2 text-info"></fa-icon>
-              <h6>Facultad</h6>
-              <p>{{ systemInfo.faculty }}</p>
-            </div>
-          </c-col>
-          <c-col xs="12" md="4">
-            <div class="info-item">
-              <fa-icon [icon]="icons.location" size="2x" class="mb-2 text-success"></fa-icon>
-              <h6>Ubicación</h6>
-              <p>{{ systemInfo.location }}</p>
-            </div>
-          </c-col>
-        </c-row>
-      </c-card-body>
-    </c-card>
-  </c-col>
-</c-row>
+  <c-card-body class="diagram">
 
-<!-- CANALES DE CLIENTE (3 TIPOS) -->
-<c-row class="mb-4">
-  <c-col>
-    <h3 class="section-title">
-      <fa-icon [icon]="icons.mobile" class="me-2"></fa-icon>
-      Canales de Cliente
-    </h3>
-  </c-col>
-</c-row>
-
-<c-row class="mb-4">
-  @for (channel of clientChannels; track channel.name) {
-  <c-col xs="12" md="4" class="mb-4">
-    <c-card class="client-channel-card h-100">
-      <c-card-body>
-        <div class="channel-icon mb-3"
-          [style.background]="'linear-gradient(135deg, var(--color-' + channel.color + ') 0%, var(--color-' + channel.color + '-light) 100%)'">
-          <fa-icon [icon]="channel.icon" size="3x"></fa-icon>
-        </div>
-        <h5 class="channel-name mb-2">{{ channel.name }}</h5>
-        <c-badge [color]="channel.status.includes('Operativo') ? 'success' : 'warning'" class="mb-3">
-          {{ channel.status }}
-        </c-badge>
-        <p class="channel-platform mb-2">
-          <fa-icon [icon]="icons.code" class="me-1"></fa-icon>
-          {{ channel.platform }}
-        </p>
-        <p class="channel-target mb-2">
-          <fa-icon [icon]="icons.users" class="me-1"></fa-icon>
-          <strong>{{ channel.target }}</strong>
-        </p>
-        <p class="channel-description">{{ channel.description }}</p>
-      </c-card-body>
-    </c-card>
-  </c-col>
-  }
-</c-row>
-
-<!-- MICROSERVICIOS -->
-<c-row class="mb-4">
-  <c-col>
-    <h3 class="section-title">
-      <fa-icon [icon]="icons.server" class="me-2"></fa-icon>
-      Microservicios Backend
-    </h3>
-  </c-col>
-</c-row>
-
-<c-row class="mb-4">
-  @for (service of microservices; track service.name) {
-  <c-col xs="12" md="6" class="mb-4">
-    <c-card class="microservice-card h-100">
-      <c-card-body>
-        <div class="d-flex align-items-center mb-3">
-          <div class="service-icon me-3"
-            [style.background]="'linear-gradient(135deg, var(--color-' + service.color + ') 0%, var(--color-' + service.color + '-light) 100%)'">
-            <fa-icon [icon]="service.icon" size="2x"></fa-icon>
-          </div>
-          <div>
-            <h5 class="mb-1">{{ service.name }}</h5>
-            <c-badge [color]="service.status === 'Operativo' ? 'success' : 'warning'">
-              {{ service.status }}
-            </c-badge>
-          </div>
-        </div>
-
-        <div class="service-details">
-          <p class="mb-2">
-            <fa-icon [icon]="icons.code" class="me-2 text-muted"></fa-icon>
-            <strong>Tech:</strong> {{ service.tech }}
-          </p>
-          <p class="mb-2">
-            <fa-icon [icon]="icons.database" class="me-2 text-muted"></fa-icon>
-            <strong>BD:</strong> {{ service.database }}
-          </p>
-          <p class="mb-2">
-            <fa-icon [icon]="icons.network" class="me-2 text-muted"></fa-icon>
-            <strong>Puerto:</strong> {{ service.port }}
-          </p>
-          <p class="service-description mb-0">{{ service.description }}</p>
-        </div>
-      </c-card-body>
-    </c-card>
-  </c-col>
-  }
-</c-row>
-
-<!-- CARACTERÍSTICAS PRINCIPALES -->
-<c-row class="mb-4">
-  <c-col>
-    <h3 class="section-title">
-      <fa-icon [icon]="icons.rocket" class="me-2"></fa-icon>
-      Características Principales
-    </h3>
-  </c-col>
-</c-row>
-
-<c-row class="mb-4">
-  @for (feature of features; track feature.title) {
-  <c-col xs="12" md="6" lg="4" class="mb-4">
-    <c-card class="feature-card h-100">
-      <c-card-body>
-        <div class="feature-icon mb-3"
-          [style.background]="'linear-gradient(135deg, var(--color-' + feature.color + ') 0%, var(--color-' + feature.color + '-light) 100%)'">
-          <fa-icon [icon]="feature.icon" size="2x"></fa-icon>
-        </div>
-        <h5 class="feature-title">{{ feature.title }}</h5>
-        <p class="feature-description">{{ feature.description }}</p>
-      </c-card-body>
-    </c-card>
-  </c-col>
-  }
-</c-row>
-
-<!-- STACK TECNOLÓGICO -->
-<c-row class="mb-4">
-  <c-col>
-    <h3 class="section-title">
-      <fa-icon [icon]="icons.code" class="me-2"></fa-icon>
-      Stack Tecnológico
-    </h3>
-  </c-col>
-</c-row>
-
-<c-row class="mb-4">
-  <c-col>
-    <c-card class="tech-card">
-      <c-card-body>
-        <c-row>
-          @for (tech of technologies; track tech.name) {
-          <c-col xs="12" sm="6" md="4" lg="3" class="mb-3">
-            <div class="tech-item">
-              <div class="tech-icon" [style.color]="getTechnologyColor(tech.color)">
-                <fa-icon [icon]="tech.icon || icons.code" size="2x"></fa-icon>
+    <!-- ZONA DE CLIENTES (fuera de la nube) -->
+    <div class="zone">
+      <section class="tier">
+        <div class="tier-tag">Clientes</div>
+        <div class="tier-body grid-3">
+          @for (c of clients; track c.name) {
+            <div class="node client">
+              @if (c.pillar) { <span class="node-pillar"><ng-container *ngTemplateOutlet="pillarTpl; context: { $implicit: c.pillar }"></ng-container></span> }
+              <div class="node-head">
+                <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: c.logo, size: 'lg' }"></ng-container>
+                <div>
+                  <div class="node-name">{{ c.name }}</div>
+                  <div class="node-sub">{{ c.audience }}</div>
+                </div>
               </div>
-              <div class="tech-info">
-                <h6 class="tech-name">{{ tech.name }}</h6>
-                @if (tech.version) {
-                <c-badge [color]="tech.color" size="sm">{{ tech.version }}</c-badge>
-                }
-                <p class="tech-category">{{ tech.category }}</p>
-                <p class="tech-description">{{ tech.description }}</p>
-              </div>
+              <ul class="node-items">
+                @for (i of c.items; track i) { <li>{{ i }}</li> }
+              </ul>
             </div>
-          </c-col>
           }
-        </c-row>
-      </c-card-body>
-    </c-card>
-  </c-col>
-</c-row>
+        </div>
+      </section>
+    </div>
 
-<!-- ESTADÍSTICAS DEL PROYECTO -->
-<c-row class="mb-4">
-  <c-col>
-    <h3 class="section-title">
-      <fa-icon [icon]="icons.chart" class="me-2"></fa-icon>
-      Estadísticas del Proyecto
-    </h3>
-  </c-col>
-</c-row>
+    <!-- Conectores clientes -> nube -->
+    <div class="tier-links between grid-3">
+      @for (c of clients; track c.name) {
+        <div class="link"><span class="link-line"></span><span class="link-label">{{ c.protocol }}</span></div>
+      }
+    </div>
 
-<c-row class="mb-4">
-  @for (stat of projectStats; track stat.label) {
-  <c-col xs="12" sm="6" lg="4" xl="2" class="mb-3">
-    <c-card class="stat-card h-100">
-      <c-card-body class="text-center">
-        <fa-icon [icon]="stat.icon" size="3x" class="mb-3" [style.color]="getTechnologyColor(stat.color)"></fa-icon>
-        <h2 class="stat-value mb-2" [style.color]="getTechnologyColor(stat.color)">{{ stat.value }}</h2>
-        <p class="stat-label mb-0">{{ stat.label }}</p>
-      </c-card-body>
-    </c-card>
-  </c-col>
-  }
-</c-row>
+    <!-- ZONA CLOUD: todo lo que corre en el servidor -->
+    <div class="zone cloud-zone">
+      <div class="zone-head">
+        <ng-container *ngTemplateOutlet="pillarTpl; context: { $implicit: 'cloud' }"></ng-container>
+        <strong>Cloud Computing</strong>
+        <span class="zone-logos">
+          <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: logos.docker }"></ng-container>
+          <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: logos.gcp }"></ng-container>
+        </span>
+        <span class="node-sub">Contenedores Docker · despliegue previsto en Google Cloud (Compute Engine y Cloud Storage)</span>
+      </div>
 
-<!-- FASES DEL PROYECTO -->
-<c-row class="mb-4">
-  <c-col>
-    <h3 class="section-title">
-      <fa-icon [icon]="icons.rocket" class="me-2"></fa-icon>
-      Roadmap del Proyecto
-    </h3>
-  </c-col>
-</c-row>
-
-<c-row class="mb-4">
-  <c-col>
-    <c-card class="phases-card">
-      <c-card-body>
-        @for (phase of projectPhases; track phase.phase) {
-        <div class="phase-container mb-4">
-          <div class="phase-header">
-            <h5 class="phase-title mb-2">{{ phase.phase }}</h5>
-            <c-badge [color]="phase.progress === 100 ? 'success' : phase.progress > 0 ? 'warning' : 'secondary'"
-              class="phase-status">
-              {{ phase.status }}
-            </c-badge>
+      <!-- ACCESO -->
+      <section class="tier">
+        <div class="tier-tag">Acceso</div>
+        <div class="tier-body access">
+          <div class="node gateway">
+            <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: logos.spring, size: 'lg' }"></ng-container>
+            <div>
+              <div class="node-name">API Gateway <span class="port">:8080</span></div>
+              <div class="node-sub">Spring Cloud Gateway · única puerta HTTP pública</div>
+              <div class="node-sub">Recibe a la Web, la App Móvil y las cámaras y paneles por HTTP</div>
+                          </div>
           </div>
+          <div class="node broker">
+            <span class="node-pillar"><ng-container *ngTemplateOutlet="pillarTpl; context: { $implicit: 'iot' }"></ng-container></span>
+            <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: logos.mosquitto, size: 'lg' }"></ng-container>
+            <div>
+              <div class="node-name">Broker MQTT <span class="port">:1883</span></div>
+              <div class="node-sub">Eclipse Mosquitto</div>
+              <div class="node-sub">Sensores y paneles ⇄ iot-service</div>
+              <div class="node-sub">Usuario y permisos por dispositivo</div>
+            </div>
+          </div>
+          <div class="support">
+            <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: logos.spring }"></ng-container>
+            <span><strong>Config Server</strong> :8888 · configuración centralizada</span>
+            <span class="dot-sep"></span>
+            <span><strong>Eureka</strong> :8761 · registro y descubrimiento de servicios</span>
+          </div>
+        </div>
+      </section>
 
-          <c-progress class="mb-3" [value]="phase.progress" [color]="phase.progress === 100 ? 'success' : 'primary'">
-            {{ phase.progress }}%
-          </c-progress>
+      <div class="tier-links single">
+        <div class="link"><span class="link-line"></span>
+          <span class="link-label">REST · JWT de usuario · enrutamiento por Eureka</span>
+        </div>
+      </div>
 
-          <ul class="phase-items">
-            @for (item of phase.items; track item.text) {
-            <li>
-              <!-- Hecha: check verde. Pendiente: reloj ámbar -->
-              <i class="fas me-2" [class.fa-check-circle]="item.done" [class.text-success]="item.done"
-                [class.fa-clock]="!item.done" [class.text-warning]="!item.done"
-                [attr.aria-label]="item.done ? 'Hecha' : 'Pendiente'"></i>
-              {{ item.text }}
-            </li>
+      <!-- MICROSERVICIOS -->
+      <section class="tier">
+        <div class="tier-tag">Microservicios</div>
+        <div class="tier-body grid-5">
+          @for (s of services; track s.name) {
+            <div class="node service">
+              @if (s.pillar) { <span class="node-pillar"><ng-container *ngTemplateOutlet="pillarTpl; context: { $implicit: s.pillar }"></ng-container></span> }
+              <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: s.logo, size: 'lg' }"></ng-container>
+              <div class="node-name mono mt-2">{{ s.name }}</div>
+              <div class="port-row"><span class="port">:{{ s.port }}</span><span class="arch">{{ s.architecture }}</span></div>
+              <div class="node-sub">{{ s.stack }}</div>
+              <div class="node-role">{{ s.role }}</div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- Una línea de cada microservicio a su base de datos -->
+      <div class="tier-links grid-5">
+        @for (s of services; track s.name) {
+          <div class="link"><span class="link-line"></span></div>
+        }
+      </div>
+
+      <!-- DATOS -->
+      <section class="tier">
+        <div class="tier-tag">Datos</div>
+        <div class="tier-body grid-5">
+          @for (s of services; track s.name) {
+            <div class="db-stack">
+              @for (d of s.databases; track d.name) {
+                <div class="node db">
+                  <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: d.logo }"></ng-container>
+                  <div>
+                    <div class="db-name">{{ d.name }}</div>
+                    <div class="node-sub mono">{{ d.detail }}</div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+          <!-- Redis: caché común, centrada en la columna del medio (debajo de SQL Server) -->
+          <div class="node db shared-cache">
+            <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: sharedCache.logo }"></ng-container>
+            <div>
+              <div class="db-name">{{ sharedCache.name }}</div>
+              <div class="node-sub">{{ sharedCache.detail }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <p class="diagram-note">Cada microservicio tiene su propia base de datos (<em>database per service</em>).
+      Arquitectura hexagonal en auth, parking y payment; por capas en iot e ia.</p>
+  </c-card-body>
+</c-card>
+
+<!-- ============================ TECNOLOGÍAS ============================ -->
+<h4 class="section-title"><fa-icon [icon]="icons.layers" class="me-2"></fa-icon>Tecnologías</h4>
+<c-row class="g-3 mb-4">
+  @for (g of techGroups; track g.title) {
+    <c-col xs="12" md="6" xl="4">
+      <c-card class="h-100">
+        <c-card-header class="fw-semibold d-flex align-items-center gap-2">
+          {{ g.title }}
+          @if (g.pillar) { <ng-container *ngTemplateOutlet="pillarTpl; context: { $implicit: g.pillar }"></ng-container> }
+        </c-card-header>
+        <c-card-body class="p-0">
+          <ul class="tech-list">
+            @for (t of g.items; track t.name) {
+              <li>
+                <ng-container *ngTemplateOutlet="logoTpl; context: { $implicit: t.logo }"></ng-container>
+                <div class="flex-grow-1">
+                  <strong>{{ t.name }}</strong>
+                  <div class="small text-body-secondary">{{ t.use }}</div>
+                </div>
+                <span class="version">{{ t.version }}</span>
+              </li>
             }
           </ul>
-        </div>
-        }
-      </c-card-body>
-    </c-card>
-  </c-col>
-</c-row>
-
-<!-- EQUIPO DE DESARROLLO -->
-<c-row class="mb-4">
-  <c-col>
-    <h3 class="section-title">
-      <fa-icon [icon]="icons.users" class="me-2"></fa-icon>
-      Equipo de Desarrollo
-    </h3>
-  </c-col>
-</c-row>
-
-<c-row class="mb-4">
-  @for (member of teamMembers; track member.name) {
-  <c-col xs="12" md="6" lg="4" class="mb-4">
-    <c-card class="team-card h-100">
-      <c-card-body class="text-center">
-        <div class="team-avatar mb-3">
-          <fa-icon [icon]="icons.users" size="4x"></fa-icon>
-        </div>
-        <h5 class="team-name">{{ member.name }}</h5>
-        <p class="team-role mb-3">{{ member.role }}</p>
-
-        <div class="team-links">
-          @if (member.email) {
-          <a [href]="'mailto:' + member.email" class="team-link" title="Email">
-            <fa-icon [icon]="icons.email"></fa-icon>
-          </a>
-          }
-          @if (member.github) {
-          <a [href]="'https://github.com/' + member.github" target="_blank" class="team-link" title="GitHub">
-            <fa-icon [icon]="icons.github"></fa-icon>
-          </a>
-          }
-          @if (member.linkedin) {
-          <a [href]="'https://linkedin.com/in/' + member.linkedin" target="_blank" class="team-link" title="LinkedIn">
-            <fa-icon [icon]="icons.linkedin"></fa-icon>
-          </a>
-          }
-        </div>
-      </c-card-body>
-    </c-card>
-  </c-col>
+        </c-card-body>
+      </c-card>
+    </c-col>
   }
 </c-row>
 
-<!-- ARQUITECTURA DEL SISTEMA (ACTUALIZADA) -->
-<c-row class="mb-4">
-  <c-col>
-    <h3 class="section-title">
-      <fa-icon [icon]="icons.server" class="me-2"></fa-icon>
-      Arquitectura del Sistema
-    </h3>
-  </c-col>
+<!-- ============================ CÓMO FUNCIONA ============================ -->
+<h4 class="section-title"><fa-icon [icon]="icons.route" class="me-2"></fa-icon>Cómo funciona</h4>
+<c-row class="g-3 mb-4">
+  @for (s of scenarios; track s.title) {
+    <c-col xs="12" md="6" xl="3">
+      <c-card class="h-100">
+        <c-card-body>
+          <div class="icon-box mb-3"><fa-icon [icon]="s.icon" size="lg"></fa-icon></div>
+          <h6 class="fw-bold">{{ s.title }}</h6>
+          <dl class="scenario mb-0">
+            <dt>Hardware</dt><dd>{{ s.hardware }}</dd>
+            <dt>Procesamiento</dt><dd>{{ s.ai }}</dd>
+            <dt>Resultado</dt><dd>{{ s.result }}</dd>
+          </dl>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  }
 </c-row>
 
-<c-row class="mb-4">
-  <c-col>
-    <c-card class="architecture-card">
-      <h1 class="h1 text-center m-auto pt-4">SYSTEM SMART PARKING</h1>
+<!-- ============================ AVANCE ============================ -->
+<h4 class="section-title"><fa-icon [icon]="icons.diagram" class="me-2"></fa-icon>Avance del proyecto</h4>
+<c-row class="g-3 mb-4">
+  @for (p of phases; track p.title) {
+    @let progress = progressOf(p);
+    <c-col xs="12" md="6" xl="4">
+      <c-card class="h-100">
+        <c-card-body>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0">{{ p.title }}</h6>
+            <c-badge [color]="progress === 100 ? 'success' : progress > 0 ? 'warning' : 'secondary'">
+              {{ progress === 100 ? 'Completo' : progress > 0 ? 'En curso' : 'Por hacer' }}
+            </c-badge>
+          </div>
+          <c-progress class="mb-3" thin [value]="progress" [color]="progress === 100 ? 'success' : 'primary'"></c-progress>
+          <ul class="phase-items">
+            @for (item of p.items; track item.text) {
+              <li>
+                <i class="fa-solid me-2" [class.fa-circle-check]="item.done" [class.text-success]="item.done"
+                   [class.fa-clock]="!item.done" [class.text-warning]="!item.done"
+                   [attr.aria-label]="item.done ? 'Hecho' : 'Pendiente'"></i>
+                {{ item.text }}
+              </li>
+            }
+          </ul>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  }
+</c-row>
+
+<!-- ============================ INSTITUCIÓN Y EQUIPO ============================ -->
+<h4 class="section-title"><fa-icon [icon]="icons.users" class="me-2"></fa-icon>Institución y equipo</h4>
+<c-row class="g-3 mb-4">
+  <c-col xs="12" lg="6">
+    <c-card class="h-100">
       <c-card-body>
-        <div class="architecture-diagram">
-
-          <!-- Client Layer (3 canales) -->
-          <div class="arch-layer border border-info rounded p-3 mb-4">
-            <h6 class="arch-layer-title">Client Layer</h6>
-            <div class="arch-components">
-              <div class="arch-component danger">
-                <fa-icon [icon]="icons.angular" size="2x" class="mb-2"></fa-icon>
-                <p>Angular</p>
-                <small>Web</small>
-              </div>
-              <div class="arch-component primary">
-                <fa-icon [icon]="icons.mobile" size="2x" class="mb-2"></fa-icon>
-                <p>Flutter</p>
-                <small>App Móvil</small>
-              </div>
-              <div class="arch-component warning">
-                <fa-icon [icon]="icons.display" size="2x" class="mb-2"></fa-icon>
-                <p>C/C++</p>
-                <small>IoT</small>
-              </div>
-            </div>
-          </div>
-
-          <div class="arch-arrow">↓</div>
-
-          <!-- API Gateway -->
-          <div class="arch-layer border border-info rounded p-3 mb-4">
-            <h6 class="arch-layer-title">API Gateway</h6>
-            <div class="arch-components">
-              <div class="arch-component info">
-                <fa-icon [icon]="icons.cloud" size="2x" class="mb-2"></fa-icon>
-                <p>Spring Cloud Gateway</p>
-                <small>Puerto 8080</small>
-              </div>
-            </div>
-          </div>
-
-          <div class="arch-arrow">↓</div>
-
-          <!-- Microservices Layer (4 servicios) -->
-          <div class="arch-layer border border-info rounded p-3 mb-4">
-            <h6 class="arch-layer-title">Microservices Layer</h6>
-            <div class="arch-components">
-              <div class="arch-component success">
-                <fa-icon [icon]="icons.shield" size="2x" class="mb-2"></fa-icon>
-                <p>Auth Service</p>
-                <small>8081 - Java 25</small>
-              </div>
-              <div class="arch-component success">
-                <fa-icon [icon]="icons.server" size="2x" class="mb-2"></fa-icon>
-                <p>Parking Service</p>
-                <small>8082 - Java 25</small>
-              </div>
-              <div class="arch-component success">
-                <fa-icon [icon]="icons.chip" size="2x" class="mb-2"></fa-icon>
-                <p>IoT Service</p>
-                <small>8083 - Go 1.21</small>
-              </div>
-              <div class="arch-component success">
-                <fa-icon [icon]="icons.brain" size="2x" class="mb-2"></fa-icon>
-                <p>IA Service</p>
-                <small>8084 - Python 3.11</small>
-              </div>
-            </div>
-          </div>
-
-          <div class="arch-arrow">↓</div>
-
-          <!-- Data Layer (4 BD diferentes: 3 SQL + 1 NoSQL) -->
-          <div class="arch-layer border border-info rounded p-3 mb-4">
-            <h6 class="arch-layer-title">Data Layer</h6>
-            <div class="arch-components">
-              <div class="arch-component warning">
-                <fa-icon [icon]="icons.database" size="2x" class="mb-2"></fa-icon>
-                <p>PostgreSQL 15</p>
-                <small>Auth DB</small>
-              </div>
-              <div class="arch-component warning">
-                <fa-icon [icon]="icons.database" size="2x" class="mb-2"></fa-icon>
-                <p>Oracle 23ai</p>
-                <small>Parking DB</small>
-              </div>
-              <div class="arch-component warning">
-                <fa-icon [icon]="icons.database" size="2x" class="mb-2"></fa-icon>
-                <p>MySQL 8.0</p>
-                <small>IoT DB</small>
-              </div>
-              <div class="arch-component warning">
-                <fa-icon [icon]="icons.database" size="2x" class="mb-2"></fa-icon>
-                <p>MongoDB 7.x</p>
-                <small>IA DB</small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Infrastructure -->
-          <div class="arch-layer border border-info rounded p-3 mb-4 mt-4">
-            <h6 class="arch-layer-title">Infrastructure & Storage</h6>
-            <div class="arch-components">
-              <div class="arch-component info">
-                <fa-icon [icon]="icons.cloud" size="2x" class="mb-2"></fa-icon>
-                <p>Eureka Server</p>
-                <small>Service Discovery</small>
-              </div>
-              <div class="arch-component info">
-                <fa-icon [icon]="icons.cloud" size="2x" class="mb-2"></fa-icon>
-                <p>Config Server</p>
-                <small>Configuración</small>
-              </div>
-              <div class="arch-component info">
-                <fa-icon [icon]="icons.network" size="2x" class="mb-2"></fa-icon>
-                <p>RabbitMQ</p>
-                <small>Message Broker</small>
-              </div>
-              <div class="arch-component info">
-                <fa-icon [icon]="icons.database" size="2x" class="mb-2"></fa-icon>
-                <p>Redis + MinIO</p>
-                <small>Cache + Storage</small>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        <dl class="inst mb-0">
+          <dt><fa-icon [icon]="icons.university" class="me-2"></fa-icon>Universidad</dt><dd>{{ systemInfo.university }}</dd>
+          <dt><fa-icon [icon]="icons.graduation" class="me-2"></fa-icon>Escuela</dt><dd>{{ systemInfo.faculty }}</dd>
+          <dt><fa-icon [icon]="icons.code" class="me-2"></fa-icon>Desarrollo</dt><dd>{{ systemInfo.company }}</dd>
+          <dt><fa-icon [icon]="icons.location" class="me-2"></fa-icon>Sitios piloto</dt>
+          <dd>{{ systemInfo.pilots }} · {{ systemInfo.location }}</dd>
+        </dl>
       </c-card-body>
     </c-card>
   </c-col>
-</c-row>
-
-<!-- FOOTER -->
-<c-row>
-  <c-col>
-    <c-card class="footer-card">
+  @for (member of teamMembers; track member.name) {
+    <c-col xs="12" md="6" lg="3">
+      <c-card class="h-100">
+        <c-card-body class="text-center">
+          <img class="avatar mb-2" [src]="'https://github.com/' + member.github + '.png'" [alt]="member.name"
+               width="80" height="80" loading="lazy" />
+          <h6 class="fw-bold mb-1">{{ member.name }}</h6>
+          <p class="small text-body-secondary mb-2">{{ member.role }}</p>
+          <div class="d-flex justify-content-center gap-2">
+            <a class="btn btn-outline-primary btn-sm" [href]="'mailto:' + member.email" title="Correo">
+              <fa-icon [icon]="icons.email"></fa-icon>
+            </a>
+            <a class="btn btn-outline-primary btn-sm" [href]="'https://github.com/' + member.github" target="_blank"
+               rel="noopener" title="GitHub"><fa-icon [icon]="icons.github"></fa-icon></a>
+            <a class="btn btn-outline-primary btn-sm" [href]="'https://linkedin.com/in/' + member.linkedin" target="_blank"
+               rel="noopener" title="LinkedIn"><fa-icon [icon]="icons.linkedin"></fa-icon></a>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  }
+  <c-col xs="12" md="6" lg="3">
+    <c-card class="h-100">
       <c-card-body class="text-center">
-        <fa-icon [icon]="icons.graduation" size="3x" class="mb-3 text-primary"></fa-icon>
-        <h5>Proyecto de Tesis</h5>
-        <p class="mb-3">
-          Desarrollado como trabajo de investigación para obtener el título de
-          <strong>Ingeniero de Sistemas e Informática</strong>
-        </p>
-        <p class="text-muted small">
-          {{ systemInfo.university }}<br>
-          {{ systemInfo.location }}<br>
-          © 2026 - Todos los derechos reservados
-        </p>
+        <div class="avatar avatar-icon mb-2"><fa-icon [icon]="icons.graduation" size="2x"></fa-icon></div>
+        <h6 class="fw-bold mb-1">{{ systemInfo.advisor }}</h6>
+        <p class="small text-body-secondary mb-0">Asesor de tesis</p>
       </c-card-body>
     </c-card>
   </c-col>
 </c-row>
+
+<c-card>
+  <c-card-body class="text-center small text-body-secondary">
+    Trabajo de investigación para optar el título de <strong>Ingeniero de Sistemas e Informática</strong> ·
+    {{ systemInfo.university }} · Código abierto bajo licencia MIT ·
+    <a href="https://github.com/edwinyoner/system-smart-parking" target="_blank" rel="noopener">Repositorio en GitHub</a>
+  </c-card-body>
+</c-card>

@@ -274,3 +274,14 @@
   background: transparent;
   border-style: dashed;
 }
+
+/* Impresión (por ejemplo, el manual de usuario): el contenido usa todo el ancho de la hoja */
+@media print {
+  .wrapper {
+    padding-inline-start: 0 !important;
+  }
+
+  app-default-footer {
+    display: none !important;
+  }
+}
