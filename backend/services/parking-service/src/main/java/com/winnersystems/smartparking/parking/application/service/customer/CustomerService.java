@@ -1,257 +1,113 @@
 package com.winnersystems.smartparking.parking.application.service.customer;
 
-import com.winnersystems.smartparking.parking.application.dto.command.CreateCustomerCommand;
-import com.winnersystems.smartparking.parking.application.dto.command.UpdateCustomerCommand;
+import com.winnersystems.smartparking.parking.application.dto.command.UpdateCustomerContactCommand;
 import com.winnersystems.smartparking.parking.application.dto.query.*;
-import com.winnersystems.smartparking.parking.application.port.input.customer.*;
-import com.winnersystems.smartparking.parking.application.port.output.CustomerPersistencePort;
-import com.winnersystems.smartparking.parking.application.port.output.DocumentTypePersistencePort;
-import com.winnersystems.smartparking.parking.domain.model.Customer;
-import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
-import com.winnersystems.smartparking.parking.domain.exception.ResourceConflictException;
-import com.winnersystems.smartparking.parking.domain.model.DocumentType;
+import com.winnersystems.smartparking.parking.application.port.input.customer.ManageCustomersUseCase;
+import com.winnersystems.smartparking.parking.application.port.output.*;
+import com.winnersystems.smartparking.parking.application.service.history.StayHistoryAssembler;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
+import com.winnersystems.smartparking.parking.domain.model.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Servicio de aplicación para gestión de clientes/conductores.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
+ * Clientes: consulta, historial y datos de contacto.
+ * Nacen solos en la entrada (con documento); no se crean ni se eliminan a mano.
  */
 @Service
 @Transactional
-public class CustomerService implements
-      CreateCustomerUseCase,
-      GetCustomerUseCase,
-      ListCustomersUseCase,
-      UpdateCustomerUseCase,
-      DeleteCustomerUseCase,
-      RestoreCustomerUseCase {
+public class CustomerService implements ManageCustomersUseCase {
 
-   // ========================= PUERTOS DE SALIDA =========================
+   private final CustomerPersistencePort customerPort;
+   private final CustomerVehiclePersistencePort customerVehiclePort;
+   private final VehiclePersistencePort vehiclePort;
+   private final TransactionPersistencePort transactionPort;
+   private final DocumentTypePersistencePort documentTypePort;
+   private final StayHistoryAssembler history;
+   private final CurrentUserPort currentUserPort;
+   private final Clock clock;
 
-   private final CustomerPersistencePort customerPersistencePort;
-   private final DocumentTypePersistencePort documentTypePersistencePort;
-
-   // ========================= CONSTRUCTOR =========================
-
-   public CustomerService(
-         CustomerPersistencePort customerPersistencePort,
-         DocumentTypePersistencePort documentTypePersistencePort) {
-      this.customerPersistencePort = customerPersistencePort;
-      this.documentTypePersistencePort = documentTypePersistencePort;
-   }
-
-   // ========================= CreateCustomerUseCase =========================
-
-   @Override
-   public CustomerDto createCustomer(CreateCustomerCommand command) {
-      // 1. El tipo de documento debe existir y estar activo; el número debe cumplir su formato
-      DocumentType docType = documentTypePersistencePort.findById(command.documentTypeId())
-            .filter(DocumentType::isUsable)
-            .orElseThrow(() -> new ParkingDomainException("Tipo de documento no disponible"));
-      String documentNumber = docType.normalizeNumber(command.documentNumber());
-
-      // 2. Validar que no exista cliente con ese documento (ya normalizado)
-      if (customerPersistencePort.existsByDocument(command.documentTypeId(), documentNumber)) {
-         throw new ResourceConflictException("Ya existe un cliente con el documento: " + documentNumber);
-      }
-
-      // 3. Crear cliente
-      Customer customer = new Customer(
-            command.documentTypeId(),
-            documentNumber,
-            command.firstName(),
-            command.lastName()
-      );
-
-      if (command.phone() != null) customer.setPhone(command.phone());
-      if (command.email() != null) customer.setEmail(command.email());
-      if (command.address() != null) customer.setAddress(command.address());
-
-      customer.normalizeDocumentNumber();
-
-      Customer saved = customerPersistencePort.save(customer);
-
-      return buildCustomerDto(saved, docType.getName());
-   }
-
-   // ========================= GetCustomerUseCase =========================
-
-   @Override
-   @Transactional(readOnly = true)
-   public CustomerDto getCustomerById(Long customerId) {
-      Customer customer = customerPersistencePort.findById(customerId)
-            .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-
-      DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(customer.getDocumentTypeId())
-            .orElse(null);
-
-      return buildCustomerDto(customer, docType != null ? docType.getName() : null);
+   public CustomerService(CustomerPersistencePort customerPort,
+                          CustomerVehiclePersistencePort customerVehiclePort,
+                          VehiclePersistencePort vehiclePort,
+                          TransactionPersistencePort transactionPort,
+                          DocumentTypePersistencePort documentTypePort,
+                          StayHistoryAssembler history,
+                          CurrentUserPort currentUserPort,
+                          Clock clock) {
+      this.customerPort = customerPort;
+      this.customerVehiclePort = customerVehiclePort;
+      this.vehiclePort = vehiclePort;
+      this.transactionPort = transactionPort;
+      this.documentTypePort = documentTypePort;
+      this.history = history;
+      this.currentUserPort = currentUserPort;
+      this.clock = clock;
    }
 
    @Override
    @Transactional(readOnly = true)
-   public CustomerDto getCustomerByDocument(Long documentTypeId, String documentNumber) {
-      return customerPersistencePort.findByDocument(documentTypeId, documentNumber)
-            .map(customer -> {
-               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(documentTypeId).orElse(null);
-               return buildCustomerDto(customer, docType != null ? docType.getName() : null);
-            })
-            .orElse(null);
+   public PageResult<CustomerDto> list(String search, PageRequest pageRequest) {
+      String term = search == null || search.isBlank() ? null : search.trim();
+      PageResult<Customer> page = customerPort.findAll(pageRequest, term, "ACTIVE");
+      Map<Long, Long> vehicleCounts = customerVehiclePort.countVehiclesByCustomerIds(
+            page.content().stream().map(Customer::getId).toList());
+      Map<Long, String> docCodes = new HashMap<>();
+      return new PageResult<>(page.content().stream()
+            .map(c -> toDto(c, vehicleCounts.getOrDefault(c.getId(), 0L), docCodes)).toList(),
+            page.pageNumber(), page.pageSize(), page.totalElements());
    }
 
    @Override
    @Transactional(readOnly = true)
-   public CustomerDto getCustomerByEmail(String email) {
-      return customerPersistencePort.findByEmail(email)
-            .map(customer -> {
-               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(customer.getDocumentTypeId())
-                     .orElse(null);
-               return buildCustomerDto(customer, docType != null ? docType.getName() : null);
-            })
-            .orElse(null);
-   }
-
-   @Override
-   @Transactional(readOnly = true)
-   public CustomerDto getCustomerByPhone(String phone) {
-      return customerPersistencePort.findByPhone(phone)
-            .map(customer -> {
-               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(customer.getDocumentTypeId())
-                     .orElse(null);
-               return buildCustomerDto(customer, docType != null ? docType.getName() : null);
-            })
-            .orElse(null);
-   }
-
-   // ========================= ListCustomersUseCase =========================
-
-   @Override
-   @Transactional(readOnly = true)
-   public PagedResponse<CustomerDto> listAllCustomers(int pageNumber, int pageSize,
-                                                      String search, String status) {
-      PageRequest req = PageRequest.of(pageNumber, pageSize, "createdAt", "DESC");
-      PageResult<Customer> result = customerPersistencePort.findAll(req, search, status);
-      return toCustomerPagedResponse(result);
-   }
-
-   @Override
-   @Transactional(readOnly = true)
-   public List<CustomerDto> listAllActiveCustomers() {
-      List<Customer> customers = customerPersistencePort.findAllActive();
-      return customers.stream()
-            .map(c -> {
-               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(c.getDocumentTypeId())
-                     .orElse(null);
-               return buildCustomerDto(c, docType != null ? docType.getName() : null);
-            })
+   public CustomerDetailDto get(Long customerId) {
+      Customer c = load(customerId);
+      List<CustomerVehicle> links = customerVehiclePort.findByCustomerId(customerId);
+      Map<Long, Long> active = transactionPort.findActiveStayIdsByVehicleIds(
+            links.stream().map(CustomerVehicle::getVehicleId).toList());
+      List<CustomerDetailDto.LinkedVehicle> vehicles = links.stream()
+            .sorted(Comparator.comparing(CustomerVehicle::getUsageCount).reversed())
+            .map(l -> new CustomerDetailDto.LinkedVehicle(l.getVehicleId(),
+                  vehiclePort.findById(l.getVehicleId()).map(Vehicle::getLicensePlate).orElse(null),
+                  l.getUsageCount(), active.get(l.getVehicleId())))
             .toList();
+      return new CustomerDetailDto(toDto(c, vehicles.size(), new HashMap<>()), vehicles,
+            history.totals(customerId, null));
    }
 
    @Override
    @Transactional(readOnly = true)
-   public PagedResponse<CustomerDto> listRecurrentCustomers(int pageNumber, int pageSize) {
-      PageRequest req = PageRequest.of(pageNumber, pageSize, "totalVisits", "DESC");
-      PageResult<Customer> result = customerPersistencePort.findRecurrent(req);
-      return toCustomerPagedResponse(result);
+   public PageResult<StayHistoryDto> stays(Long customerId, PageRequest pageRequest) {
+      load(customerId);
+      return history.page(transactionPort.findHistory(customerId, null, pageRequest));
    }
-
-   // ========================= UpdateCustomerUseCase =========================
 
    @Override
-   public CustomerDto updateCustomer(Long customerId, UpdateCustomerCommand command) {
-      Customer customer = customerPersistencePort.findById(customerId)
-            .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-
-      if (customer.isDeleted()) {
-         throw new IllegalStateException("No se puede actualizar un cliente eliminado");
-      }
-
-      customer.updatePersonalInfo(command.firstName(), command.lastName());
-      customer.updateContactInfo(command.phone(), command.email(), command.address());
-
-      Customer updated = customerPersistencePort.save(customer);
-
-      DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(updated.getDocumentTypeId())
-            .orElse(null);
-
-      return buildCustomerDto(updated, docType != null ? docType.getName() : null);
+   public CustomerDto updateContact(Long customerId, UpdateCustomerContactCommand command) {
+      Customer c = load(customerId);
+      c.changeContact(command.phone(), command.email(), command.address(),
+            currentUserPort.requireCurrentUserId(), LocalDateTime.now(clock));
+      Customer saved = customerPort.save(c);
+      return toDto(saved, customerVehiclePort.countByCustomerId(customerId), new HashMap<>());
    }
 
-   // ========================= DeleteCustomerUseCase =========================
-
-   @Override
-   public void deleteCustomer(Long customerId, Long deletedBy) {
-      Customer customer = customerPersistencePort.findById(customerId)
-            .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-
-      customer.markAsDeleted(deletedBy);
-      customerPersistencePort.save(customer);
+   private Customer load(Long id) {
+      return customerPort.findById(id)
+            .filter(c -> !c.isDeleted())
+            .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado: " + id));
    }
 
-   // ========================= RestoreCustomerUseCase =========================
-
-   @Override
-   public CustomerDto restoreCustomer(Long customerId) {
-      Customer customer = customerPersistencePort.findById(customerId)
-            .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
-
-      if (!customer.isDeleted()) {
-         throw new IllegalStateException("El cliente no está eliminado");
-      }
-
-      customer.restore();
-      Customer restored = customerPersistencePort.save(customer);
-
-      DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(restored.getDocumentTypeId())
-            .orElse(null);
-
-      return buildCustomerDto(restored, docType != null ? docType.getName() : null);
-   }
-
-   // ========================= BUILDER PRIVADO — RECORD =========================
-
-   /**
-    * Construye CustomerDto (record) con todos los datos.
-    */
-   private CustomerDto buildCustomerDto(Customer c, String documentTypeName) {
-      return new CustomerDto(
-            c.getId(),
-            c.getDocumentTypeId(),
-            documentTypeName,
-            c.getDocumentNumber(),
-            c.getFirstName(),
-            c.getLastName(),
-            c.getFullName(),
-            c.getPhone(),
-            c.getEmail(),
-            c.getAddress(),
-            c.getRegistrationDate(),
-            c.getFirstSeenDate(),
-            c.getLastSeenDate(),
-            c.getTotalVisits(),
-            c.isRecurrent(),
-            c.getAuthExternalId(),
-            c.hasMobileAccount(),
-            c.getCreatedAt(),
-            c.getUpdatedAt()
-      );
-   }
-
-   // ========================= HELPER DE PAGINACIÓN =========================
-
-   private PagedResponse<CustomerDto> toCustomerPagedResponse(PageResult<Customer> result) {
-      List<CustomerDto> content = result.content().stream()
-            .map(c -> {
-               DocumentType docType = documentTypePersistencePort.findByIdIncludingDeleted(c.getDocumentTypeId())
-                     .orElse(null);
-               return buildCustomerDto(c, docType != null ? docType.getName() : null);
-            })
-            .toList();
-      return PagedResponse.of(content, result.pageNumber(), result.pageSize(), result.totalElements());
+   private CustomerDto toDto(Customer c, long vehicleCount, Map<Long, String> docCodes) {
+      String docCode = c.getDocumentTypeId() == null ? null : docCodes.computeIfAbsent(c.getDocumentTypeId(),
+            id -> documentTypePort.findByIdIncludingDeleted(id).map(DocumentType::getCode).orElse(null));
+      return new CustomerDto(c.getId(), c.getDocumentTypeId(), docCode, c.getDocumentNumber(),
+            c.getFirstName(), c.getLastName(), c.getFullName(), c.getPhone(), c.getEmail(), c.getAddress(),
+            c.getTotalVisits() == null ? 0 : c.getTotalVisits(), vehicleCount,
+            c.getFirstSeenDate(), c.getLastSeenDate(), c.getCreatedAt(), c.getUpdatedAt());
    }
 }

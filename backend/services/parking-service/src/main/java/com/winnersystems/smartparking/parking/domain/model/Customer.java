@@ -1,5 +1,8 @@
 package com.winnersystems.smartparking.parking.domain.model;
 
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
+import java.util.regex.Pattern;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -121,7 +124,9 @@ public class Customer {
     * @return nombre completo (firstName + lastName)
     */
    public String getFullName() {
-      return firstName + " " + lastName;
+      String full = ((firstName != null ? firstName.trim() : "") + " "
+            + (lastName != null ? lastName.trim() : "")).trim();
+      return full.isEmpty() ? null : full;
    }
 
    /**
@@ -288,6 +293,49 @@ public class Customer {
       this.email = email;
       this.address = address;
       this.updatedAt = LocalDateTime.now();
+   }
+
+   /** Celular peruano: 9 dígitos empezando por 9 (igual que en auth-service) */
+   public static final Pattern PHONE_PATTERN = Pattern.compile("^9\\d{8}$");
+   private static final Pattern EMAIL_PATTERN =
+         Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$");
+   public static final int ADDRESS_MAX = 200;
+
+   /**
+    * Cambia los datos de contacto desde el panel, con validación.
+    * Vacío o null borra el dato. El documento y el nombre no se cambian aquí.
+    */
+   public void changeContact(String phone, String email, String address, Long userId, LocalDateTime now) {
+      String p = blankToNull(phone);
+      if (p != null) {
+         p = p.replaceAll("[\\s-]", "");
+         if (!PHONE_PATTERN.matcher(p).matches()) {
+            throw new ParkingDomainException(
+                  "El celular debe tener 9 dígitos y empezar con 9");
+         }
+      }
+      String e = blankToNull(email);
+      if (e != null) {
+         e = e.toLowerCase();
+         if (e.length() > 100 || !EMAIL_PATTERN.matcher(e).matches()) {
+            throw new ParkingDomainException(
+                  "El correo no es válido");
+         }
+      }
+      String a = blankToNull(address);
+      if (a != null && a.length() > ADDRESS_MAX) {
+         throw new ParkingDomainException(
+               "La dirección admite hasta " + ADDRESS_MAX + " caracteres");
+      }
+      this.phone = p;
+      this.email = e;
+      this.address = a;
+      this.updatedBy = userId;
+      this.updatedAt = now;
+   }
+
+   private static String blankToNull(String value) {
+      return value == null || value.isBlank() ? null : value.trim();
    }
 
    /**

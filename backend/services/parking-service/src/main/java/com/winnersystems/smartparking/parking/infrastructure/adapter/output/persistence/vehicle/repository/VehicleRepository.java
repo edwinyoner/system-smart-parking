@@ -45,8 +45,8 @@ public interface VehicleRepository extends JpaRepository<VehicleEntity, Long> {
          OR (:status = 'ACTIVE' AND v.deletedAt IS NULL)
          OR (:status = 'DELETED' AND v.deletedAt IS NOT NULL))
       AND (:search IS NULL OR :search = ''
-         OR UPPER(v.licensePlate) LIKE UPPER(CONCAT('%', :search, '%')))
-      ORDER BY v.createdAt DESC
+         OR REPLACE(UPPER(v.licensePlate), '-', '') LIKE CONCAT('%', :search, '%'))
+      ORDER BY v.lastSeenDate DESC, v.id DESC
       """)
    Page<VehicleEntity> findAllWithFilters(
          @Param("search") String search,

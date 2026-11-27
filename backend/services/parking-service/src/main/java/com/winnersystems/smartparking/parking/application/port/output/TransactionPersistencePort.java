@@ -83,4 +83,18 @@ public interface TransactionPersistencePort {
    PageResult<Transaction> findByZoneId(Long zoneId, PageRequest pageRequest);
 
    PageResult<Transaction> searchByPlate(String plateNumber, PageRequest pageRequest);
+
+   // ========================= HISTORIAL (clientes y vehículos) =========================
+
+   /** Estadías de un cliente o de un vehículo (el otro filtro en null), de la más reciente a la más antigua */
+   PageResult<Transaction> findHistory(Long customerId, Long vehicleId, PageRequest pageRequest);
+
+   /** Cantidad de estadías y total pagado (neto) de un cliente o de un vehículo */
+   HistoryTotals historyTotals(Long customerId, Long vehicleId);
+
+   /** Estadía en curso de cada vehículo: vehicleId -> transactionId */
+   java.util.Map<Long, Long> findActiveStayIdsByVehicleIds(java.util.Collection<Long> vehicleIds);
+
+   record HistoryTotals(long count, java.math.BigDecimal amount) {
+   }
 }

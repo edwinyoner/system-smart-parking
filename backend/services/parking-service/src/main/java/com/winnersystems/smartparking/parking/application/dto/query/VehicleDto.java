@@ -3,18 +3,18 @@ package com.winnersystems.smartparking.parking.application.dto.query;
 import java.time.LocalDateTime;
 
 /**
- * DTO de consulta para Vehicle.
+ * Vehículo (se crea solo, por placa, en la entrada o al registrar una infracción).
  *
- * @author Edwin Yoner - Winner Systems
+ * @param driverCount  conductores distintos que entraron con documento en este vehículo
+ * @param activeStayId estadía en curso (null si no está dentro)
  */
 public record VehicleDto(
       Long id,
-      String licensePlate,
-      String displayName,
+      String plateNumber,
+      int totalVisits,
+      long driverCount,
+      Long activeStayId,
       LocalDateTime firstSeenDate,
       LocalDateTime lastSeenDate,
-      Integer totalVisits,
-      Boolean isRecurrent,
-      LocalDateTime createdAt,
-      LocalDateTime updatedAt
-) {}
+      LocalDateTime createdAt) {
+}

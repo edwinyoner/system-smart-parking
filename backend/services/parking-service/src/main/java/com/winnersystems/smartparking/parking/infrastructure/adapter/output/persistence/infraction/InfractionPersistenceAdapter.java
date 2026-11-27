@@ -110,4 +110,19 @@ public class InfractionPersistenceAdapter implements InfractionPersistencePort {
       }
       return value instanceof Number n ? new BigDecimal(n.toString()) : BigDecimal.ZERO;
    }
+
+   @Override
+   public PageResult<Infraction> findByCustomerId(Long customerId, PageRequest pageRequest) {
+      return toPageResult(repository.findByCustomerIdOrderByDetectedAtDesc(customerId,
+            org.springframework.data.domain.PageRequest.of(pageRequest.page(), pageRequest.size())));
+   }
+
+   @Override
+   public com.winnersystems.smartparking.parking.application.port.output.TransactionPersistencePort.HistoryTotals
+   historyTotals(Long customerId, Long vehicleId) {
+      Object[] r = firstRow(repository.historyTotals(customerId, vehicleId), 3);
+      BigDecimal pending = decimal(r[1]).subtract(decimal(r[2]));
+      return new com.winnersystems.smartparking.parking.application.port.output.TransactionPersistencePort.HistoryTotals(
+            number(r[0]), pending.signum() < 0 ? BigDecimal.ZERO : pending);
+   }
 }

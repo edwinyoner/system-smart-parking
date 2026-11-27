@@ -91,4 +91,10 @@ public interface CustomerVehiclePersistencePort {
    long countByCustomerId(Long customerId);
 
    long countByVehicleId(Long vehicleId);
+
+   /** Vehículos distintos por cliente: customerId -> cantidad */
+   java.util.Map<Long, Long> countVehiclesByCustomerIds(java.util.Collection<Long> customerIds);
+
+   /** Conductores distintos por vehículo: vehicleId -> cantidad */
+   java.util.Map<Long, Long> countCustomersByVehicleIds(java.util.Collection<Long> vehicleIds);
 }

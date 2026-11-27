@@ -32,4 +32,9 @@ public interface InfractionPersistencePort {
 
    /** Conteos por estado; parkingId null = todos los parqueos */
    InfractionSummaryDto summary(Long parkingId, LocalDate today);
+
+   PageResult<Infraction> findByCustomerId(Long customerId, PageRequest pageRequest);
+
+   /** Cantidad de infracciones y lo que falta cobrar de las pendientes, de un cliente o de un vehículo */
+   TransactionPersistencePort.HistoryTotals historyTotals(Long customerId, Long vehicleId);
 }

@@ -163,16 +163,11 @@ public class DataSeeder implements CommandLineRunner {
             {"document-types.restore", "Ver tipos de documento eliminados y restaurarlos"},
 
             // Clientes
-            {"customers.create", "Crear nuevos clientes"},
-            {"customers.read", "Ver información de clientes"},
-            {"customers.update", "Actualizar información de clientes"},
-            {"customers.delete", "Eliminar clientes"},
+            {"customers.read", "Ver clientes y su historial (se crean solos al entrar con documento)"},
+            {"customers.update", "Editar los datos de contacto de un cliente"},
 
             // Vehículos
-            {"vehicles.create", "Registrar nuevos vehículos"},
-            {"vehicles.read", "Ver información de vehículos"},
-            {"vehicles.update", "Actualizar información de vehículos"},
-            {"vehicles.delete", "Eliminar vehículos"},
+            {"vehicles.read", "Ver vehículos y su historial (se crean solos por placa)"},
 
             // Transacciones
             {"transactions.entry", "Registrar entrada de vehículos"},
@@ -278,9 +273,9 @@ public class DataSeeder implements CommandLineRunner {
                   "document-types.create", "document-types.read", "document-types.update", "document-types.delete",
                   "document-types.restore",
                   // Gestión de Clientes
-                  "customers.create", "customers.read", "customers.update", "customers.delete",
+                  "customers.read", "customers.update",
                   // Gestión de Vehículos
-                  "vehicles.create", "vehicles.read", "vehicles.update", "vehicles.delete",
+                  "vehicles.read",
                   // Ver transacciones (sin registrar)
                   "transactions.view",
                   // Gestión de Tipos de Pago
@@ -318,9 +313,9 @@ public class DataSeeder implements CommandLineRunner {
                   // Ver tipos de documento
                   "document-types.read",
                   // Gestión de clientes
-                  "customers.create", "customers.read", "customers.update",
+                  "customers.read", "customers.update",
                   // Gestión de vehículos
-                  "vehicles.create", "vehicles.read", "vehicles.update",
+                  "vehicles.read",
                   // Operaciones de transacciones
                   "transactions.entry", "transactions.exit", "transactions.view",
                   // Ver tipos de pago

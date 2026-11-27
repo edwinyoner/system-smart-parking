@@ -73,10 +73,11 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, Long> 
       AND (:search IS NULL OR :search = ''
          OR UPPER(c.firstName) LIKE UPPER(CONCAT('%', :search, '%'))
          OR UPPER(c.lastName) LIKE UPPER(CONCAT('%', :search, '%'))
+         OR UPPER(CONCAT(CONCAT(c.firstName, ' '), c.lastName)) LIKE UPPER(CONCAT('%', :search, '%'))
          OR UPPER(c.documentNumber) LIKE UPPER(CONCAT('%', :search, '%'))
          OR UPPER(c.email) LIKE UPPER(CONCAT('%', :search, '%'))
          OR UPPER(c.phone) LIKE UPPER(CONCAT('%', :search, '%')))
-      ORDER BY c.createdAt DESC
+      ORDER BY c.lastSeenDate DESC, c.id DESC
       """)
    Page<CustomerEntity> findAllWithFilters(
          @Param("search") String search,

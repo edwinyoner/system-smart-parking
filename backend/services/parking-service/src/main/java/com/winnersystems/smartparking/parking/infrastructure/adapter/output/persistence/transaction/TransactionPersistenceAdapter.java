@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -219,5 +220,37 @@ public class TransactionPersistenceAdapter implements TransactionPersistencePort
             page.getSize(),
             page.getTotalElements()
       );
+   }
+
+   // ========================= HISTORIAL =========================
+
+   @Override
+   public PageResult<Transaction> findHistory(Long customerId, Long vehicleId, PageRequest pageRequest) {
+      if (customerId == null && vehicleId == null) {
+         throw new IllegalStateException("El historial exige un cliente o un vehículo");
+      }
+      return toPageResult(transactionRepository.findHistory(customerId, vehicleId,
+            org.springframework.data.domain.PageRequest.of(pageRequest.page(), pageRequest.size())));
+   }
+
+   @Override
+   public HistoryTotals historyTotals(Long customerId, Long vehicleId) {
+      List<Object[]> rows = transactionRepository.historyTotals(customerId, vehicleId);
+      Object[] r = rows.isEmpty() ? new Object[]{0L, java.math.BigDecimal.ZERO} : rows.get(0);
+      return new HistoryTotals(r[0] instanceof Number n ? n.longValue() : 0L,
+            r[1] instanceof java.math.BigDecimal b ? b
+                  : r[1] instanceof Number n ? new java.math.BigDecimal(n.toString()) : java.math.BigDecimal.ZERO);
+   }
+
+   @Override
+   public java.util.Map<Long, Long> findActiveStayIdsByVehicleIds(java.util.Collection<Long> vehicleIds) {
+      java.util.Map<Long, Long> map = new java.util.HashMap<>();
+      if (vehicleIds == null || vehicleIds.isEmpty()) {
+         return map;
+      }
+      for (Object[] r : transactionRepository.findActiveIdsByVehicleIds(vehicleIds)) {
+         map.put(((Number) r[0]).longValue(), ((Number) r[1]).longValue());
+      }
+      return map;
    }
 }

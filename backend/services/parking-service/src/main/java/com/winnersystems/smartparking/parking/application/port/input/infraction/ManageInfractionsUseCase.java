@@ -28,6 +28,11 @@ public interface ManageInfractionsUseCase {
 
    InfractionSummaryDto summary(Long parkingId);
 
+   /** Historial de infracciones de un vehículo o de un cliente */
+   PageResult<InfractionDto> listByVehicle(Long vehicleId, PageRequest pageRequest);
+
+   PageResult<InfractionDto> listByCustomer(Long customerId, PageRequest pageRequest);
+
    InfractionDto edit(Long infractionId, EditInfractionCommand command);
 
    InfractionDto changeFine(Long infractionId, ChangeInfractionFineCommand command);

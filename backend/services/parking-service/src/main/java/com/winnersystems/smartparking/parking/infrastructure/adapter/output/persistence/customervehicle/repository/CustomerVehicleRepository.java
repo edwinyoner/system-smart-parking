@@ -66,4 +66,18 @@ public interface CustomerVehicleRepository extends JpaRepository<CustomerVehicle
    long countByCustomerId(Long customerId);
 
    long countByVehicleId(Long vehicleId);
+
+   /** [customerId, vehículos distintos] */
+   @Query("""
+      SELECT cv.customerId, COUNT(DISTINCT cv.vehicleId) FROM CustomerVehicleEntity cv
+      WHERE cv.customerId IN :ids GROUP BY cv.customerId
+      """)
+   List<Object[]> countVehiclesGroupedByCustomer(@Param("ids") java.util.Collection<Long> ids);
+
+   /** [vehicleId, conductores distintos] */
+   @Query("""
+      SELECT cv.vehicleId, COUNT(DISTINCT cv.customerId) FROM CustomerVehicleEntity cv
+      WHERE cv.vehicleId IN :ids GROUP BY cv.vehicleId
+      """)
+   List<Object[]> countCustomersGroupedByVehicle(@Param("ids") java.util.Collection<Long> ids);
 }

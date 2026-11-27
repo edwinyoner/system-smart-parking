@@ -139,4 +139,27 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
    @Query("SELECT t FROM TransactionEntity t WHERE t.zoneId = :zoneId")
    Page<TransactionEntity> findByZoneId(@Param("zoneId") Long zoneId, Pageable pageable);
+
+   // ========================= HISTORIAL =========================
+
+   @Query("""
+      SELECT t FROM TransactionEntity t
+      WHERE (:customerId IS NULL OR t.customerId = :customerId)
+        AND (:vehicleId IS NULL OR t.vehicleId = :vehicleId)
+      ORDER BY t.entryTime DESC, t.id DESC
+      """)
+   Page<TransactionEntity> findHistory(@Param("customerId") Long customerId, @Param("vehicleId") Long vehicleId,
+                                       Pageable pageable);
+
+   /** [cantidad, total pagado] */
+   @Query("""
+      SELECT COUNT(t), COALESCE(SUM(t.paidAmount), 0) FROM TransactionEntity t
+      WHERE (:customerId IS NULL OR t.customerId = :customerId)
+        AND (:vehicleId IS NULL OR t.vehicleId = :vehicleId)
+      """)
+   java.util.List<Object[]> historyTotals(@Param("customerId") Long customerId, @Param("vehicleId") Long vehicleId);
+
+   /** [vehicleId, transactionId] de las estadías en curso */
+   @Query("SELECT t.vehicleId, t.id FROM TransactionEntity t WHERE t.status = 'ACTIVE' AND t.vehicleId IN :ids")
+   java.util.List<Object[]> findActiveIdsByVehicleIds(@Param("ids") java.util.Collection<Long> ids);
 }

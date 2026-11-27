@@ -183,6 +183,24 @@ public class InfractionService implements ManageInfractionsUseCase {
 
    @Override
    @Transactional(readOnly = true)
+   public PageResult<InfractionDto> listByVehicle(Long vehicleId, PageRequest pageRequest) {
+      return toDtoPage(infractionPort.findByVehicleId(vehicleId, pageRequest));
+   }
+
+   @Override
+   @Transactional(readOnly = true)
+   public PageResult<InfractionDto> listByCustomer(Long customerId, PageRequest pageRequest) {
+      return toDtoPage(infractionPort.findByCustomerId(customerId, pageRequest));
+   }
+
+   private PageResult<InfractionDto> toDtoPage(PageResult<Infraction> page) {
+      Lookups lookups = new Lookups(page.content());
+      return new PageResult<>(page.content().stream().map(i -> toDto(i, lookups)).toList(),
+            page.pageNumber(), page.pageSize(), page.totalElements());
+   }
+
+   @Override
+   @Transactional(readOnly = true)
    public InfractionSummaryDto summary(Long parkingId) {
       return infractionPort.summary(parkingId, LocalDate.now(clock));
    }

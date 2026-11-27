@@ -83,6 +83,14 @@ public class CustomerVehicle {
 
    // ========================= GETTERS Y SETTERS =========================
 
+   public Integer getUsageCount() {
+      return usageCount == null ? 0 : usageCount;
+   }
+
+   public void setUsageCount(Integer usageCount) {
+      this.usageCount = usageCount;
+   }
+
    public Long getId() {
       return id;
    }

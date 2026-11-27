@@ -138,4 +138,24 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePersist
 
       return PageResult.of(content, pageRequest, page.getTotalElements());
    }
+
+   @Override
+   public java.util.Map<Long, Long> countVehiclesByCustomerIds(java.util.Collection<Long> customerIds) {
+      return customerIds == null || customerIds.isEmpty() ? java.util.Map.of()
+            : toMap(customerVehicleRepository.countVehiclesGroupedByCustomer(customerIds));
+   }
+
+   @Override
+   public java.util.Map<Long, Long> countCustomersByVehicleIds(java.util.Collection<Long> vehicleIds) {
+      return vehicleIds == null || vehicleIds.isEmpty() ? java.util.Map.of()
+            : toMap(customerVehicleRepository.countCustomersGroupedByVehicle(vehicleIds));
+   }
+
+   private static java.util.Map<Long, Long> toMap(List<Object[]> rows) {
+      java.util.Map<Long, Long> map = new java.util.HashMap<>();
+      for (Object[] r : rows) {
+         map.put(((Number) r[0]).longValue(), ((Number) r[1]).longValue());
+      }
+      return map;
+   }
 }

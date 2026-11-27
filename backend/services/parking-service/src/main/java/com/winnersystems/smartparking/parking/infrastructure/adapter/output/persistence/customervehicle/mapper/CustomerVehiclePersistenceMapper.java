@@ -28,9 +28,8 @@ public class CustomerVehiclePersistenceMapper {
       entity.setCustomerId(customerVehicle.getCustomerId());
       entity.setVehicleId(customerVehicle.getVehicleId());
 
-      // Tracking
-      // Nota: usageCount está en el dominio pero no en todos los constructores
-      // Se puede agregar getter/setter en el dominio si es necesario
+      // Veces que este conductor usó este vehículo
+      entity.setUsageCount(customerVehicle.getUsageCount());
 
       // Auditoría (solo creación)
       entity.setCreatedAt(customerVehicle.getCreatedAt());
@@ -54,9 +53,7 @@ public class CustomerVehiclePersistenceMapper {
       customerVehicle.setCustomerId(entity.getCustomerId());
       customerVehicle.setVehicleId(entity.getVehicleId());
 
-      // Tracking
-      // Nota: usageCount se maneja en el dominio con incrementUsage()
-      // Se puede agregar getter/setter si es necesario
+      customerVehicle.setUsageCount(entity.getUsageCount());
 
       // Auditoría (solo creación)
       customerVehicle.setCreatedAt(entity.getCreatedAt());

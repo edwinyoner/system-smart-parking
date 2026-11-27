@@ -71,4 +71,17 @@ public interface InfractionRepository extends JpaRepository<InfractionEntity, Lo
            AND (:parkingId IS NULL OR i.parkingId = :parkingId)
          """)
    List<Object[]> pendingFineTotals(@Param("parkingId") Long parkingId);
+
+   Page<InfractionEntity> findByCustomerIdOrderByDetectedAtDesc(Long customerId, Pageable pageable);
+
+   /** [cantidad, multas pendientes, pagado de las pendientes] de un cliente o de un vehículo */
+   @Query("""
+         SELECT COUNT(i),
+                COALESCE(SUM(CASE WHEN i.status = 'PENDING' THEN i.fineAmount END), 0),
+                COALESCE(SUM(CASE WHEN i.status = 'PENDING' THEN i.finePaidAmount END), 0)
+         FROM InfractionEntity i
+         WHERE (:customerId IS NULL OR i.customerId = :customerId)
+           AND (:vehicleId IS NULL OR i.vehicleId = :vehicleId)
+         """)
+   List<Object[]> historyTotals(@Param("customerId") Long customerId, @Param("vehicleId") Long vehicleId);
 }
