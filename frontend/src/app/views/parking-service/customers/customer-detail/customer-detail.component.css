@@ -1,0 +1,40 @@
+/* src/app/views/parking-service/customers/customer-detail/customer-detail.component.css */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: var(--cui-border-radius);
+  background: var(--cui-tertiary-bg);
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--cui-secondary-color);
+}
+
+.data-list dt {
+  color: var(--cui-secondary-color);
+  font-weight: 600;
+}
+
+.plate {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.list-group-item {
+  background: transparent;
+}

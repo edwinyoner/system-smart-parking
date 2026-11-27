@@ -99,13 +99,13 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Clientes",
     url: "/customers",
     icon: "fa-solid fa-users",
-    badge: { color: "info", text: "NUEVO" },
+    requiredPermissions: ["customers.read"],
   },
   {
     name: "Vehículos",
     url: "/vehicles",
     icon: "fa-solid fa-car",
-    badge: { color: "info", text: "NUEVO" },
+    requiredPermissions: ["vehicles.read"],
   },
 
   // ==================== OPERACIONES DIARIAS ====================

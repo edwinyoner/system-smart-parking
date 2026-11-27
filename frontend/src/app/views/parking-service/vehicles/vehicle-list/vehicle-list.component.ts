@@ -1,156 +1,87 @@
 // src/app/views/parking-service/vehicles/vehicle-list/vehicle-list.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, Subject, catchError, debounceTime, exhaustMap, merge, switchMap } from 'rxjs';
 import {
-  ButtonDirective,
-  CardBodyComponent,
-  CardComponent,
-  CardHeaderComponent,
-  ColComponent,
-  FormControlDirective,
-  FormDirective,
-  FormLabelDirective,
-  RowComponent,
-  TableDirective,
-  BadgeComponent,
+  AlertComponent, BadgeComponent, ButtonDirective, CardBodyComponent, CardComponent, CardHeaderComponent, SpinnerComponent
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
-import { Vehicle, VehicleFilters } from '../../../../core/models/parking-service/vehicle.model';
-import { VehicleService } from '../../../../core/services/parking-service/vehicle.service';
-import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 
+import { VehicleService } from '../../../../core/services/parking-service/vehicle.service';
+import { Vehicle } from '../../../../core/models/parking-service/vehicle.model';
+import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
+import { apiError } from '../../../../core/utils/parking.util';
+
+const PAGE_SIZE = 20;
+
+/**
+ * Vehículos: se registran solos por placa (entrada o infracción). Búsqueda por placa con o sin
+ * guion; muestra si está dentro ahora. En vivo cada 10 s.
+ */
 @Component({
   selector: 'app-vehicle-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    FormsModule,
-    CardComponent,
-    CardHeaderComponent,
-    CardBodyComponent,
-    RowComponent,
-    ColComponent,
-    TableDirective,
-    ButtonDirective,
-    IconDirective,
-    FormDirective,
-    FormLabelDirective,
-    FormControlDirective,
-    BadgeComponent,
-  ],
+  imports: [CommonModule, FormsModule, RouterLink, CardComponent, CardHeaderComponent, CardBodyComponent,
+    ButtonDirective, SpinnerComponent, AlertComponent, BadgeComponent],
   templateUrl: './vehicle-list.component.html',
-  styleUrls: ['./vehicle-list.component.css'],
+  styleUrls: ['./vehicle-list.component.css']
 })
 export class VehicleListComponent implements OnInit {
-  vehicles: Vehicle[] = [];
-  loading = false;
-  error = '';
 
-  // Paginación
-  currentPage = 0;
-  pageSize = 10;
-  totalElements = 0;
-  totalPages = 0;
+  private readonly vehicleService = inject(VehicleService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  // Filtros
-  filters: VehicleFilters = {
-    pageNumber: 0,
-    pageSize: 10,
-    search: '',
-    status: 'ACTIVE',
-  };
+  search = '';
+  page = 0;
+  result: ParkingPagedResponse<Vehicle> | null = null;
+  loading = true;
+  errorMessage = '';
+  lastUpdate: Date | null = null;
 
-  constructor(private vehicleService: VehicleService) {}
+  private readonly reload$ = new Subject<boolean>();
+  private readonly search$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.loadVehicles();
+    this.search$.pipe(debounceTime(350), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.page = 0;
+      this.reload$.next(false);
+    });
+    merge(
+      this.reload$.pipe(switchMap(silent => this.fetch(silent))),
+      liveRefresh(10000).pipe(exhaustMap(() => this.fetch(true)))
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(r => {
+      this.result = r;
+      this.loading = false;
+      this.lastUpdate = new Date();
+    });
+    this.reload$.next(false);
   }
 
-  loadVehicles(): void {
-    this.loading = true;
-    this.error = '';
-
-    this.filters.pageNumber = this.currentPage;
-    this.filters.pageSize = this.pageSize;
-
-    this.vehicleService.getAll(this.filters).subscribe({
-      next: (response: ParkingPagedResponse<Vehicle>) => {
-        this.vehicles = response.content;
-        this.totalElements = response.totalElements;
-        this.totalPages = response.totalPages;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = 'Error al cargar vehículos';
-        console.error('Error:', err);
-        this.loading = false;
-      },
-    });
+  private fetch(silent: boolean) {
+    return this.vehicleService.list(this.page, PAGE_SIZE, this.search, silent).pipe(catchError(err => {
+      this.loading = false;
+      if (!silent) this.errorMessage = apiError(err, 'No se pudieron cargar los vehículos');
+      return EMPTY;
+    }));
   }
 
   onSearch(): void {
-    this.currentPage = 0;
-    this.loadVehicles();
+    this.search = this.search.toUpperCase();
+    this.search$.next();
   }
 
-  onFilterChange(): void {
-    this.currentPage = 0;
-    this.loadVehicles();
+  goTo(page: number): void {
+    if (!this.result || page < 0 || page >= this.result.totalPages) return;
+    this.page = page;
+    this.reload$.next(false);
   }
 
-  clearFilters(): void {
-    this.filters = {
-      pageNumber: 0,
-      pageSize: 10,
-      search: '',
-      status: 'ACTIVE',
-    };
-    this.currentPage = 0;
-    this.loadVehicles();
-  }
-
-  // Paginación
-  onPageChange(page: number): void {
-    this.currentPage = page;
-    this.loadVehicles();
-  }
-
-  goToFirstPage(): void {
-    this.onPageChange(0);
-  }
-
-  goToPreviousPage(): void {
-    if (this.currentPage > 0) {
-      this.onPageChange(this.currentPage - 1);
-    }
-  }
-
-  goToNextPage(): void {
-    if (this.currentPage < this.totalPages - 1) {
-      this.onPageChange(this.currentPage + 1);
-    }
-  }
-
-  goToLastPage(): void {
-    this.onPageChange(this.totalPages - 1);
-  }
-
-  // Utilidades
-  getStatusBadgeColor(vehicle: Vehicle): string {
-    if (vehicle.deletedAt) return 'danger';
-    return vehicle.isRecurrent ? 'success' : 'info';
-  }
-
-  getStatusText(vehicle: Vehicle): string {
-    if (vehicle.deletedAt) return 'Eliminado';
-    return vehicle.isRecurrent ? 'Recurrente' : 'Nuevo';
-  }
-
-  formatDate(dateString: string | undefined): string {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('es-PE');
+  get pages(): number[] {
+    const total = this.result?.totalPages ?? 0;
+    const from = Math.max(0, Math.min(this.page - 2, total - 5));
+    return Array.from({ length: Math.min(5, total) }, (_, i) => from + i);
   }
 }

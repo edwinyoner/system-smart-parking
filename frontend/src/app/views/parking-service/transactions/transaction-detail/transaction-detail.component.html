@@ -90,7 +90,11 @@
                 <dl class="row">
                   <dt class="col-sm-4">Placa:</dt>
                   <dd class="col-sm-8">
-                    <strong class="text-primary fs-5">{{ transaction.vehicle.plateNumber }}</strong>
+                    @if (canSeeVehicles) {
+                      <a class="fw-bold fs-5" [routerLink]="['/vehicles', transaction.vehicle.id]">{{ transaction.vehicle.plateNumber }}</a>
+                    } @else {
+                      <strong class="text-primary fs-5">{{ transaction.vehicle.plateNumber }}</strong>
+                    }
                   </dd>
                 </dl>
               </div>
@@ -102,7 +106,13 @@
                 </h5>
                 <dl class="row">
                   <dt class="col-sm-4">Nombre:</dt>
-                  <dd class="col-sm-8">{{ transaction.customer?.name }}</dd>
+                  <dd class="col-sm-8">
+                    @if (canSeeCustomers && transaction.customer) {
+                      <a [routerLink]="['/customers', transaction.customer.id]">{{ transaction.customer.name }}</a>
+                    } @else {
+                      {{ transaction.customer?.name }}
+                    }
+                  </dd>
                   
                   <dt class="col-sm-4">Documento:</dt>
                   <dd class="col-sm-8">{{ transaction.customer?.documentType }} {{ transaction.customer?.documentNumber }}</dd>

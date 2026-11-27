@@ -1,269 +1,98 @@
 <!-- src/app/views/parking-service/customers/customer-list/customer-list.component.html -->
-<c-row>
-  <c-col xs="12">
-    <c-card class="mb-4">
-      <c-card-header>
-        <strong>Clientes</strong>
-        <small class="text-muted ms-2">Gestión de clientes del sistema</small>
-      </c-card-header>
 
-      <c-card-body>
-        <!-- Filtros -->
-        <form cForm class="mb-4">
-          <c-row class="g-3">
-            <c-col md="4">
-              <label cLabel for="search">Buscar</label>
-              <input
-                cFormControl
-                id="search"
-                type="text"
-                placeholder="Nombre, apellido o documento..."
-                [(ngModel)]="filters.search"
-                (keyup.enter)="onSearch()"
-                name="search"
-              />
-            </c-col>
+<c-card class="mb-4">
+  <c-card-header class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <strong>
+      <i class="fa-solid fa-users me-2"></i>Clientes
+      @if (result) { <c-badge color="primary" class="ms-2">{{ result.totalElements }}</c-badge> }
+    </strong>
+    @if (lastUpdate) {
+      <small class="text-body-secondary"><span class="live-dot"></span>En vivo · {{ lastUpdate | date: 'HH:mm:ss' }}</small>
+    }
+  </c-card-header>
 
-            <c-col md="3">
-              <label cLabel for="status">Estado</label>
-              <select
-                cSelect
-                id="status"
-                [(ngModel)]="filters.status"
-                (change)="onFilterChange()"
-                name="status"
-              >
-                <option value="ALL">Todos</option>
-                <option value="ACTIVE">Activos</option>
-                <option value="DELETED">Eliminados</option>
-              </select>
-            </c-col>
+  <c-card-body>
+    @if (errorMessage) {
+      <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ errorMessage }}
+      </c-alert>
+    }
 
-            <c-col md="2">
-              <label cLabel for="pageSize">Mostrar</label>
-              <select
-                cSelect
-                id="pageSize"
-                [(ngModel)]="pageSize"
-                (change)="onFilterChange()"
-                name="pageSize"
-              >
-                <option [value]="5">5</option>
-                <option [value]="10">10</option>
-                <option [value]="20">20</option>
-                <option [value]="50">50</option>
-              </select>
-            </c-col>
+    <div class="row g-2 mb-3 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+          <input class="form-control" placeholder="Nombre, documento, celular o correo" maxlength="60"
+                 autocomplete="off" [(ngModel)]="search" (input)="onSearch()" aria-label="Buscar cliente" />
+        </div>
+      </div>
+      <div class="col-md-7">
+        <small class="text-body-secondary">
+          <i class="fa-solid fa-circle-info me-1"></i>
+          Se registran solos cuando el conductor da su documento al entrar.
+        </small>
+      </div>
+    </div>
 
-            <c-col md="3" class="d-flex align-items-end">
-              <button
-                cButton
-                color="primary"
-                class="me-2 w-50"
-                type="button"
-                (click)="onSearch()"
-              >
-                <svg cIcon name="cilSearch" class="me-1"></svg>
-                Buscar
-              </button>
-
-              <button
-                cButton
-                color="secondary"
-                variant="outline"
-                class="w-50"
-                type="button"
-                (click)="clearFilters()"
-              >
-                <svg cIcon name="cilReload" class="me-1"></svg>
-                Limpiar
-              </button>
-            </c-col>
-          </c-row>
-        </form>
-
-        <!-- Tabla -->
-        @if (loading) {
-          <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Cargando...</span>
-            </div>
-            <p class="text-muted mt-2">Cargando clientes...</p>
-          </div>
-        } @else if (error) {
-          <c-alert color="danger" [dismissible]="true" (visibleChange)="error = ''">
-            {{ error }}
-          </c-alert>
-        } @else if (customers.length === 0) {
-          <c-alert color="info" [dismissible]="false">
-            No se encontraron clientes que coincidan con los filtros.
-            @if (filters.search || filters.status !== 'ALL') {
-              <button cButton color="link" (click)="clearFilters()" class="ms-2">
-                Limpiar filtros
-              </button>
+    @if (loading) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+    } @else if (!result || result.content.length === 0) {
+      <div class="text-center py-5 text-body-secondary">
+        <i class="fa-solid fa-user-slash fa-3x mb-3"></i>
+        <p class="mb-0">{{ search.trim() ? 'Ningún cliente coincide con la búsqueda.' : 'Aún no hay clientes registrados.' }}</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Documento</th>
+              <th>Contacto</th>
+              <th class="text-center">Visitas</th>
+              <th class="text-center">Vehículos</th>
+              <th>Última visita</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of result.content; track c.id) {
+              <tr>
+                <td><strong>{{ c.fullName || 'Sin nombre' }}</strong></td>
+                <td>{{ c.documentTypeCode }} {{ c.documentNumber }}</td>
+                <td>
+                  @if (c.phone) { <div><i class="fa-solid fa-mobile-screen me-1 text-body-secondary"></i>{{ c.phone }}</div> }
+                  @if (c.email) { <div><small>{{ c.email }}</small></div> }
+                  @if (!c.phone && !c.email) { <span class="text-body-secondary">Sin contacto</span> }
+                </td>
+                <td class="text-center">{{ c.totalVisits }}</td>
+                <td class="text-center">{{ c.vehicleCount }}</td>
+                <td>{{ c.lastSeenDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="text-end">
+                  <a cButton size="sm" color="info" variant="outline" title="Ver cliente" [routerLink]="['/customers', c.id]">
+                    <i class="fa-solid fa-eye"></i>
+                  </a>
+                </td>
+              </tr>
             }
-          </c-alert>
-        } @else {
-          <div class="table-responsive">
-            <table cTable hover striped responsive>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Documento</th>
-                  <th>Cliente</th>
-                  <th>Contacto</th>
-                  <th>Visitas</th>
-                  <th>Última Visita</th>
-                  <th>Estado</th>
-                  <th class="text-center">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (customer of customers; track customer.id) {
-                  <tr>
-                    <td>{{ customer.id }}</td>
+          </tbody>
+        </table>
+      </div>
 
-                    <td>
-                      <div class="small text-muted">
-                        {{ customer.documentTypeName || 'N/A' }}
-                      </div>
-                      <strong>{{ customer.documentNumber }}</strong>
-                    </td>
-
-                    <td>
-                      <strong>{{ customer.fullName }}</strong>
-                      <div class="small text-muted">
-                        {{ customer.firstName }} {{ customer.lastName }}
-                      </div>
-                    </td>
-
-                    <td>
-                      @if (customer.phone) {
-                        <div>
-                          <svg cIcon name="cilPhone" size="sm" class="me-1"></svg>
-                          {{ customer.phone }}
-                        </div>
-                      }
-                      @if (customer.email) {
-                        <div class="small text-muted">
-                          <svg cIcon name="cilEnvelopeClosed" size="sm" class="me-1"></svg>
-                          {{ customer.email }}
-                        </div>
-                      }
-                      @if (!customer.phone && !customer.email) {
-                        <span class="text-muted">Sin contacto</span>
-                      }
-                    </td>
-
-                    <td>
-                      <c-badge
-                        [color]="customer.totalVisits && customer.totalVisits > 5 ? 'success' : 'secondary'"
-                      >
-                        {{ customer.totalVisits || 0 }} visitas
-                      </c-badge>
-                    </td>
-
-                    <td>{{ formatDate(customer.lastSeenDate) }}</td>
-
-                    <td>
-                      <c-badge [color]="getStatusBadgeColor(customer)">
-                        {{ getStatusText(customer) }}
-                      </c-badge>
-                    </td>
-
-                    <td class="text-center">
-                      <button
-                        [routerLink]="['/parking-service/customers', customer.id]"
-                        cButton
-                        color="info"
-                        variant="ghost"
-                        size="sm"
-                        class="me-1"
-                        title="Ver detalle"
-                      >
-                        <svg cIcon name="cilInfo"></svg>
-                      </button>
-
-                      @if (!customer.deletedAt) {
-                        <button
-                          [routerLink]="['/parking-service/customers', customer.id, 'edit']"
-                          cButton
-                          color="warning"
-                          variant="ghost"
-                          size="sm"
-                          title="Editar"
-                        >
-                          <svg cIcon name="cilPencil"></svg>
-                        </button>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Paginación -->
-          <div class="d-flex justify-content-between align-items-center mt-3">
-            <div class="text-muted">
-              Mostrando {{ customers.length }} de {{ totalElements }} clientes
-              (Página {{ currentPage + 1 }} de {{ totalPages }})
-            </div>
-
-            <nav aria-label="Paginación de clientes">
-              <ul class="pagination mb-0">
-                <li class="page-item" [class.disabled]="currentPage === 0">
-                  <button
-                    class="page-link"
-                    (click)="goToFirstPage()"
-                    [disabled]="currentPage === 0"
-                  >
-                    Primera
-                  </button>
-                </li>
-                <li class="page-item" [class.disabled]="currentPage === 0">
-                  <button
-                    class="page-link"
-                    (click)="goToPreviousPage()"
-                    [disabled]="currentPage === 0"
-                  >
-                    Anterior
-                  </button>
-                </li>
-                <li class="page-item disabled">
-                  <span class="page-link">
-                    {{ currentPage + 1 }} / {{ totalPages }}
-                  </span>
-                </li>
-                <li
-                  class="page-item"
-                  [class.disabled]="currentPage >= totalPages - 1"
-                >
-                  <button
-                    class="page-link"
-                    (click)="goToNextPage()"
-                    [disabled]="currentPage >= totalPages - 1"
-                  >
-                    Siguiente
-                  </button>
-                </li>
-                <li
-                  class="page-item"
-                  [class.disabled]="currentPage >= totalPages - 1"
-                >
-                  <button
-                    class="page-link"
-                    (click)="goToLastPage()"
-                    [disabled]="currentPage >= totalPages - 1"
-                  >
-                    Última
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        }
-      </c-card-body>
-    </c-card>
-  </c-col>
-</c-row>
+      @if (result.totalPages > 1) {
+        <nav class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+          <small class="text-body-secondary">
+            {{ page * result.pageSize + 1 }}-{{ page * result.pageSize + result.content.length }} de {{ result.totalElements }}
+          </small>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="page === 0"><button class="page-link" (click)="goTo(page - 1)">Anterior</button></li>
+            @for (n of pages; track n) {
+              <li class="page-item" [class.active]="n === page"><button class="page-link" (click)="goTo(n)">{{ n + 1 }}</button></li>
+            }
+            <li class="page-item" [class.disabled]="page >= result.totalPages - 1"><button class="page-link" (click)="goTo(page + 1)">Siguiente</button></li>
+          </ul>
+        </nav>
+      }
+    }
+  </c-card-body>
+</c-card>

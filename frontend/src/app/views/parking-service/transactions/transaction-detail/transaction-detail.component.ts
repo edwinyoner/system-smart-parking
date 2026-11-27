@@ -83,6 +83,8 @@ export class TransactionDetailComponent implements OnInit {
   readonly canEditNotes = this.permissions.hasAnyPermission(['transactions.entry', 'transactions.exit']);
   readonly confidencePercent = confidencePercent;
   readonly canSeeInfractions = this.permissions.hasPermission('infractions.read');
+  readonly canSeeVehicles = this.permissions.hasPermission('vehicles.read');
+  readonly canSeeCustomers = this.permissions.hasPermission('customers.read');
   readonly canCreateInfraction = this.permissions.hasPermission('infractions.create');
   readonly infractionStatus = infractionStatusInfo;
   readonly infractionType = infractionTypeLabel;

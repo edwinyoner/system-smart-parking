@@ -1,0 +1,20 @@
+/* src/app/views/parking-service/shared/history-panel/history-panel.component.css */
+
+.plate {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.code {
+  font-family: var(--cui-font-monospace);
+  font-size: 0.85rem;
+}
+
+.nav-tabs .nav-link {
+  color: var(--cui-secondary-color);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--cui-body-color);
+  font-weight: 600;
+}

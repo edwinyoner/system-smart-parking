@@ -1,161 +1,86 @@
 // src/app/views/parking-service/customers/customer-list/customer-list.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, Subject, catchError, debounceTime, exhaustMap, merge, switchMap } from 'rxjs';
 import {
-  ButtonDirective,
-  CardBodyComponent,
-  CardComponent,
-  CardHeaderComponent,
-  ColComponent,
-  FormControlDirective,
-  FormDirective,
-  FormLabelDirective,
-  FormSelectDirective,
-  RowComponent,
-  TableDirective,
-  BadgeComponent,
-  AlertComponent, 
+  AlertComponent, BadgeComponent, ButtonDirective, CardBodyComponent, CardComponent, CardHeaderComponent, SpinnerComponent
 } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
-import { Customer, CustomerFilters } from '../../../../core/models/parking-service/customer.model';
-import { CustomerService } from '../../../../core/services/parking-service/customer.service';
-import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
 
+import { CustomerService } from '../../../../core/services/parking-service/customer.service';
+import { Customer } from '../../../../core/models/parking-service/customer.model';
+import { ParkingPagedResponse } from '../../../../core/models/pagination.model';
+import { liveRefresh } from '../../../../core/utils/live-refresh.util';
+import { apiError } from '../../../../core/utils/parking.util';
+
+const PAGE_SIZE = 20;
+
+/**
+ * Clientes: los conductores que entraron con documento (se registran solos en la entrada).
+ * Búsqueda por nombre, documento, celular o correo; en vivo cada 10 s.
+ */
 @Component({
   selector: 'app-customer-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    FormsModule,
-    CardComponent,
-    CardHeaderComponent,
-    CardBodyComponent,
-    RowComponent,
-    ColComponent,
-    TableDirective,
-    ButtonDirective,
-    IconDirective,
-    FormDirective,
-    FormLabelDirective,
-    FormControlDirective,
-    FormSelectDirective,
-    BadgeComponent,
-    AlertComponent, 
-  ],
+  imports: [CommonModule, FormsModule, RouterLink, CardComponent, CardHeaderComponent, CardBodyComponent,
+    ButtonDirective, SpinnerComponent, AlertComponent, BadgeComponent],
   templateUrl: './customer-list.component.html',
-  styleUrls: ['./customer-list.component.css'],
+  styleUrls: ['./customer-list.component.css']
 })
 export class CustomerListComponent implements OnInit {
-  // ... resto del código sin cambios
-  customers: Customer[] = [];
-  loading = false;
-  error = '';
 
-  // Paginación
-  currentPage = 0;
-  pageSize = 10;
-  totalElements = 0;
-  totalPages = 0;
+  private readonly customerService = inject(CustomerService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  // Filtros
-  filters: CustomerFilters = {
-    pageNumber: 0,
-    pageSize: 10,
-    search: '',
-    status: 'ACTIVE',
-  };
+  search = '';
+  page = 0;
+  result: ParkingPagedResponse<Customer> | null = null;
+  loading = true;
+  errorMessage = '';
+  lastUpdate: Date | null = null;
 
-  constructor(private customerService: CustomerService) {}
+  private readonly reload$ = new Subject<boolean>();
+  private readonly search$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.loadCustomers();
+    this.search$.pipe(debounceTime(350), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.page = 0;
+      this.reload$.next(false);
+    });
+    merge(
+      this.reload$.pipe(switchMap(silent => this.fetch(silent))),
+      liveRefresh(10000).pipe(exhaustMap(() => this.fetch(true)))
+    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(r => {
+      this.result = r;
+      this.loading = false;
+      this.lastUpdate = new Date();
+    });
+    this.reload$.next(false);
   }
 
-  loadCustomers(): void {
-    this.loading = true;
-    this.error = '';
-
-    this.filters.pageNumber = this.currentPage;
-    this.filters.pageSize = this.pageSize;
-
-    this.customerService.getAll(this.filters).subscribe({
-      next: (response: ParkingPagedResponse<Customer>) => {
-        this.customers = response.content;
-        this.totalElements = response.totalElements;
-        this.totalPages = response.totalPages;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = 'Error al cargar clientes';
-        console.error('Error:', err);
-        this.loading = false;
-      },
-    });
+  private fetch(silent: boolean) {
+    return this.customerService.list(this.page, PAGE_SIZE, this.search, silent).pipe(catchError(err => {
+      this.loading = false;
+      if (!silent) this.errorMessage = apiError(err, 'No se pudieron cargar los clientes');
+      return EMPTY;
+    }));
   }
 
   onSearch(): void {
-    this.currentPage = 0;
-    this.loadCustomers();
+    this.search$.next();
   }
 
-  onFilterChange(): void {
-    this.currentPage = 0;
-    this.loadCustomers();
+  goTo(page: number): void {
+    if (!this.result || page < 0 || page >= this.result.totalPages) return;
+    this.page = page;
+    this.reload$.next(false);
   }
 
-  clearFilters(): void {
-    this.filters = {
-      pageNumber: 0,
-      pageSize: 10,
-      search: '',
-      status: 'ACTIVE',
-    };
-    this.currentPage = 0;
-    this.loadCustomers();
-  }
-
-  // Paginación
-  onPageChange(page: number): void {
-    this.currentPage = page;
-    this.loadCustomers();
-  }
-
-  goToFirstPage(): void {
-    this.onPageChange(0);
-  }
-
-  goToPreviousPage(): void {
-    if (this.currentPage > 0) {
-      this.onPageChange(this.currentPage - 1);
-    }
-  }
-
-  goToNextPage(): void {
-    if (this.currentPage < this.totalPages - 1) {
-      this.onPageChange(this.currentPage + 1);
-    }
-  }
-
-  goToLastPage(): void {
-    this.onPageChange(this.totalPages - 1);
-  }
-
-  // Utilidades
-  getStatusBadgeColor(customer: Customer): string {
-    if (customer.deletedAt) return 'danger';
-    return customer.isRecurrent ? 'success' : 'info';
-  }
-
-  getStatusText(customer: Customer): string {
-    if (customer.deletedAt) return 'Eliminado';
-    return customer.isRecurrent ? 'Recurrente' : 'Nuevo';
-  }
-
-  formatDate(dateString: string | undefined): string {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('es-PE');
+  get pages(): number[] {
+    const total = this.result?.totalPages ?? 0;
+    const from = Math.max(0, Math.min(this.page - 2, total - 5));
+    return Array.from({ length: Math.min(5, total) }, (_, i) => from + i);
   }
 }

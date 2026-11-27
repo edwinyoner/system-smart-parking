@@ -1,37 +1,29 @@
 // src/app/core/models/parking-service/vehicle.model.ts
-/**
- * Modelo para Vehículo.
- * Identificado SOLAMENTE por placa (licensePlate).
- * NO incluye marca/modelo/color - se agregarán con integración SUNARP.
- * Los vehículos se crean automáticamente en transaction-entry.
- */
+import { HistoryTotals, StayHistory } from './customer.model';
+
+/** Vehículo: se crea solo por placa (entrada o infracción) */
 export interface Vehicle {
   id: number;
-  licensePlate: string;             // UNIQUE - placa del vehículo
-  displayName?: string;          
-  totalVisits?: number;             // Contador de visitas
-  isRecurrent?: boolean;     
-  firstSeenDate?: string;           // Primera vez registrado
-  lastSeenDate?: string;            // Última vez visto
-  createdAt?: string;
-  updatedAt?: string;
-  deletedAt?: string;               // Soft delete
+  plateNumber: string;
+  totalVisits: number;
+  /** Conductores distintos que entraron con documento */
+  driverCount: number;
+  /** Estadía en curso (null si no está dentro) */
+  activeStayId: number | null;
+  firstSeenDate: string | null;
+  lastSeenDate: string | null;
+  createdAt: string;
 }
 
-/**
- * Request para ACTUALIZAR vehículo.
- * NO se usa para crear (se crean en transaction-entry).
- */
-export interface VehicleUpdateRequest {
-  licensePlate: string;             // Solo para normalización
-}
-
-/**
- * Filtros de búsqueda para listado.
- */
-export interface VehicleFilters {
-  pageNumber?: number;
-  pageSize?: number;
-  search?: string;      // Busca en placa
-  status?: 'ACTIVE' | 'DELETED' | 'ALL';
+export interface VehicleDetail {
+  vehicle: Vehicle;
+  drivers: {
+    customerId: number;
+    fullName: string | null;
+    documentTypeCode: string | null;
+    documentNumber: string;
+    usageCount: number;
+  }[];
+  activeStay: StayHistory | null;
+  totals: HistoryTotals;
 }

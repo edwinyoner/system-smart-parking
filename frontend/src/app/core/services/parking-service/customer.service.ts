@@ -1,118 +1,61 @@
 // src/app/core/services/parking-service/customer.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { Customer, CustomerUpdateRequest, CustomerFilters } from '../../models/parking-service/customer.model';
+import {
+  Customer,
+  CustomerDetail,
+  StayHistory,
+  UpdateCustomerContactRequest
+} from '../../models/parking-service/customer.model';
+import { Infraction } from '../../models/parking-service/infraction.model';
 import { ParkingPagedResponse } from '../../models/pagination.model';
+import { SKIP_LOADING } from '../../interceptors/loading.interceptor';
 
+/**
+ * Clientes (consulta e historial). Se crean solos al entrar con documento; aquí solo se
+ * editan sus datos de contacto. Permisos: customers.read, customers.update.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class CustomerService {
+
   private apiUrl = `${environment.apiUrl}/parking-service/v1/customers`;
 
   constructor(private http: HttpClient) {}
 
-  // ========================= LIST (paginado con filtros) =========================
-
-  /**
-   * Obtener todos los clientes con filtros.
-   * Soporta búsqueda por nombre, apellido, documento.
-   */
-  getAll(filters: CustomerFilters = {}): Observable<ParkingPagedResponse<Customer>> {
-    let params = new HttpParams()
-      .set('page', (filters.pageNumber ?? 0).toString())
-      .set('size', (filters.pageSize ?? 20).toString());
-
-    if (filters.search && filters.search.trim()) {
-      params = params.set('search', filters.search.trim());
-    }
-    if (filters.status && filters.status !== 'ALL') {
-      params = params.set('status', filters.status);
-    }
-
-    return this.http.get<ParkingPagedResponse<Customer>>(this.apiUrl, { params });
+  private ctx(silent: boolean): HttpContext {
+    return new HttpContext().set(SKIP_LOADING, silent);
   }
 
-  /**
-   * Lista todos los clientes activos (sin paginación).
-   * Útil para dropdowns/selectores.
-   */
-  getAllActive(): Observable<Customer[]> {
-    return this.http.get<Customer[]>(`${this.apiUrl}/active`);
+  private page(page: number, size: number): HttpParams {
+    return new HttpParams().set('page', page).set('size', size);
   }
 
-  /**
-   * Lista clientes recurrentes (totalVisits > 1).
-   */
-  getRecurrent(pageNumber: number = 0, pageSize: number = 20): Observable<ParkingPagedResponse<Customer>> {
-    const params = new HttpParams()
-      .set('page', pageNumber.toString())
-      .set('size', pageSize.toString());
-    
-    return this.http.get<ParkingPagedResponse<Customer>>(`${this.apiUrl}/recurrent`, { params });
+  /** search: parte del nombre, documento, celular o correo */
+  list(page: number, size: number, search = '', silent = false): Observable<ParkingPagedResponse<Customer>> {
+    let params = this.page(page, size);
+    if (search.trim()) params = params.set('search', search.trim());
+    return this.http.get<ParkingPagedResponse<Customer>>(this.apiUrl, { params, context: this.ctx(silent) });
   }
 
-  // ========================= GET (individual) =========================
-
-  /**
-   * Obtener cliente por ID.
-   */
-  getById(id: number): Observable<Customer> {
-    return this.http.get<Customer>(`${this.apiUrl}/${id}`);
+  getById(id: number, silent = false): Observable<CustomerDetail> {
+    return this.http.get<CustomerDetail>(`${this.apiUrl}/${id}`, { context: this.ctx(silent) });
   }
 
-  /**
-   * Obtener cliente por documento.
-   */
-  getByDocument(documentTypeId: number, documentNumber: string): Observable<Customer> {
-    const params = new HttpParams()
-      .set('documentTypeId', documentTypeId.toString())
-      .set('documentNumber', documentNumber);
-    
-    return this.http.get<Customer>(`${this.apiUrl}/by-document`, { params });
+  getStays(id: number, page: number, size: number, silent = false): Observable<ParkingPagedResponse<StayHistory>> {
+    return this.http.get<ParkingPagedResponse<StayHistory>>(`${this.apiUrl}/${id}/stays`,
+      { params: this.page(page, size), context: this.ctx(silent) });
   }
 
-  /**
-   * Obtener cliente por email.
-   */
-  getByEmail(email: string): Observable<Customer> {
-    const params = new HttpParams().set('email', email);
-    return this.http.get<Customer>(`${this.apiUrl}/by-email`, { params });
+  getInfractions(id: number, page: number, size: number, silent = false): Observable<ParkingPagedResponse<Infraction>> {
+    return this.http.get<ParkingPagedResponse<Infraction>>(`${this.apiUrl}/${id}/infractions`,
+      { params: this.page(page, size), context: this.ctx(silent) });
   }
 
-  /**
-   * Obtener cliente por teléfono.
-   */
-  getByPhone(phone: string): Observable<Customer> {
-    const params = new HttpParams().set('phone', phone);
-    return this.http.get<Customer>(`${this.apiUrl}/by-phone`, { params });
-  }
-
-  // ========================= UPDATE =========================
-
-  /**
-   * Actualizar datos de un cliente.
-   * NO crea clientes - se crean automáticamente en transaction-entry.
-   */
-  update(id: number, customer: CustomerUpdateRequest): Observable<Customer> {
-    return this.http.put<Customer>(`${this.apiUrl}/${id}`, customer);
-  }
-
-  // ========================= DELETE & RESTORE =========================
-
-  /**
-   * Eliminar cliente (soft delete).
-   */
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * Restaurar cliente previamente eliminado.
-   */
-  restore(id: number): Observable<Customer> {
-    return this.http.patch<Customer>(`${this.apiUrl}/${id}/restore`, {});
+  updateContact(id: number, request: UpdateCustomerContactRequest): Observable<Customer> {
+    return this.http.patch<Customer>(`${this.apiUrl}/${id}/contact`, request);
   }
 }

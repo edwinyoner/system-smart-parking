@@ -1,0 +1,132 @@
+<!-- src/app/views/parking-service/shared/history-panel/history-panel.component.html -->
+
+<c-card>
+  <c-card-header class="pb-0 border-bottom-0">
+    <ul class="nav nav-tabs card-header-tabs">
+      <li class="nav-item">
+        <button type="button" class="nav-link" [class.active]="tab === 'stays'" (click)="select('stays')">
+          <i class="fa-solid fa-clock-rotate-left me-1"></i>Estadías
+          @if (stays) { <span class="badge bg-secondary ms-1">{{ stays.totalElements }}</span> }
+        </button>
+      </li>
+      @if (canSeeInfractions) {
+        <li class="nav-item">
+          <button type="button" class="nav-link" [class.active]="tab === 'infractions'" (click)="select('infractions')">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i>Infracciones
+            @if (infractions) { <span class="badge bg-secondary ms-1">{{ infractions.totalElements }}</span> }
+          </button>
+        </li>
+      }
+    </ul>
+  </c-card-header>
+
+  <c-card-body>
+    @if (loading) {
+      <div class="text-center py-4"><c-spinner color="primary" size="sm"></c-spinner></div>
+    } @else if (error) {
+      <p class="text-danger mb-0"><i class="fa-solid fa-triangle-exclamation me-1"></i>No se pudo cargar el historial.</p>
+    } @else if (tab === 'stays') {
+      @if (!stays || stays.content.length === 0) {
+        <p class="text-body-secondary mb-0">Sin estadías registradas.</p>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Entrada</th>
+                @if (showPlate) { <th>Placa</th> }
+                <th>Lugar</th>
+                <th>Tiempo</th>
+                <th>Estado</th>
+                <th class="text-end">Pagado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of stays.content; track s.id) {
+                <tr>
+                  <td>
+                    {{ s.entryTime | date: 'dd/MM/yyyy HH:mm' }}
+                    @if (s.exitTime) { <div><small class="text-body-secondary">salida {{ s.exitTime | date: 'dd/MM HH:mm' }}</small></div> }
+                  </td>
+                  @if (showPlate) { <td><span class="plate">{{ s.plateNumber }}</span></td> }
+                  <td>
+                    {{ s.parkingName }}
+                    <div><small class="text-body-secondary">{{ s.zoneName }}@if (s.spaceCode) { · {{ s.spaceCode }} }</small></div>
+                  </td>
+                  <td>{{ duration(s.durationMinutes) }}</td>
+                  <td>
+                    <span class="badge {{ stayStatus(s.status).badge }}">{{ stayStatus(s.status).label }}</span>
+                    <span class="badge bg-{{ paymentColor(s.paymentStatus) }} ms-1">{{ paymentLabel(s.paymentStatus) }}</span>
+                  </td>
+                  <td class="text-end">S/ {{ s.paidAmount | number: '1.2-2' }}</td>
+                  <td class="text-end">
+                    <a class="btn btn-sm btn-outline-info" title="Ver estadía" [routerLink]="['/transactions', s.id]">
+                      <i class="fa-solid fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    } @else {
+      @if (!infractions || infractions.content.length === 0) {
+        <p class="text-body-secondary mb-0">Sin infracciones.</p>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Código</th>
+                @if (showPlate) { <th>Placa</th> }
+                <th>Infracción</th>
+                <th>Lugar</th>
+                <th class="text-end">Multa</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of infractions.content; track i.id) {
+                <tr>
+                  <td>
+                    <span class="code">{{ i.infractionCode }}</span>
+                    <div><small class="text-body-secondary">{{ i.detectedAt | date: 'dd/MM/yyyy HH:mm' }}</small></div>
+                  </td>
+                  @if (showPlate) { <td><span class="plate">{{ i.plateNumber }}</span></td> }
+                  <td>{{ infractionType(i.infractionType) }}</td>
+                  <td>{{ i.parkingName }}</td>
+                  <td class="text-end">
+                    @if (i.fineAmount) { S/ {{ i.fineAmount | number: '1.2-2' }} } @else { <span class="text-body-secondary">-</span> }
+                  </td>
+                  <td><span class="badge {{ infractionStatus(i.displayStatus).badge }}">{{ infractionStatus(i.displayStatus).label }}</span></td>
+                  <td class="text-end">
+                    <a class="btn btn-sm btn-outline-info" title="Ver infracción" [routerLink]="['/infractions', i.id]">
+                      <i class="fa-solid fa-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+
+    @if (!loading && current && current.totalPages > 1) {
+      <nav class="d-flex justify-content-end mt-3">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item" [class.disabled]="page === 0">
+            <button class="page-link" (click)="goTo(page - 1)">Anterior</button>
+          </li>
+          <li class="page-item active"><span class="page-link">{{ page + 1 }} / {{ current.totalPages }}</span></li>
+          <li class="page-item" [class.disabled]="page >= current.totalPages - 1">
+            <button class="page-link" (click)="goTo(page + 1)">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+    }
+  </c-card-body>
+</c-card>

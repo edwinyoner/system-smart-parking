@@ -1,52 +1,61 @@
 // src/app/core/models/parking-service/customer.model.ts
-/**
- * Modelo para Cliente/Conductor.
- * Los clientes se crean automáticamente en transaction-entry.
- */
+
+/** Cliente: conductor identificado con documento al entrar (se crea solo) */
 export interface Customer {
   id: number;
-  documentTypeId: number;
-  documentTypeName?: string;    
+  documentTypeId: number | null;
+  documentTypeCode: string | null;
   documentNumber: string;
-  firstName: string;
-  lastName: string;
-  fullName?: string;                // Computed en backend
-  phone?: string;
-  email?: string;
-  address?: string;
-  
-  registrationDate?: string;        // Fecha de registro inicial
-  firstSeenDate?: string;           // Primera vez en el sistema
-  lastSeenDate?: string;            // Última vez visto
-  totalVisits?: number;             // Contador de visitas
-  isRecurrent?: boolean;            // totalVisits > 1
-  
-  authExternalId?: number;          // App móvil (Fase 2)
-  hasMobileAccount?: boolean;       // Computed
-  
-  createdAt?: string;
-  updatedAt?: string;
-  deletedAt?: string;               // Soft delete
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  totalVisits: number;
+  vehicleCount: number;
+  firstSeenDate: string | null;
+  lastSeenDate: string | null;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
-/**
- * Request para ACTUALIZAR cliente.
- * NO se usa para crear (se crean en transaction-entry).
- */
-export interface CustomerUpdateRequest {
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  email?: string;
-  address?: string;
+export interface HistoryTotals {
+  stays: number;
+  /** Pagado por sus estadías, neto de devoluciones */
+  totalPaid: number;
+  infractions: number;
+  /** Falta cobrar de sus multas pendientes */
+  pendingFines: number;
 }
 
-/**
- * Filtros de búsqueda para listado.
- */
-export interface CustomerFilters {
-  pageNumber?: number;
-  pageSize?: number;
-  search?: string;      // Busca en nombre, apellido, documento
-  status?: 'ACTIVE' | 'DELETED' | 'ALL';
+export interface CustomerDetail {
+  customer: Customer;
+  vehicles: { vehicleId: number; plateNumber: string | null; usageCount: number; activeStayId: number | null }[];
+  totals: HistoryTotals;
+}
+
+/** Una estadía del historial de un cliente o de un vehículo */
+export interface StayHistory {
+  id: number;
+  plateNumber: string | null;
+  parkingId: number;
+  parkingName: string | null;
+  zoneName: string | null;
+  spaceCode: string | null;
+  entryTime: string;
+  exitTime: string | null;
+  durationMinutes: number | null;
+  status: string;
+  paymentStatus: string;
+  entryMethod: string | null;
+  totalAmount: number | null;
+  paidAmount: number;
+  currency: string;
+}
+
+export interface UpdateCustomerContactRequest {
+  phone: string | null;
+  email: string | null;
+  address: string | null;
 }
