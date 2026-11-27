@@ -84,4 +84,15 @@ public interface InfractionRepository extends JpaRepository<InfractionEntity, Lo
            AND (:vehicleId IS NULL OR i.vehicleId = :vehicleId)
          """)
    List<Object[]> historyTotals(@Param("customerId") Long customerId, @Param("vehicleId") Long vehicleId);
+
+   /** [parkingId, zoneId, cantidad] */
+   @Query("""
+         SELECT i.parkingId, i.zoneId, COUNT(i) FROM InfractionEntity i
+         WHERE i.detectedAt >= :fromTime AND i.detectedAt < :toTime
+           AND (:parkingId IS NULL OR i.parkingId = :parkingId)
+         GROUP BY i.parkingId, i.zoneId
+         """)
+   List<Object[]> countRegisteredBetween(@Param("fromTime") java.time.LocalDateTime from,
+                                         @Param("toTime") java.time.LocalDateTime to,
+                                         @Param("parkingId") Long parkingId);
 }

@@ -162,4 +162,18 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
    /** [vehicleId, transactionId] de las estadías en curso */
    @Query("SELECT t.vehicleId, t.id FROM TransactionEntity t WHERE t.status = 'ACTIVE' AND t.vehicleId IN :ids")
    java.util.List<Object[]> findActiveIdsByVehicleIds(@Param("ids") java.util.Collection<Long> ids);
+
+   // ========================= REPORTES =========================
+
+   @Query("""
+         SELECT new com.winnersystems.smartparking.parking.application.dto.query.StayWindow(
+                t.id, t.parkingId, t.zoneId, t.vehicleId, t.entryTime, t.exitTime, t.status)
+         FROM TransactionEntity t
+         WHERE t.entryTime < :toTime
+           AND (:parkingId IS NULL OR t.parkingId = :parkingId)
+           AND (t.exitTime >= :fromTime
+                OR (t.exitTime IS NULL AND (t.status = 'ACTIVE' OR t.entryTime >= :fromTime)))
+         """)
+   java.util.List<com.winnersystems.smartparking.parking.application.dto.query.StayWindow> findStayWindows(
+         @Param("fromTime") LocalDateTime from, @Param("toTime") LocalDateTime to, @Param("parkingId") Long parkingId);
 }

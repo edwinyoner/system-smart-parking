@@ -91,4 +91,13 @@ public class PaymentPersistenceAdapter implements PaymentPersistencePort {
       return PageResult.of(page.getContent().stream().map(mapper::toDomain).toList(),
             page.getNumber(), page.getSize(), page.getTotalElements());
    }
+
+   /** Estados que cuentan como cobrados en los reportes */
+   private static final java.util.Set<PaymentStatus> PAID_STATUSES =
+         java.util.EnumSet.of(PaymentStatus.COMPLETED, PaymentStatus.PARTIALLY_REFUNDED, PaymentStatus.REFUNDED);
+
+   @Override
+   public List<Payment> findPaidBetween(LocalDateTime from, LocalDateTime to, Long parkingId) {
+      return repository.findPaidBetween(PAID_STATUSES, from, to, parkingId).stream().map(mapper::toDomain).toList();
+   }
 }

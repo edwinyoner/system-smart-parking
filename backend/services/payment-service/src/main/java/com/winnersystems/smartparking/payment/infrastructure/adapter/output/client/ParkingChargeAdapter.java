@@ -27,7 +27,8 @@ public class ParkingChargeAdapter implements ChargePort {
    public ChargeQuote getCharge(PaymentConcept concept, Long sourceId) {
       try {
          ChargeResponse r = client.getCharge(concept.name(), sourceId);
-         return new ChargeQuote(r.amountDue(), r.description(), r.plateNumber(), r.payable(), r.reason());
+         return new ChargeQuote(r.amountDue(), r.description(), r.plateNumber(), r.parkingId(), r.parkingName(),
+               r.payable(), r.reason());
       } catch (FeignException.NotFound e) {
          throw new ResourceNotFoundException(
                (concept == PaymentConcept.FINE ? "Multa" : "Estadía") + " no encontrada con ID: " + sourceId);

@@ -37,4 +37,10 @@ public interface InfractionPersistencePort {
 
    /** Cantidad de infracciones y lo que falta cobrar de las pendientes, de un cliente o de un vehículo */
    TransactionPersistencePort.HistoryTotals historyTotals(Long customerId, Long vehicleId);
+
+   /** Infracciones registradas en [from, to), agrupadas por parqueo y zona (zoneId puede ser null) */
+   List<ZoneCount> countRegisteredBetween(java.time.LocalDateTime from, java.time.LocalDateTime to, Long parkingId);
+
+   record ZoneCount(Long parkingId, Long zoneId, long count) {
+   }
 }

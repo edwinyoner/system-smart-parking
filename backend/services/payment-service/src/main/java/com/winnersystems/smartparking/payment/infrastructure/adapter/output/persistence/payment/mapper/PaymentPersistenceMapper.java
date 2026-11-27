@@ -15,6 +15,8 @@ public class PaymentPersistenceMapper {
       p.setSourceId(e.getSourceId());
       p.setDescription(e.getDescription());
       p.setPlateNumber(e.getPlateNumber());
+      p.setParkingId(e.getParkingId());
+      p.setParkingName(e.getParkingName());
       p.setPaymentTypeId(e.getPaymentTypeId());
       p.setPaymentTypeCode(e.getPaymentTypeCode());
       p.setPaymentTypeName(e.getPaymentTypeName());
@@ -60,6 +62,8 @@ public class PaymentPersistenceMapper {
       }
       e.setDescription(p.getDescription());
       e.setPlateNumber(p.getPlateNumber());
+      e.setParkingId(p.getParkingId());
+      e.setParkingName(p.getParkingName());
       e.setStatus(p.getStatus());
       e.setGatewayReference(p.getGatewayReference());
       e.setQrPayload(p.getQrPayload());

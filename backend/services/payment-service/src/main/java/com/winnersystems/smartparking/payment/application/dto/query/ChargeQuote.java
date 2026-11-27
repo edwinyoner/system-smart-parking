@@ -11,6 +11,8 @@ public record ChargeQuote(
       BigDecimal amountDue,
       String description,
       String plateNumber,
+      Long parkingId,
+      String parkingName,
       boolean payable,
       String reason
 ) {

@@ -253,4 +253,12 @@ public class TransactionPersistenceAdapter implements TransactionPersistencePort
       }
       return map;
    }
+
+   // ========================= REPORTES =========================
+
+   @Override
+   public java.util.List<com.winnersystems.smartparking.parking.application.dto.query.StayWindow> findStayWindows(
+         LocalDateTime from, LocalDateTime to, Long parkingId) {
+      return transactionRepository.findStayWindows(from, to, parkingId);
+   }
 }

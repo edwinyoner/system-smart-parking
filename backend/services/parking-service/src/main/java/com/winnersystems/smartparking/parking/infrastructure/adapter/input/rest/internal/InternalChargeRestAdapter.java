@@ -34,7 +34,7 @@ public class InternalChargeRestAdapter {
    public ResponseEntity<ChargeResponse> getCharge(@PathVariable ChargeConcept concept, @PathVariable Long sourceId) {
       ChargeDto d = getChargeUseCase.getCharge(concept, sourceId);
       return ResponseEntity.ok(new ChargeResponse(d.concept(), d.sourceId(), d.amountDue(), d.currency(),
-            d.description(), d.plateNumber(), d.payable(), d.reason()));
+            d.description(), d.plateNumber(), d.parkingId(), d.parkingName(), d.payable(), d.reason()));
    }
 
    /** Registra el estado de un pago. Idempotente: el mismo aviso dos veces no cambia nada */

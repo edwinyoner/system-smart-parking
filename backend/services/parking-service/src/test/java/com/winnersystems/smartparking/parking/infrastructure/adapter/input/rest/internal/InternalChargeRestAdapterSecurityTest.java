@@ -34,7 +34,7 @@ class InternalChargeRestAdapterSecurityTest {
       @Bean GetChargeUseCase get() {
          GetChargeUseCase get = mock(GetChargeUseCase.class);
          when(get.getCharge(any(), any())).thenReturn(
-               new ChargeDto(ChargeConcept.PARKING_STAY, 1L, BigDecimal.ONE, "PEN", null, null, true, null));
+               new ChargeDto(ChargeConcept.PARKING_STAY, 1L, BigDecimal.ONE, "PEN", null, null, 1L, null, true, null));
          return get;
       }
       @Bean SettleChargeUseCase settle() { return mock(SettleChargeUseCase.class); }

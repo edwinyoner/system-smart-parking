@@ -12,6 +12,8 @@ public record ChargeResponse(
       String currency,
       String description,
       String plateNumber,
+      Long parkingId,
+      String parkingName,
       boolean payable,
       String reason
 ) {

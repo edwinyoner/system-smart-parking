@@ -49,4 +49,16 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
                               @Param("toDate") LocalDateTime toDate,
                               @Param("search") String search,
                               Pageable pageable);
+
+   @Query("""
+         SELECT p FROM PaymentEntity p
+         WHERE p.status IN :statuses
+           AND p.paidAt >= :fromTime AND p.paidAt < :toTime
+           AND (:parkingId IS NULL OR p.parkingId = :parkingId)
+         ORDER BY p.paidAt
+         """)
+   List<PaymentEntity> findPaidBetween(@Param("statuses") Collection<PaymentStatus> statuses,
+                                       @Param("fromTime") LocalDateTime from,
+                                       @Param("toTime") LocalDateTime to,
+                                       @Param("parkingId") Long parkingId);
 }

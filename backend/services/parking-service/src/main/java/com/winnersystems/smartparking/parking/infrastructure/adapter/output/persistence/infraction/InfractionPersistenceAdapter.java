@@ -125,4 +125,11 @@ public class InfractionPersistenceAdapter implements InfractionPersistencePort {
       return new com.winnersystems.smartparking.parking.application.port.output.TransactionPersistencePort.HistoryTotals(
             number(r[0]), pending.signum() < 0 ? BigDecimal.ZERO : pending);
    }
+
+   @Override
+   public List<ZoneCount> countRegisteredBetween(java.time.LocalDateTime from, java.time.LocalDateTime to, Long parkingId) {
+      return repository.countRegisteredBetween(from, to, parkingId).stream()
+            .map(r -> new ZoneCount((Long) r[0], (Long) r[1], ((Number) r[2]).longValue()))
+            .toList();
+   }
 }

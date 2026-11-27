@@ -97,4 +97,13 @@ public interface TransactionPersistencePort {
 
    record HistoryTotals(long count, java.math.BigDecimal amount) {
    }
+
+   /**
+    * Estadías que estuvieron dentro en algún momento de [from, to), más las canceladas que
+    * entraron en ese intervalo (para contarlas aparte). Para los reportes.
+    *
+    * @param parkingId null = todos los parqueos
+    */
+   java.util.List<com.winnersystems.smartparking.parking.application.dto.query.StayWindow> findStayWindows(
+         java.time.LocalDateTime from, java.time.LocalDateTime to, Long parkingId);
 }

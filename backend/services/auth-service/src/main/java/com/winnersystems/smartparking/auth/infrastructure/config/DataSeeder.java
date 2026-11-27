@@ -203,8 +203,8 @@ public class DataSeeder implements CommandLineRunner {
             {"rates.restore", "Ver tarifas eliminadas y restaurarlas"},
 
             // ========== REPORTES ==========
-            {"reports.view", "Ver reportes y estadísticas del sistema"},
-            {"reports.export", "Exportar reportes (PDF, Excel)"}
+            {"reports.view", "Ver reportes: diario, ingresos y ocupación por hora"},
+            {"reports.export", "Exportar reportes (CSV y PDF)"}
       };
 
       for (String[] perm : permissions) {
@@ -325,9 +325,8 @@ public class DataSeeder implements CommandLineRunner {
                   // Registrar y ver infracciones (el cobro de la multa va con payments.process)
                   "infractions.create", "infractions.read",
                   // Solo lectura de tarifas
-                  "rates.read",
-                  // Ver reportes (sin exportar)
-                  "reports.view"
+                  // Solo lectura de tarifas (los reportes, con ingresos de todos los parqueos, son de gestión)
+                  "rates.read"
             ))
             .build();
 

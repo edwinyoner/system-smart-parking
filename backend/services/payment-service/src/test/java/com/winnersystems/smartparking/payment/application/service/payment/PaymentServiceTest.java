@@ -70,7 +70,7 @@ class PaymentServiceTest {
       when(types.findById(2L)).thenReturn(Optional.of(type(2L, "CASH", ConfirmationMode.MANUAL, Set.of(PaymentChannel.OPERATOR))));
 
       when(charges.getCharge(PaymentConcept.PARKING_STAY, 15L))
-            .thenReturn(new ChargeQuote(new BigDecimal("7.50"), "Estadía ABC-123", "ABC-123", true, null));
+            .thenReturn(new ChargeQuote(new BigDecimal("7.50"), "Estadía ABC-123", "ABC-123", 1L, "Parqueo San Martín", true, null));
       when(gateway.createQrCharge(anyLong(), any(), any(), any()))
             .thenAnswer(inv -> new GatewayCharge("SIM-" + inv.getArgument(0), "QR-DATA", inv.getArgument(3)));
 
@@ -146,13 +146,13 @@ class PaymentServiceTest {
    void conflicts() {
       payCash();
       when(charges.getCharge(PaymentConcept.PARKING_STAY, 15L))
-            .thenReturn(new ChargeQuote(new BigDecimal("2.50"), "Estadía ABC-123", "ABC-123", true, null));
+            .thenReturn(new ChargeQuote(new BigDecimal("2.50"), "Estadía ABC-123", "ABC-123", 1L, "Parqueo San Martín", true, null));
       assertThat(payCash().amount()).isEqualByComparingTo("2.50");
       when(charges.getCharge(PaymentConcept.PARKING_STAY, 15L))
-            .thenReturn(new ChargeQuote(BigDecimal.ZERO, null, null, false, "La estadía ya está pagada"));
+            .thenReturn(new ChargeQuote(BigDecimal.ZERO, null, null, null, null, false, "La estadía ya está pagada"));
       assertThatThrownBy(this::payQr).isInstanceOf(ResourceConflictException.class).hasMessage("La estadía ya está pagada");
 
-      when(charges.getCharge(PaymentConcept.FINE, 7L)).thenReturn(new ChargeQuote(null, null, null, false, "La multa fue anulada"));
+      when(charges.getCharge(PaymentConcept.FINE, 7L)).thenReturn(new ChargeQuote(null, null, null, null, null, false, "La multa fue anulada"));
       assertThatThrownBy(() -> service.createPayment(new CreatePaymentCommand(PaymentConcept.FINE, 7L, 2L, null, null)))
             .isInstanceOf(ResourceConflictException.class).hasMessage("La multa fue anulada");
    }

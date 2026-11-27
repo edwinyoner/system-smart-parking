@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 /**
  * Cuánto se debe por una estadía o una multa (lo consulta payment-service antes de cobrar).
  *
+ * @param parkingId   parqueo de la estadía o de la multa (payment-service lo copia para sus reportes)
  * @param payable false si no se puede pagar ahora; reason explica por qué
  */
 public record ChargeDto(
@@ -16,6 +17,8 @@ public record ChargeDto(
       String currency,
       String description,
       String plateNumber,
+      Long parkingId,
+      String parkingName,
       boolean payable,
       String reason
 ) {

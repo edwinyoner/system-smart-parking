@@ -74,13 +74,14 @@ public class ChargeService implements GetChargeUseCase, SettleChargeUseCase {
    private ChargeDto stayCharge(Long transactionId) {
       Transaction t = loadTransaction(transactionId);
       String plate = plateOf(t.getVehicleId());
+      String parkingName = parkingNameOf(t.getParkingId());
       String description = "Estadía " + (plate != null ? plate : "#" + t.getId())
-            + parkingPort.findByIdIncludingDeleted(t.getParkingId()).map(p -> " · " + p.getName()).orElse("");
+            + (parkingName != null ? " · " + parkingName : "");
 
       if (!t.isActive()) {
          String reason = t.isCancelled() ? "La estadía fue anulada" : "El vehículo ya salió";
          return new ChargeDto(ChargeConcept.PARKING_STAY, t.getId(), BigDecimal.ZERO, t.getCurrency(), description,
-               plate, false, reason);
+               plate, t.getParkingId(), parkingName, false, reason);
       }
       BigDecimal due = t.amountDueAt(LocalDateTime.now(clock), loadRate(t.getRateId()), exitWindowMinutes);
       if (due.signum() == 0) {
@@ -88,9 +89,14 @@ public class ChargeService implements GetChargeUseCase, SettleChargeUseCase {
                ? "La estadía ya está pagada: el vehículo puede salir"
                : "Sin costo: el vehículo sale dentro del tiempo de gracia";
          return new ChargeDto(ChargeConcept.PARKING_STAY, t.getId(), BigDecimal.ZERO, t.getCurrency(), description,
-               plate, false, reason);
+               plate, t.getParkingId(), parkingName, false, reason);
       }
-      return new ChargeDto(ChargeConcept.PARKING_STAY, t.getId(), due, t.getCurrency(), description, plate, true, null);
+      return new ChargeDto(ChargeConcept.PARKING_STAY, t.getId(), due, t.getCurrency(), description, plate,
+            t.getParkingId(), parkingName, true, null);
+   }
+
+   private String parkingNameOf(Long parkingId) {
+      return parkingPort.findByIdIncludingDeleted(parkingId).map(p -> p.getName()).orElse(null);
    }
 
    private ChargeDto fineCharge(Long infractionId) {
@@ -98,13 +104,16 @@ public class ChargeService implements GetChargeUseCase, SettleChargeUseCase {
       // La infracción guarda su placa; las antiguas sin copia la toman del vehículo
       String plate = i.getPlateNumber() != null ? i.getPlateNumber() : plateOf(i.getVehicleId());
       String description = "Multa " + i.getInfractionCode() + (plate != null ? " · " + plate : "");
+      String parkingName = parkingNameOf(i.getParkingId());
       if (!i.isFinePayable()) {
          String reason = !i.hasFine() ? "La infracción no tiene multa por pagar"
                : i.isFinePaid() ? "La multa ya está pagada"
                : !i.isPending() ? "La infracción está cerrada" : "La multa no se puede pagar";
-         return new ChargeDto(ChargeConcept.FINE, i.getId(), BigDecimal.ZERO, "PEN", description, plate, false, reason);
+         return new ChargeDto(ChargeConcept.FINE, i.getId(), BigDecimal.ZERO, "PEN", description, plate,
+               i.getParkingId(), parkingName, false, reason);
       }
-      return new ChargeDto(ChargeConcept.FINE, i.getId(), i.getFineAmountDue(), "PEN", description, plate, true, null);
+      return new ChargeDto(ChargeConcept.FINE, i.getId(), i.getFineAmountDue(), "PEN", description, plate,
+            i.getParkingId(), parkingName, true, null);
    }
 
    // ========================= LIQUIDACIÓN =========================

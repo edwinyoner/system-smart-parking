@@ -18,7 +18,8 @@ import java.time.LocalDateTime;
       @Index(name = "IX_PAYMENTS_SOURCE", columnList = "CONCEPT, SOURCE_ID"),
       @Index(name = "IX_PAYMENTS_GATEWAY_REF", columnList = "GATEWAY_REFERENCE"),
       @Index(name = "IX_PAYMENTS_STATUS", columnList = "STATUS, EXPIRES_AT"),
-      @Index(name = "IX_PAYMENTS_TYPE", columnList = "PAYMENT_TYPE_ID")
+      @Index(name = "IX_PAYMENTS_TYPE", columnList = "PAYMENT_TYPE_ID"),
+      @Index(name = "IX_PAYMENTS_PAID_AT", columnList = "STATUS, PAID_AT")
 })
 @Getter
 @Setter
@@ -42,6 +43,12 @@ public class PaymentEntity {
 
    @Column(name = "PLATE_NUMBER", length = 15)
    private String plateNumber;
+
+   @Column(name = "PARKING_ID")
+   private Long parkingId;
+
+   @Column(name = "PARKING_NAME", length = 100)
+   private String parkingName;
 
    @Column(name = "PAYMENT_TYPE_ID", nullable = false)
    private Long paymentTypeId;

@@ -98,7 +98,7 @@ public class PaymentService implements
          throw new ResourceConflictException(quote.reason() != null ? quote.reason() : "No hay nada por pagar");
       }
       Payment.Charge charge = new Payment.Charge(command.concept(), command.sourceId(),
-            quote.amountDue(), quote.description(), quote.plateNumber());
+            quote.amountDue(), quote.description(), quote.plateNumber(), quote.parkingId(), quote.parkingName());
 
       // 2. Si ya se pagó todo, parking-service responde payable = false (arriba). Si aún se debe
       //    (por ejemplo, la diferencia por pasarse del tiempo para salir), se cobra lo que falta.

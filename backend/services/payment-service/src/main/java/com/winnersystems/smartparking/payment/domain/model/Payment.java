@@ -29,6 +29,8 @@ public class Payment {
    private Long sourceId;
    private String description;                // "Estadía ABC-123 · Parqueo San Martín" (para el comprobante)
    private String plateNumber;                // Placa, si la hay (estadías y multas con vehículo)
+   private Long parkingId;                    // Parqueo de la estadía o la multa (copiado para los reportes)
+   private String parkingName;
 
    // Tipo de pago: ID y copia de sus datos al momento de pagar (el tipo puede cambiar después)
    private Long paymentTypeId;
@@ -73,7 +75,12 @@ public class Payment {
    // ========================= CREACIÓN =========================
 
    /** Lo que se cobra, según parking-service */
-   public record Charge(PaymentConcept concept, Long sourceId, BigDecimal amount, String description, String plateNumber) {
+   public record Charge(PaymentConcept concept, Long sourceId, BigDecimal amount, String description, String plateNumber,
+                        Long parkingId, String parkingName) {
+
+      public Charge(PaymentConcept concept, Long sourceId, BigDecimal amount, String description, String plateNumber) {
+         this(concept, sourceId, amount, description, plateNumber, null, null);
+      }
    }
 
    /** Pago en efectivo (u otro manual): el operador confirma al cobrar */
@@ -117,6 +124,8 @@ public class Payment {
       p.sourceId = charge.sourceId();
       p.description = blankToNull(charge.description());
       p.plateNumber = blankToNull(charge.plateNumber());
+      p.parkingId = charge.parkingId();
+      p.parkingName = blankToNull(charge.parkingName());
       p.amount = charge.amount().setScale(2, RoundingMode.HALF_UP);
       p.paymentTypeId = type.getId();
       p.paymentTypeCode = type.getCode();
@@ -282,6 +291,10 @@ public class Payment {
    public void setDescription(String description) { this.description = description; }
    public String getPlateNumber() { return plateNumber; }
    public void setPlateNumber(String plateNumber) { this.plateNumber = plateNumber; }
+   public Long getParkingId() { return parkingId; }
+   public void setParkingId(Long parkingId) { this.parkingId = parkingId; }
+   public String getParkingName() { return parkingName; }
+   public void setParkingName(String parkingName) { this.parkingName = parkingName; }
    public Long getPaymentTypeId() { return paymentTypeId; }
    public void setPaymentTypeId(Long paymentTypeId) { this.paymentTypeId = paymentTypeId; }
    public String getPaymentTypeCode() { return paymentTypeCode; }

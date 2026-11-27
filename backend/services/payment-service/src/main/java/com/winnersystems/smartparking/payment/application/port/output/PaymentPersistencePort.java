@@ -31,4 +31,11 @@ public interface PaymentPersistencePort {
    long countByPaymentTypeId(Long paymentTypeId);
 
    PageResult<Payment> search(PaymentSearchCriteria criteria, PageRequest pageRequest);
+
+   /**
+    * Pagos cobrados (COMPLETED, PARTIALLY_REFUNDED, REFUNDED) con paidAt en [from, to).
+    *
+    * @param parkingId null = todos los parqueos
+    */
+   List<Payment> findPaidBetween(LocalDateTime from, LocalDateTime to, Long parkingId);
 }
