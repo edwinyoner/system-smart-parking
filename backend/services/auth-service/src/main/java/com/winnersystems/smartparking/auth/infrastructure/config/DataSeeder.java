@@ -195,11 +195,10 @@ public class DataSeeder implements CommandLineRunner {
             {"payments.cancel", "Cancelar pagos"},
 
             // Infracciones
-            {"infractions.create", "Crear nuevas infracciones"},
+            {"infractions.create", "Registrar infracciones (estando de turno en el parqueo)"},
             {"infractions.read", "Ver infracciones registradas"},
-            {"infractions.update", "Actualizar infracciones"},
-            {"infractions.delete", "Eliminar infracciones"},
-            {"infractions.resolve", "Resolver infracciones"},
+            {"infractions.update", "Editar infracciones pendientes y su multa"},
+            {"infractions.resolve", "Anular infracciones o cerrarlas con amonestación"},
 
             // ========== GESTIÓN DE TARIFAS ==========
             {"rates.create", "Crear nuevas tarifas"},
@@ -290,7 +289,7 @@ public class DataSeeder implements CommandLineRunner {
                   // Ver pagos
                   "payments.view",
                   // Gestión de Infracciones
-                  "infractions.create", "infractions.read", "infractions.update", "infractions.delete", "infractions.resolve",
+                  "infractions.create", "infractions.read", "infractions.update", "infractions.resolve",
                   // Gestión completa de tarifas
                   "rates.create", "rates.read", "rates.update", "rates.delete", "rates.restore",
                   // Reportes
@@ -328,8 +327,8 @@ public class DataSeeder implements CommandLineRunner {
                   "payment-types.read",
                   // Procesar pagos
                   "payments.process", "payments.view",
-                  // Ver infracciones
-                  "infractions.read",
+                  // Registrar y ver infracciones (el cobro de la multa va con payments.process)
+                  "infractions.create", "infractions.read",
                   // Solo lectura de tarifas
                   "rates.read",
                   // Ver reportes (sin exportar)

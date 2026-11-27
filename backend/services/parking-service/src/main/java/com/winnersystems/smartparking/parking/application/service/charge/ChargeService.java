@@ -95,11 +95,13 @@ public class ChargeService implements GetChargeUseCase, SettleChargeUseCase {
 
    private ChargeDto fineCharge(Long infractionId) {
       Infraction i = loadInfraction(infractionId);
-      String plate = plateOf(i.getVehicleId());
+      // La infracción guarda su placa; las antiguas sin copia la toman del vehículo
+      String plate = i.getPlateNumber() != null ? i.getPlateNumber() : plateOf(i.getVehicleId());
       String description = "Multa " + i.getInfractionCode() + (plate != null ? " · " + plate : "");
       if (!i.isFinePayable()) {
          String reason = !i.hasFine() ? "La infracción no tiene multa por pagar"
-               : i.isFinePaid() ? "La multa ya está pagada" : "La multa no se puede pagar";
+               : i.isFinePaid() ? "La multa ya está pagada"
+               : !i.isPending() ? "La infracción está cerrada" : "La multa no se puede pagar";
          return new ChargeDto(ChargeConcept.FINE, i.getId(), BigDecimal.ZERO, "PEN", description, plate, false, reason);
       }
       return new ChargeDto(ChargeConcept.FINE, i.getId(), i.getFineAmountDue(), "PEN", description, plate, true, null);
@@ -157,7 +159,6 @@ public class ChargeService implements GetChargeUseCase, SettleChargeUseCase {
 
    private Infraction loadInfraction(Long id) {
       return infractionPort.findById(id)
-            .filter(i -> !i.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Multa", id));
    }
 

@@ -6,169 +6,69 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
-/**
- * Repositorio JPA para InfractionEntity.
- *
- * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
- */
-@Repository
 public interface InfractionRepository extends JpaRepository<InfractionEntity, Long> {
 
-   // ========================= FIND ÚNICO =========================
-
    /**
-    * Busca infracción por código único.
-    * UK: INFRACTION_CODE
-    */
-   Optional<InfractionEntity> findByInfractionCode(String infractionCode);
-
-   // ========================= EXISTS =========================
-
-   boolean existsByInfractionCode(String infractionCode);
-
-   // ========================= FIND CON FILTROS (paginado) =========================
-
-   /**
-    * Lista todas las infracciones con filtros opcionales.
-    * - search: busca en código de infracción
-    * - status: "PENDING", "IN_REVIEW", "RESOLVED", "ESCALATED", "ALL"
+    * Búsqueda con filtros opcionales.
+    * - status/resolution: estado guardado y tipo de resolución (null = cualquiera)
+    * - overdue: solo pendientes con saldo y fecha límite pasada
+    * - term: parte de la placa sin guion o del código
     */
    @Query("""
-      SELECT i FROM InfractionEntity i
-      WHERE (:status = 'ALL' OR i.status = :status)
-      AND (:search IS NULL OR :search = ''
-         OR UPPER(i.infractionCode) LIKE UPPER(CONCAT('%', :search, '%')))
-      AND i.deletedAt IS NULL
-      ORDER BY i.detectedAt DESC
-      """)
-   Page<InfractionEntity> findAllWithFilters(
-         @Param("search") String search,
-         @Param("status") String status,
-         Pageable pageable
-   );
+         SELECT i FROM InfractionEntity i
+         WHERE (:status IS NULL OR i.status = :status)
+           AND (:resolution IS NULL OR i.resolutionType = :resolution)
+           AND (:overdue = false OR (i.status = 'PENDING' AND i.fineAmount IS NOT NULL
+                AND i.finePaid = false AND i.fineDueDate < :today))
+           AND (:parkingId IS NULL OR i.parkingId = :parkingId)
+           AND (:type IS NULL OR i.infractionType = :type)
+           AND (:term IS NULL OR REPLACE(i.plateNumber, '-', '') LIKE CONCAT('%', :term, '%')
+                OR REPLACE(i.infractionCode, '-', '') LIKE CONCAT('%', :term, '%'))
+           AND (:fromTime IS NULL OR i.detectedAt >= :fromTime)
+           AND (:toTime IS NULL OR i.detectedAt < :toTime)
+         ORDER BY i.detectedAt DESC, i.id DESC
+         """)
+   Page<InfractionEntity> search(@Param("status") String status,
+                                 @Param("resolution") String resolution,
+                                 @Param("overdue") boolean overdue,
+                                 @Param("today") LocalDate today,
+                                 @Param("parkingId") Long parkingId,
+                                 @Param("type") String type,
+                                 @Param("term") String term,
+                                 @Param("fromTime") LocalDateTime fromTime,
+                                 @Param("toTime") LocalDateTime toTime,
+                                 Pageable pageable);
 
-   /**
-    * Lista infracciones por vehículo.
-    */
+   List<InfractionEntity> findByTransactionIdOrderByDetectedAtDesc(Long transactionId);
+
+   Page<InfractionEntity> findByVehicleIdOrderByDetectedAtDesc(Long vehicleId, Pageable pageable);
+
+   /** [pendientes, vencidas, pagadas, anuladas, amonestaciones] */
    @Query("""
-      SELECT i FROM InfractionEntity i
-      WHERE i.vehicleId = :vehicleId
-      AND i.deletedAt IS NULL
-      ORDER BY i.detectedAt DESC
-      """)
-   Page<InfractionEntity> findByVehicleId(
-         @Param("vehicleId") Long vehicleId,
-         Pageable pageable
-   );
+         SELECT
+           SUM(CASE WHEN i.status = 'PENDING' THEN 1 ELSE 0 END),
+           SUM(CASE WHEN i.status = 'PENDING' AND i.fineAmount IS NOT NULL AND i.finePaid = false
+                    AND i.fineDueDate < :today THEN 1 ELSE 0 END),
+           SUM(CASE WHEN i.resolutionType = 'PAID' THEN 1 ELSE 0 END),
+           SUM(CASE WHEN i.resolutionType = 'DISMISSED' THEN 1 ELSE 0 END),
+           SUM(CASE WHEN i.resolutionType = 'WARNING' THEN 1 ELSE 0 END)
+         FROM InfractionEntity i
+         WHERE (:parkingId IS NULL OR i.parkingId = :parkingId)
+         """)
+   List<Object[]> countByState(@Param("parkingId") Long parkingId, @Param("today") LocalDate today);
 
-   /**
-    * Lista infracciones por cliente.
-    */
+   /** Multa total y lo pagado de las pendientes con multa (la resta se hace en Java) */
    @Query("""
-      SELECT i FROM InfractionEntity i
-      WHERE i.customerId = :customerId
-      AND i.deletedAt IS NULL
-      ORDER BY i.detectedAt DESC
-      """)
-   Page<InfractionEntity> findByCustomerId(
-         @Param("customerId") Long customerId,
-         Pageable pageable
-   );
-
-   /**
-    * Lista infracciones por transacción.
-    */
-   @Query("""
-      SELECT i FROM InfractionEntity i
-      WHERE i.transactionId = :transactionId
-      AND i.deletedAt IS NULL
-      ORDER BY i.detectedAt DESC
-      """)
-   List<InfractionEntity> findByTransactionId(@Param("transactionId") Long transactionId);
-
-   /**
-    * Lista infracciones con multas pendientes.
-    * Condición: fineAmount > 0 AND finePaid = false
-    */
-   @Query("""
-      SELECT i FROM InfractionEntity i
-      WHERE i.fineAmount IS NOT NULL
-      AND i.fineAmount > 0
-      AND i.finePaid = false
-      AND i.deletedAt IS NULL
-      ORDER BY i.fineDueDate ASC
-      """)
-   Page<InfractionEntity> findWithPendingFines(Pageable pageable);
-
-   /**
-    * Lista infracciones con multas vencidas.
-    * Condición: fineDueDate < now AND finePaid = false
-    */
-   @Query("""
-      SELECT i FROM InfractionEntity i
-      WHERE i.fineDueDate < :now
-      AND i.finePaid = false
-      AND i.deletedAt IS NULL
-      ORDER BY i.fineDueDate ASC
-      """)
-   Page<InfractionEntity> findWithOverdueFines(
-         @Param("now") LocalDateTime now,
-         Pageable pageable
-   );
-
-   /**
-    * Lista infracciones por rango de fechas de detección.
-    */
-   @Query("""
-      SELECT i FROM InfractionEntity i
-      WHERE i.detectedAt BETWEEN :startDate AND :endDate
-      AND i.deletedAt IS NULL
-      ORDER BY i.detectedAt DESC
-      """)
-   Page<InfractionEntity> findByDetectionDateRange(
-         @Param("startDate") LocalDateTime startDate,
-         @Param("endDate") LocalDateTime endDate,
-         Pageable pageable
-   );
-
-   // ========================= LIST (sin paginación) =========================
-
-   /**
-    * Lista todas las infracciones pendientes.
-    */
-   @Query("""
-      SELECT i FROM InfractionEntity i
-      WHERE i.status = 'PENDING'
-      AND i.deletedAt IS NULL
-      ORDER BY i.detectedAt DESC
-      """)
-   List<InfractionEntity> findAllPending();
-
-   // ========================= COUNT =========================
-
-   long countByStatus(String status);
-
-   @Query("""
-      SELECT COUNT(i) FROM InfractionEntity i
-      WHERE i.fineAmount IS NOT NULL
-      AND i.fineAmount > 0
-      AND i.finePaid = false
-      AND i.deletedAt IS NULL
-      """)
-   long countPendingFines();
-
-   @Query("""
-      SELECT COUNT(i) FROM InfractionEntity i
-      WHERE i.fineDueDate < :now
-      AND i.finePaid = false
-      AND i.deletedAt IS NULL
-      """)
-   long countOverdueFines(@Param("now") LocalDateTime now);
+         SELECT COALESCE(SUM(i.fineAmount), 0), COALESCE(SUM(i.finePaidAmount), 0)
+         FROM InfractionEntity i
+         WHERE i.status = 'PENDING' AND i.fineAmount IS NOT NULL
+           AND (:parkingId IS NULL OR i.parkingId = :parkingId)
+         """)
+   List<Object[]> pendingFineTotals(@Param("parkingId") Long parkingId);
 }

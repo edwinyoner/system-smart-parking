@@ -129,7 +129,8 @@ class ChargeServiceTest {
       Infraction fine = new Infraction();
       fine.setId(7L);
       fine.setInfractionCode("INF-7");
-      fine.assignFine(new BigDecimal("50"));
+      fine.setStatus(Infraction.STATUS_PENDING);
+      fine.setFineAmount(new BigDecimal("50"));
       when(infractions.findById(7L)).thenReturn(Optional.of(fine));
       assertThatThrownBy(() -> service.settleCharge(new SettleChargeCommand(ChargeConcept.FINE, 7L, 42L, "COMPLETED",
             new BigDecimal("50"), BigDecimal.ZERO, ENTRY)))
@@ -143,7 +144,8 @@ class ChargeServiceTest {
       fine.setId(7L);
       fine.setInfractionCode("INF-7");
       fine.setVehicleId(1L);
-      fine.assignFine(new BigDecimal("50"));
+      fine.setStatus(Infraction.STATUS_PENDING);
+      fine.setFineAmount(new BigDecimal("50"));
       when(infractions.findById(7L)).thenReturn(Optional.of(fine));
 
       ChargeDto c = service.getCharge(ChargeConcept.FINE, 7L);

@@ -1,370 +1,308 @@
 package com.winnersystems.smartparking.parking.application.service.infraction;
 
-import com.winnersystems.smartparking.parking.application.dto.command.*;
+import com.winnersystems.smartparking.parking.application.dto.command.ChangeInfractionFineCommand;
+import com.winnersystems.smartparking.parking.application.dto.command.EditInfractionCommand;
+import com.winnersystems.smartparking.parking.application.dto.command.RegisterInfractionCommand;
 import com.winnersystems.smartparking.parking.application.dto.query.*;
-import com.winnersystems.smartparking.parking.application.port.input.infraction.*;
+import com.winnersystems.smartparking.parking.application.port.input.infraction.ManageInfractionsUseCase;
 import com.winnersystems.smartparking.parking.application.port.output.*;
+import com.winnersystems.smartparking.parking.application.service.transaction.OperatorDutyChecker;
+import com.winnersystems.smartparking.parking.domain.exception.ParkingDomainException;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceConflictException;
+import com.winnersystems.smartparking.parking.domain.exception.ResourceNotFoundException;
 import com.winnersystems.smartparking.parking.domain.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * Servicio de aplicación para gestión de infracciones.
+ * Infracciones: registro, consulta, edición de la multa y resolución.
  *
- * Responsabilidades:
- * - Crear y actualizar infracciones
- * - Asignar multas
- * - Registrar pagos de multas
- * - Resolver infracciones
- * - Listar con filtros múltiples
+ * Reglas:
+ * - Se identifica por la placa: el vehículo se busca o se crea.
+ * - Zona del mismo parqueo y espacio de esa zona; la estadía (si se indica) del mismo parqueo y placa.
+ * - Quien registra debe estar de turno en ese parqueo o zona (regla 8), salvo con
+ *   transactions.any-parking.
+ * - El cobro es de payment-service; aquí no se registran pagos.
  *
  * @author Edwin Yoner - Winner Systems - Smart Parking Platform
- * @version 1.0
  */
 @Service
 @Transactional
-public class InfractionService implements
-      CreateInfractionUseCase,
-      GetInfractionUseCase,
-      UpdateInfractionUseCase,
-      ListInfractionsUseCase,
-      AssignFineUseCase {
+public class InfractionService implements ManageInfractionsUseCase {
 
-   // ========================= PUERTOS DE SALIDA =========================
+   private static final Logger log = LoggerFactory.getLogger(InfractionService.class);
 
-   private final InfractionPersistencePort infractionPersistencePort;
-   private final ParkingPersistencePort parkingPersistencePort;
-   private final ZonePersistencePort zonePersistencePort;
-   private final VehiclePersistencePort vehiclePersistencePort;
-   private final CustomerPersistencePort customerPersistencePort;
+   private final InfractionPersistencePort infractionPort;
+   private final ParkingPersistencePort parkingPort;
+   private final ZonePersistencePort zonePort;
+   private final SpacePersistencePort spacePort;
+   private final TransactionPersistencePort transactionPort;
+   private final VehiclePersistencePort vehiclePort;
+   private final CustomerPersistencePort customerPort;
+   private final UserDirectoryPort userDirectoryPort;
    private final CurrentUserPort currentUserPort;
+   private final OperatorDutyChecker dutyChecker;
+   private final Clock clock;
+   private final int defaultDueDays;
 
-   // ========================= CONSTRUCTOR =========================
-
-   public InfractionService(
-         InfractionPersistencePort infractionPersistencePort,
-         ParkingPersistencePort parkingPersistencePort,
-         ZonePersistencePort zonePersistencePort,
-         VehiclePersistencePort vehiclePersistencePort,
-         CustomerPersistencePort customerPersistencePort,
-         CurrentUserPort currentUserPort) {
+   public InfractionService(InfractionPersistencePort infractionPort,
+                            ParkingPersistencePort parkingPort,
+                            ZonePersistencePort zonePort,
+                            SpacePersistencePort spacePort,
+                            TransactionPersistencePort transactionPort,
+                            VehiclePersistencePort vehiclePort,
+                            CustomerPersistencePort customerPort,
+                            UserDirectoryPort userDirectoryPort,
+                            CurrentUserPort currentUserPort,
+                            OperatorDutyChecker dutyChecker,
+                            Clock clock,
+                            @Value("${parking.infractions.default-due-days:7}") int defaultDueDays) {
+      this.infractionPort = infractionPort;
+      this.parkingPort = parkingPort;
+      this.zonePort = zonePort;
+      this.spacePort = spacePort;
+      this.transactionPort = transactionPort;
+      this.vehiclePort = vehiclePort;
+      this.customerPort = customerPort;
+      this.userDirectoryPort = userDirectoryPort;
       this.currentUserPort = currentUserPort;
-      this.infractionPersistencePort = infractionPersistencePort;
-      this.parkingPersistencePort = parkingPersistencePort;
-      this.zonePersistencePort = zonePersistencePort;
-      this.vehiclePersistencePort = vehiclePersistencePort;
-      this.customerPersistencePort = customerPersistencePort;
+      this.dutyChecker = dutyChecker;
+      this.clock = clock;
+      this.defaultDueDays = defaultDueDays;
    }
 
-   // ========================= CreateInfractionUseCase =========================
+   // ========================= REGISTRAR =========================
 
    @Override
-   public InfractionDto createInfraction(CreateInfractionCommand command) {
-      // 1. Validar entidades relacionadas
-      validateParking(command.parkingId());
-      validateZone(command.zoneId());
-      validateVehicle(command.vehicleId());
+   public InfractionDto register(RegisterInfractionCommand c) {
+      LocalDateTime now = LocalDateTime.now(clock);
+      Long userId = currentUserPort.requireCurrentUserId();
+      String plate = PlateNumber.normalize(c.plateNumber());
 
-      // 2. Crear infracción
-      Infraction infraction = new Infraction(
-            command.parkingId(),
-            command.vehicleId(),
-            command.zoneId(),
-            command.infractionType(),
-            getCurrentUserId()
-      );
+      if (c.parkingId() == null) {
+         throw new ParkingDomainException("El parqueo es obligatorio");
+      }
+      Parking parking = parkingPort.findById(c.parkingId())
+            .orElseThrow(() -> new ResourceNotFoundException("Parqueo no encontrado: " + c.parkingId()));
 
-      if (command.spaceId() != null) {
-         infraction.setSpaceId(command.spaceId());
+      // La estadía relacionada fija la zona y el espacio si no se indicaron
+      Transaction stay = null;
+      Long zoneId = c.zoneId();
+      Long spaceId = c.spaceId();
+      if (c.transactionId() != null) {
+         stay = transactionPort.findById(c.transactionId())
+               .orElseThrow(() -> new ResourceNotFoundException("Estadía no encontrada: " + c.transactionId()));
+         if (!stay.getParkingId().equals(parking.getId())) {
+            throw new ResourceConflictException("La estadía es de otro parqueo");
+         }
+         String stayPlate = vehiclePort.findById(stay.getVehicleId()).map(Vehicle::getLicensePlate).orElse(null);
+         if (stayPlate != null && !PlateNumber.normalize(stayPlate).equals(plate)) {
+            throw new ResourceConflictException("La placa no coincide con la de la estadía (" + stayPlate + ")");
+         }
+         if (zoneId == null) {
+            zoneId = stay.getZoneId();
+            spaceId = spaceId != null ? spaceId : stay.getSpaceId();
+         }
       }
 
-      if (command.transactionId() != null) {
-         infraction.setTransactionId(command.transactionId());
+      if (zoneId != null) {
+         Zone zone = zonePort.findById(zoneId)
+               .orElseThrow(() -> new ResourceNotFoundException("Zona no encontrada"));
+         if (!zone.getParkingId().equals(parking.getId())) {
+            throw new ResourceConflictException("La zona no pertenece al parqueo " + parking.getName());
+         }
+      }
+      if (spaceId != null) {
+         Space space = spacePort.findById(spaceId)
+               .orElseThrow(() -> new ResourceNotFoundException("Espacio no encontrado"));
+         if (!space.getZoneId().equals(zoneId)) {
+            throw new ResourceConflictException("El espacio no pertenece a la zona indicada");
+         }
       }
 
-      if (command.customerId() != null) {
-         infraction.setCustomerId(command.customerId());
-      }
+      // Regla 8: quien registra atiende ese parqueo o zona
+      dutyChecker.ensureOnDuty(userId, parking, zoneId, now);
 
-      if (command.severity() != null) {
-         infraction.setSeverity(command.severity());
-      }
+      // Vehículo por placa (se crea si es la primera vez; si algo falla después, se deshace todo)
+      Vehicle vehicle = vehiclePort.findByPlateNumber(plate).orElseGet(() -> {
+         Vehicle v = new Vehicle(plate);
+         v.setCreatedBy(userId);
+         return vehiclePort.save(v);
+      });
+      Infraction infraction = Infraction.register(new Infraction.RegisterData(parking.getId(), zoneId, spaceId,
+            stay != null ? stay.getId() : null, vehicle.getId(), plate,
+            stay != null ? stay.getCustomerId() : null, c.infractionType(), c.severity(), c.description(),
+            c.evidence(), c.fineAmount(), c.fineDueDate(), c.detectedAt(), c.notes(), userId), now, defaultDueDays);
+      infraction.setDetectedByName(userName(userId));
 
-      if (command.description() != null) {
-         infraction.setDescription(command.description());
-      }
-
-      if (command.evidence() != null) {
-         infraction.attachEvidence(command.evidence());
-      }
-
-      infraction.setDetectionMethod(Infraction.METHOD_MANUAL);
-      infraction.setCreatedBy(getCurrentUserId());
-
-      Infraction saved = infractionPersistencePort.save(infraction);
-
-      // 3. Generar código único (requiere ID de base de datos)
+      Infraction saved = infractionPort.save(infraction);
       saved.generateInfractionCode();
-      saved = infractionPersistencePort.save(saved);
-
-      return buildInfractionDto(saved);
+      saved = infractionPort.save(saved);
+      log.info("Infracción {} registrada en el parqueo {} para {}", saved.getInfractionCode(), parking.getId(), plate);
+      return toDto(saved, new Lookups());
    }
 
-   // ========================= GetInfractionUseCase =========================
+   // ========================= CONSULTAS =========================
 
    @Override
    @Transactional(readOnly = true)
-   public InfractionDto getInfractionById(Long infractionId) {
-      Infraction infraction = loadInfraction(infractionId);
-      return buildInfractionDto(infraction);
-   }
-
-   @Override
-   @Transactional(readOnly = true)
-   public InfractionDto getInfractionByCode(String infractionCode) {
-      return infractionPersistencePort.findByCode(infractionCode)
-            .map(this::buildInfractionDto)
-            .orElse(null);
-   }
-
-   // ========================= UpdateInfractionUseCase =========================
-
-   @Override
-   public InfractionDto updateInfraction(Long infractionId, UpdateInfractionCommand command) {
-      Infraction infraction = loadInfraction(infractionId);
-
-      // Validar que no esté resuelta
-      if (infraction.isResolved()) {
-         throw new IllegalStateException(
-               String.format("No se puede actualizar la infracción #%d porque ya está resuelta",
-                     infractionId)
-         );
-      }
-
-      // Actualizar campos
-      if (command.description() != null) {
-         infraction.setDescription(command.description());
-      }
-
-      if (command.severity() != null) {
-         infraction.setSeverity(command.severity());
-      }
-
-      if (command.evidence() != null) {
-         infraction.attachEvidence(command.evidence());
-      }
-
-      if (command.notes() != null) {
-         infraction.setNotes(command.notes());
-      }
-
-      infraction.updateModifiedBy(getCurrentUserId());
-
-      Infraction saved = infractionPersistencePort.save(infraction);
-      return buildInfractionDto(saved);
-   }
-
-   // ========================= ListInfractionsUseCase =========================
-
-   @Override
-   @Transactional(readOnly = true)
-   public PagedResponse<InfractionDto> listAllInfractions(int pageNumber, int pageSize,
-                                                          String search, String status) {
-      PageRequest request = PageRequest.of(pageNumber, pageSize, "detectedAt", "DESC");
-      PageResult<Infraction> result = infractionPersistencePort.findAll(request, search, status);
-      return toInfractionPagedResponse(result);
+   public InfractionDto get(Long infractionId) {
+      return toDto(load(infractionId), new Lookups());
    }
 
    @Override
    @Transactional(readOnly = true)
-   public PagedResponse<InfractionDto> listInfractionsByVehicle(Long vehicleId,
-                                                                int pageNumber, int pageSize) {
-      PageRequest request = PageRequest.of(pageNumber, pageSize, "detectedAt", "DESC");
-      PageResult<Infraction> result = infractionPersistencePort.findByVehicle(vehicleId, request);
-      return toInfractionPagedResponse(result);
+   public PageResult<InfractionDto> list(InfractionFilter filter, PageRequest pageRequest) {
+      InfractionFilter f = filter != null ? filter : InfractionFilter.none();
+      if (f.from() != null && f.to() != null && f.to().isBefore(f.from())) {
+         throw new ParkingDomainException("La fecha final no puede ser anterior a la inicial");
+      }
+      PageResult<Infraction> page = infractionPort.search(f, LocalDate.now(clock), pageRequest);
+      Lookups lookups = new Lookups(page.content());
+      return new PageResult<>(page.content().stream().map(i -> toDto(i, lookups)).toList(),
+            page.pageNumber(), page.pageSize(), page.totalElements());
    }
 
    @Override
    @Transactional(readOnly = true)
-   public PagedResponse<InfractionDto> listInfractionsByCustomer(Long customerId,
-                                                                 int pageNumber, int pageSize) {
-      PageRequest request = PageRequest.of(pageNumber, pageSize, "detectedAt", "DESC");
-      PageResult<Infraction> result = infractionPersistencePort.findByCustomer(customerId, request);
-      return toInfractionPagedResponse(result);
+   public List<InfractionDto> listByTransaction(Long transactionId) {
+      List<Infraction> list = infractionPort.findByTransactionId(transactionId);
+      Lookups lookups = new Lookups(list);
+      return list.stream().map(i -> toDto(i, lookups)).toList();
    }
 
    @Override
    @Transactional(readOnly = true)
-   public List<InfractionDto> listInfractionsByTransaction(Long transactionId) {
-      return infractionPersistencePort.findByTransaction(transactionId).stream()
-            .map(this::buildInfractionDto)
-            .toList();
+   public InfractionSummaryDto summary(Long parkingId) {
+      return infractionPort.summary(parkingId, LocalDate.now(clock));
+   }
+
+   // ========================= EDICIÓN Y RESOLUCIÓN =========================
+
+   @Override
+   public InfractionDto edit(Long infractionId, EditInfractionCommand c) {
+      Infraction i = load(infractionId);
+      i.edit(new Infraction.EditData(c.infractionType(), c.severity(), c.description(), c.evidence(), c.notes()),
+            currentUserPort.requireCurrentUserId(), LocalDateTime.now(clock));
+      return toDto(infractionPort.save(i), new Lookups());
    }
 
    @Override
-   @Transactional(readOnly = true)
-   public PagedResponse<InfractionDto> listInfractionsWithPendingFines(int pageNumber, int pageSize) {
-      PageRequest request = PageRequest.of(pageNumber, pageSize, "fineDueDate", "ASC");
-      PageResult<Infraction> result = infractionPersistencePort.findWithPendingFines(request);
-      return toInfractionPagedResponse(result);
+   public InfractionDto changeFine(Long infractionId, ChangeInfractionFineCommand c) {
+      Infraction i = load(infractionId);
+      i.changeFine(c.fineAmount(), c.dueDate(), currentUserPort.requireCurrentUserId(), LocalDateTime.now(clock),
+            defaultDueDays);
+      return toDto(infractionPort.save(i), new Lookups());
    }
 
    @Override
-   @Transactional(readOnly = true)
-   public PagedResponse<InfractionDto> listInfractionsWithOverdueFines(int pageNumber, int pageSize) {
-      PageRequest request = PageRequest.of(pageNumber, pageSize, "fineDueDate", "ASC");
-      PageResult<Infraction> result = infractionPersistencePort.findWithOverdueFines(request);
-      return toInfractionPagedResponse(result);
+   public InfractionDto dismiss(Long infractionId, String reason) {
+      Infraction i = load(infractionId);
+      i.dismiss(reason, currentUserPort.requireCurrentUserId(), LocalDateTime.now(clock));
+      log.info("Infracción {} anulada", i.getInfractionCode());
+      return toDto(infractionPort.save(i), new Lookups());
    }
 
    @Override
-   @Transactional(readOnly = true)
-   public PagedResponse<InfractionDto> listInfractionsByDateRange(LocalDateTime startDate,
-                                                                  LocalDateTime endDate,
-                                                                  int pageNumber, int pageSize) {
-      PageRequest request = PageRequest.of(pageNumber, pageSize, "detectedAt", "DESC");
-      PageResult<Infraction> result = infractionPersistencePort
-            .findByDetectionDateRange(startDate, endDate, request);
-      return toInfractionPagedResponse(result);
+   public InfractionDto closeWithWarning(Long infractionId, String comment) {
+      Infraction i = load(infractionId);
+      i.closeWithWarning(comment, currentUserPort.requireCurrentUserId(), LocalDateTime.now(clock));
+      return toDto(infractionPort.save(i), new Lookups());
    }
 
-   @Override
-   @Transactional(readOnly = true)
-   public List<InfractionDto> listAllPendingInfractions() {
-      return infractionPersistencePort.findAllPending().stream()
-            .map(this::buildInfractionDto)
-            .toList();
+   // ========================= APOYO =========================
+
+   private Infraction load(Long id) {
+      return infractionPort.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Infracción no encontrada: " + id));
    }
 
-   // ========================= AssignFineUseCase =========================
-
-   @Override
-   public InfractionDto assignFine(Long infractionId, AssignFineCommand command) {
-      Infraction infraction = loadInfraction(infractionId);
-
-      // Validar estado
-      if (infraction.isResolved()) {
-         throw new IllegalStateException(
-               String.format("No se puede asignar multa a la infracción #%d porque ya está resuelta",
-                     infractionId)
-         );
-      }
-
-      if (infraction.hasFine()) {
-         throw new IllegalStateException(
-               String.format("La infracción #%d ya tiene una multa asignada", infractionId)
-         );
-      }
-
-      // Asignar multa
-      if (command.fineDueDate() != null) {
-         infraction.assignFine(command.fineAmount(), command.fineDueDate());
-      } else {
-         infraction.assignFine(command.fineAmount()); // 7 días por defecto
-      }
-
-      Infraction saved = infractionPersistencePort.save(infraction);
-      return buildInfractionDto(saved);
-   }
-
-   // ========================= HELPERS - CARGA =========================
-
-   private Infraction loadInfraction(Long infractionId) {
-      return infractionPersistencePort.findById(infractionId)
-            .orElseThrow(() -> new IllegalArgumentException("Infracción no encontrada: " + infractionId));
-   }
-
-   // ========================= HELPERS - VALIDACIONES =========================
-
-   private void validateParking(Long parkingId) {
-      if (!parkingPersistencePort.findById(parkingId).isPresent()) {
-         throw new IllegalArgumentException("Parking no encontrado: " + parkingId);
+   /** Nombre de quien registra; si auth no responde o no hay permiso, se deja vacío */
+   private String userName(Long userId) {
+      try {
+         return userDirectoryPort.findUser(userId).map(UserDirectoryPort.UserSummary::fullName).orElse(null);
+      } catch (RuntimeException e) {
+         log.debug("No se pudo obtener el nombre del usuario {}: {}", userId, e.getMessage());
+         return null;
       }
    }
 
-   private void validateZone(Long zoneId) {
-      if (!zonePersistencePort.findById(zoneId).isPresent()) {
-         throw new IllegalArgumentException("Zona no encontrada: " + zoneId);
+   /**
+    * Parqueos, zonas, espacios y clientes de una página, consultados una sola vez.
+    * Incluye eliminados: la infracción es historial y debe seguir mostrando sus nombres.
+    */
+   private final class Lookups {
+      private final Map<Long, Parking> parkings;
+      private final Map<Long, Zone> zones;
+      private final Map<Long, Optional<Space>> spaces = new HashMap<>();
+      private final Map<Long, Optional<Customer>> customers = new HashMap<>();
+
+      Lookups() {
+         this.parkings = new HashMap<>();
+         this.zones = new HashMap<>();
+      }
+
+      Lookups(List<Infraction> list) {
+         Set<Long> parkingIds = list.stream().map(Infraction::getParkingId).filter(Objects::nonNull)
+               .collect(Collectors.toSet());
+         Set<Long> zoneIds = list.stream().map(Infraction::getZoneId).filter(Objects::nonNull)
+               .collect(Collectors.toSet());
+         this.parkings = parkingIds.isEmpty() ? new HashMap<>() : parkingPort.findAllByIdsIncludingDeleted(parkingIds)
+               .stream().collect(Collectors.toMap(Parking::getId, Function.identity(), (a, b) -> a, HashMap::new));
+         this.zones = zoneIds.isEmpty() ? new HashMap<>() : zonePort.findAllByIdsIncludingDeleted(zoneIds)
+               .stream().collect(Collectors.toMap(Zone::getId, Function.identity(), (a, b) -> a, HashMap::new));
+      }
+
+      Parking parking(Long id) {
+         return id == null ? null : parkings.computeIfAbsent(id, k -> parkingPort.findByIdIncludingDeleted(k).orElse(null));
+      }
+
+      Zone zone(Long id) {
+         return id == null ? null : zones.computeIfAbsent(id, k -> zonePort.findByIdIncludingDeleted(k).orElse(null));
+      }
+
+      Space space(Long id) {
+         return id == null ? null : spaces.computeIfAbsent(id, spacePort::findByIdIncludingDeleted).orElse(null);
+      }
+
+      Customer customer(Long id) {
+         return id == null ? null : customers.computeIfAbsent(id, customerPort::findById).orElse(null);
       }
    }
 
-   private void validateVehicle(Long vehicleId) {
-      if (!vehiclePersistencePort.findById(vehicleId).isPresent()) {
-         throw new IllegalArgumentException("Vehículo no encontrado: " + vehicleId);
-      }
-   }
-
-   // ========================= BUILDERS - DTOs =========================
-
-   private InfractionDto buildInfractionDto(Infraction i) {
-      String parkingName = i.getParkingId() != null
-            ? parkingPersistencePort.findByIdIncludingDeleted(i.getParkingId()).map(Parking::getName).orElse(null)
-            : null;
-
-      String zoneName = i.getZoneId() != null
-            ? zonePersistencePort.findByIdIncludingDeleted(i.getZoneId()).map(Zone::getName).orElse(null)
-            : null;
-
-      String vehiclePlate = i.getVehicleId() != null
-            ? vehiclePersistencePort.findById(i.getVehicleId()).map(Vehicle::getLicensePlate).orElse(null)
-            : null;
-
-      String customerName = i.getCustomerId() != null
-            ? customerPersistencePort.findById(i.getCustomerId()).map(Customer::getFullName).orElse(null)
-            : null;
-
+   private InfractionDto toDto(Infraction i, Lookups l) {
+      LocalDate today = LocalDate.now(clock);
+      Parking parking = l.parking(i.getParkingId());
+      Zone zone = l.zone(i.getZoneId());
+      Space space = l.space(i.getSpaceId());
+      Customer customer = l.customer(i.getCustomerId());
+      String plate = i.getPlateNumber() != null ? i.getPlateNumber()
+            : vehiclePort.findById(i.getVehicleId()).map(Vehicle::getLicensePlate).orElse(null);
       return new InfractionDto(
-            i.getId(),
-            i.getInfractionCode(),
-            i.getParkingId(),
-            parkingName,
-            i.getZoneId(),
-            zoneName,
-            i.getSpaceId(),
-            null, // spaceCode - TODO
-            i.getTransactionId(),
-            i.getVehicleId(),
-            vehiclePlate,
-            i.getCustomerId(),
-            customerName,
-            i.getInfractionType(),
-            i.getSeverity(),
-            i.getDescription(),
-            i.getEvidence(),
-            i.getDetectedAt(),
-            i.getDetectedBy(),
-            null, // detectedByName - TODO: auth-service
-            i.getDetectionMethod(),
-            i.getFineAmount(),
-            i.getCurrency(),
-            i.getFineDueDate(),
-            i.getFinePaid(),
-            i.getFinePaidAt(),
-            i.getStatus(),
-            i.getResolvedAt(),
-            i.getResolutionType(),
-            i.getResolution(),
-            i.getNotificationSent(),
-            i.getCreatedAt()
-      );
-   }
-
-   // ========================= HELPERS - PAGINACIÓN =========================
-
-   private PagedResponse<InfractionDto> toInfractionPagedResponse(PageResult<Infraction> result) {
-      List<InfractionDto> content = result.content().stream()
-            .map(this::buildInfractionDto)
-            .toList();
-      return PagedResponse.of(content, result.pageNumber(), result.pageSize(), result.totalElements());
-   }
-
-   // ========================= HELPERS - UTILIDADES =========================
-
-   /** Usuario del JWT, para la auditoría. Vacío solo si la petición no trae token */
-   private Long getCurrentUserId() {
-      return currentUserPort.getCurrentUserId().orElse(null);
+            i.getId(), i.getInfractionCode(),
+            i.getParkingId(), parking != null ? parking.getName() : null, parking != null ? parking.getCode() : null,
+            i.getZoneId(), zone != null ? zone.getName() : null, zone != null ? zone.getCode() : null,
+            i.getSpaceId(), space != null ? space.getCode() : null,
+            i.getTransactionId(), i.getVehicleId(), plate,
+            i.getCustomerId(), customer != null ? customer.getFullName() : null,
+            i.getInfractionType(), i.getSeverity(), i.getDescription(), i.getEvidenceList(),
+            i.getDetectedAt(), i.getDetectedBy(), i.getDetectedByName(), i.getDetectionMethod(),
+            i.getFineAmount(), i.getCurrency(), i.getFineDueDate(),
+            i.getFinePaidAmount(), i.getFineAmountDue(), i.isFinePaid(), i.getFinePaidAt(),
+            i.getFinePaymentReference(),
+            i.getStatus(), i.displayStatus(today), i.isFineOverdue(today), i.isFinePayable(), i.isEditable(),
+            i.getResolutionType(), i.getResolution(), i.getResolvedAt(), i.getResolvedBy(),
+            i.getNotes(),
+            i.getCreatedAt(), i.getCreatedBy(), i.getUpdatedAt(), i.getUpdatedBy());
    }
 }
