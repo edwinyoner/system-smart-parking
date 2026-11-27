@@ -1,0 +1,11 @@
+# Fotos y todo lo que las contiene: pueden mostrar placas o personas (datos personales)
+parking-configuration/images/*
+!parking-configuration/images/.gitkeep
+parking-configuration/output/*.jpg
+parking-configuration/output/*.png
+# Borrador de Ultralytics (sin códigos); los JSON finales con códigos sí se versionan
+parking-configuration/output/bounding_boxes.json
+
+.venv/
+__pycache__/
+.pytest_cache/

@@ -1,3 +1,5 @@
-ultralytics>=8.0.0
+# Herramienta local (no se despliega). Python 3.12 con Tkinter.
+ultralytics>=8.3.0
 opencv-python>=4.8.0
 pillow>=10.0.0
+numpy>=1.26

@@ -19,13 +19,17 @@ ai/ (local)                                    ia-service (producción)
 ```text
 ai/
 ├── README.md
+├── .gitignore                      fotos, vistas previas y borradores fuera de Git
 └── parking-configuration/          polígonos de los espacios (escenario B, parqueo abierto)
-    ├── images/                     fotos aéreas (no subirlas a Git)
-    ├── output/                     JSON generados
-    └── scripts/
-        ├── configure_polygons.py   dibuja los polígonos (Ultralytics ParkingPtsSelection)
-        ├── validate_polygons.py    revisa el JSON generado
-        └── requirements.txt
+    ├── images/                     fotos aéreas (no se suben a Git)
+    ├── output/                     JSON finales {"A-01": [[x, y], ...]} para ia-service
+    ├── scripts/
+    │   ├── configure_polygons.py   1. dibujar (Ultralytics ParkingPtsSelection)
+    │   ├── convert_polygons.py     2. poner los códigos de parking-service y vista previa
+    │   ├── validate_polygons.py    3. validar (forma, límites, cruces, superposición, códigos)
+    │   ├── polygon_tools.py        funciones comunes
+    │   └── requirements*.txt
+    └── tests/                      pytest
 ```
 
 Detalle: [`parking-configuration/README.md`](parking-configuration/README.md).
@@ -43,7 +47,10 @@ ai/
 └── models/                         pesos resultantes (fuera de Git o con Git LFS)
 ```
 
-El modelo resultante se copia a ia-service y se apunta con `YOLO_MODEL_PATH`.
+El modelo resultante se copia a ia-service. **Ojo:** hoy el reconocimiento de placas y la
+ocupación aérea comparten un solo modelo (`YOLO_MODEL_PATH`). Un modelo entrenado solo con placas
+no detecta vehículos, así que antes ia-service necesita un ajuste aparte para el modelo de placas
+(por ejemplo `YOLO_PLATE_MODEL_PATH`), manteniendo el de COCO para la ocupación.
 
 ## Reglas
 
