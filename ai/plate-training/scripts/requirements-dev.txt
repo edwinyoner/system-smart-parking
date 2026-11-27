@@ -1,0 +1,2 @@
+# Solo para las pruebas (no necesitan Ultralytics ni PyTorch)
+pytest>=8.0

@@ -1,0 +1,4 @@
+# Entrenamiento local (no se despliega). Python 3.12.
+# YOLO26 se entrena desde Ultralytics 8.4 (con 8.3 falla al reconstruir el modelo)
+ultralytics>=8.4.0
+polars>=1.0

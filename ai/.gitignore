@@ -9,3 +9,9 @@ parking-configuration/output/bounding_boxes.json
 .venv/
 __pycache__/
 .pytest_cache/
+
+# Entrenamiento de placas: fotos con placas reales, resultados y pesos (pesados)
+plate-training/raw/
+plate-training/datasets/
+plate-training/runs/
+*.pt

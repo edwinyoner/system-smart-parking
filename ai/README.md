@@ -20,37 +20,36 @@ ai/ (local)                                    ia-service (producción)
 ai/
 ├── README.md
 ├── .gitignore                      fotos, vistas previas y borradores fuera de Git
-└── parking-configuration/          polígonos de los espacios (escenario B, parqueo abierto)
-    ├── images/                     fotos aéreas (no se suben a Git)
-    ├── output/                     JSON finales {"A-01": [[x, y], ...]} para ia-service
+├── parking-configuration/          polígonos de los espacios (escenario B, parqueo abierto)
+│   ├── images/                     fotos aéreas (no se suben a Git)
+│   ├── output/                     JSON finales {"A-01": [[x, y], ...]} para ia-service
+│   ├── scripts/
+│   │   ├── configure_polygons.py   1. dibujar (Ultralytics ParkingPtsSelection)
+│   │   ├── convert_polygons.py     2. poner los códigos de parking-service y vista previa
+│   │   ├── validate_polygons.py    3. validar (forma, límites, cruces, superposición, códigos)
+│   │   ├── polygon_tools.py        funciones comunes
+│   │   └── requirements*.txt
+│   └── tests/                      pytest
+└── plate-training/                 detector de placas peruanas (ajuste fino de YOLO26)
+    ├── raw/  datasets/  runs/      fotos, dataset repartido y resultados (no se suben a Git)
     ├── scripts/
-    │   ├── configure_polygons.py   1. dibujar (Ultralytics ParkingPtsSelection)
-    │   ├── convert_polygons.py     2. poner los códigos de parking-service y vista previa
-    │   ├── validate_polygons.py    3. validar (forma, límites, cruces, superposición, códigos)
-    │   ├── polygon_tools.py        funciones comunes
-    │   └── requirements*.txt
+    │   ├── prepare_dataset.py      1. revisar etiquetas y repartir train / val / test
+    │   ├── train.py                2. entrenar
+    │   ├── evaluate.py             3. métricas con el conjunto de prueba
+    │   └── dataset_tools.py        funciones comunes
     └── tests/                      pytest
 ```
 
-Detalle: [`parking-configuration/README.md`](parking-configuration/README.md).
+Detalle: [`parking-configuration/README.md`](parking-configuration/README.md) y
+[`plate-training/README.md`](plate-training/README.md).
 
 ## Trabajo futuro
 
-Ajuste fino (*fine-tuning*) de YOLO26 para **placas peruanas**. Hoy ia-service usa el modelo
-general de COCO, que no tiene una clase "placa" ni se entrenó con placas peruanas (ver
-[`DEEP_LEARNING.md`](../backend/services/ia-service/DEEP_LEARNING.md)). Estructura prevista:
-
-```text
-ai/
-├── datasets/peru-license-plates/   images/ y labels/ (train, val, test) + data.yaml
-├── training/                       scripts de entrenamiento y evaluación
-└── models/                         pesos resultantes (fuera de Git o con Git LFS)
-```
-
-El modelo resultante se copia a ia-service. **Ojo:** hoy el reconocimiento de placas y la
-ocupación aérea comparten un solo modelo (`YOLO_MODEL_PATH`). Un modelo entrenado solo con placas
-no detecta vehículos, así que antes ia-service necesita un ajuste aparte para el modelo de placas
-(por ejemplo `YOLO_PLATE_MODEL_PATH`), manteniendo el de COCO para la ocupación.
+- **Dataset real de placas peruanas** (fotos de las cámaras, etiquetadas): los scripts de
+  `plate-training/` ya están listos para entrenar y evaluar con él.
+- En ia-service: un modelo de placas aparte del de ocupación (`YOLO_PLATE_MODEL_PATH`) y
+  Ultralytics 8.4 (hoy 8.3.50). Ver [`plate-training/README.md`](plate-training/README.md#6-usarlo-en-ia-service-pendiente).
+- Guardar los polígonos de cada zona en el sistema.
 
 ## Reglas
 
