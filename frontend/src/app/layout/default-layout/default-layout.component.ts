@@ -141,7 +141,7 @@ export class DefaultLayoutComponent implements OnInit {
    * Filtra el menú según los PERMISOS del usuario
    */
   private filterNavItems(): void {
-    this.navItems = navItems.filter(item => {
+    const visible = navItems.filter(item => {
       // Si no tiene permisos requeridos, mostrar a todos
       if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
         return true;
@@ -149,6 +149,15 @@ export class DefaultLayoutComponent implements OnInit {
 
       // Verificar si tiene AL MENOS UNO de los permisos
       return this.permissionService.hasAnyPermission(item.requiredPermissions);
+    });
+
+    // Un título de sección sin opciones visibles debajo se oculta
+    this.navItems = visible.filter((item, index) => {
+      if (!item.title) {
+        return true;
+      }
+      const next = visible[index + 1];
+      return !!next && !next.title;
     });
   }
 }

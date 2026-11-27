@@ -18,6 +18,9 @@ import {
 } from '@coreui/angular';
 
 import { TransactionService } from '../../../../core/services/parking-service/transaction.service';
+import { InfractionService } from '../../../../core/services/parking-service/infraction.service';
+import { Infraction } from '../../../../core/models/parking-service/infraction.model';
+import { infractionStatusInfo, infractionTypeLabel } from '../../../../core/utils/infraction.util';
 import { TransactionDetailResponse } from '../../../../core/models/parking-service/transaction.model';
 import { PaymentService } from '../../../../core/services/payment-service/payment.service';
 import { Payment } from '../../../../core/models/payment-service/payment.model';
@@ -58,6 +61,8 @@ export class TransactionDetailComponent implements OnInit {
   errorMessage = '';
   /** Pagos de esta estadía en payment-service */
   payments: Payment[] = [];
+  /** Infracciones registradas en esta estadía */
+  infractions: Infraction[] = [];
   successMessage = '';
 
   // Acciones sobre la estadía en curso
@@ -77,6 +82,11 @@ export class TransactionDetailComponent implements OnInit {
   readonly canPay = this.permissions.hasPermission('payments.process');
   readonly canEditNotes = this.permissions.hasAnyPermission(['transactions.entry', 'transactions.exit']);
   readonly confidencePercent = confidencePercent;
+  readonly canSeeInfractions = this.permissions.hasPermission('infractions.read');
+  readonly canCreateInfraction = this.permissions.hasPermission('infractions.create');
+  readonly infractionStatus = infractionStatusInfo;
+  readonly infractionType = infractionTypeLabel;
+  private readonly infractionService = inject(InfractionService);
   
   constructor(
     private route: ActivatedRoute,
@@ -100,6 +110,14 @@ export class TransactionDetailComponent implements OnInit {
       const paidBefore = this.transaction?.payment?.paidAmount;
       this.transaction = t;
       if (t.payment?.paidAmount !== paidBefore) this.loadPayments(t.id);
+    });
+  }
+
+  private loadInfractions(id: number): void {
+    if (!this.canSeeInfractions) return;
+    this.infractionService.getByTransaction(id, true).subscribe({
+      next: list => (this.infractions = list),
+      error: () => (this.infractions = [])
     });
   }
 
@@ -171,6 +189,7 @@ export class TransactionDetailComponent implements OnInit {
         this.transaction = transaction;
         this.loading = false;
         this.loadPayments(id);
+        this.loadInfractions(id);
       },
       error: (error) => {
         this.errorMessage = apiError(error, 'No se pudo cargar la estadía');

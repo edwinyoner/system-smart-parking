@@ -1,1 +1,217 @@
-<p>infraction-list works!</p>
+<!-- src/app/views/parking-service/infractions/infraction-list/infraction-list.component.html -->
+
+<c-card class="mb-4">
+  <c-card-header class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <strong>
+      <i class="fa-solid fa-triangle-exclamation me-2"></i>
+      Infracciones
+      @if (result) {
+        <c-badge color="primary" class="ms-2">{{ result.totalElements }}</c-badge>
+      }
+    </strong>
+    <div class="d-flex align-items-center gap-2">
+      @if (lastUpdate) {
+        <small class="text-body-secondary">
+          <span class="live-dot"></span>En vivo · {{ lastUpdate | date: 'HH:mm:ss' }}
+        </small>
+      }
+      @if (canCreate) {
+        <a cButton size="sm" color="success" routerLink="/infractions/create">
+          <i class="fa-solid fa-plus me-1"></i>Registrar infracción
+        </a>
+      }
+    </div>
+  </c-card-header>
+
+  <c-card-body>
+    @if (successMessage) {
+      <c-alert color="success" [dismissible]="true" (visibleChange)="successMessage = ''">
+        <i class="fa-solid fa-circle-check me-2"></i>{{ successMessage }}
+      </c-alert>
+    }
+    @if (errorMessage) {
+      <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ errorMessage }}
+      </c-alert>
+    }
+
+    <!-- ========================= RESUMEN (clic filtra) ========================= -->
+    @if (summary) {
+      <div class="summary-grid mb-3">
+        <button type="button" class="summary-item" [class.active]="status === 'OPEN'" (click)="setStatus('OPEN')">
+          <span class="summary-value text-warning">{{ summary.open }}</span>
+          <span class="summary-label"><i class="fa-solid fa-hourglass-half me-1"></i>Pendientes</span>
+        </button>
+        <button type="button" class="summary-item" [class.active]="status === 'OVERDUE'" (click)="setStatus('OVERDUE')">
+          <span class="summary-value text-danger">{{ summary.overdue }}</span>
+          <span class="summary-label"><i class="fa-solid fa-calendar-xmark me-1"></i>Vencidas</span>
+        </button>
+        <div class="summary-item static">
+          <span class="summary-value">S/ {{ summary.amountPending | number: '1.2-2' }}</span>
+          <span class="summary-label"><i class="fa-solid fa-coins me-1"></i>Por cobrar</span>
+        </div>
+        <button type="button" class="summary-item" [class.active]="status === 'PAID'" (click)="setStatus('PAID')">
+          <span class="summary-value text-success">{{ summary.paid }}</span>
+          <span class="summary-label"><i class="fa-solid fa-circle-check me-1"></i>Pagadas</span>
+        </button>
+        <button type="button" class="summary-item" [class.active]="status === 'DISMISSED'" (click)="setStatus('DISMISSED')">
+          <span class="summary-value text-body-secondary">{{ summary.dismissed }}</span>
+          <span class="summary-label"><i class="fa-solid fa-ban me-1"></i>Anuladas</span>
+        </button>
+        <button type="button" class="summary-item" [class.active]="status === 'WARNING'" (click)="setStatus('WARNING')">
+          <span class="summary-value text-info">{{ summary.warning }}</span>
+          <span class="summary-label"><i class="fa-solid fa-comment-dots me-1"></i>Amonestaciones</span>
+        </button>
+      </div>
+    }
+
+    <!-- ========================= FILTROS ========================= -->
+    <div class="row g-2 mb-3 align-items-end">
+      <div class="col-6 col-md-2">
+        <label class="form-label small" for="fStatus">Estado</label>
+        <select id="fStatus" class="form-select" [(ngModel)]="status" (ngModelChange)="applyFilters()">
+          @for (s of statusFilters; track s.value) {
+            <option [ngValue]="s.value">{{ s.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small" for="fParking">Parqueo</label>
+        <select id="fParking" class="form-select" [(ngModel)]="parkingId" (ngModelChange)="applyFilters()">
+          <option [ngValue]="null">Todos</option>
+          @for (p of parkings; track p.id) {
+            <option [ngValue]="p.id">{{ p.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small" for="fType">Tipo</label>
+        <select id="fType" class="form-select" [(ngModel)]="type" (ngModelChange)="applyFilters()">
+          <option [ngValue]="null">Todos</option>
+          @for (t of types; track t.value) {
+            <option [ngValue]="t.value">{{ t.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small" for="fSearch">Placa o código</label>
+        <input id="fSearch" class="form-control upper" maxlength="20" placeholder="ABC123 o INF-..."
+               autocomplete="off" [(ngModel)]="search" (input)="onSearchInput()" />
+      </div>
+      <div class="col-6 col-md-1">
+        <label class="form-label small" for="fFrom">Desde</label>
+        <input id="fFrom" type="date" class="form-control px-1" [(ngModel)]="from" (change)="applyFilters()" />
+      </div>
+      <div class="col-6 col-md-1">
+        <label class="form-label small" for="fTo">Hasta</label>
+        <input id="fTo" type="date" class="form-control px-1" [(ngModel)]="to" (change)="applyFilters()" />
+      </div>
+      <div class="col-12 col-md-1">
+        @if (hasFilters) {
+          <button cButton color="secondary" variant="outline" class="w-100" title="Limpiar filtros" (click)="clearFilters()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- ========================= TABLA ========================= -->
+    @if (loading) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+    } @else if (!result || result.content.length === 0) {
+      <div class="text-center py-5 text-body-secondary">
+        <i class="fa-solid fa-clipboard-check fa-3x mb-3"></i>
+        <p class="mb-0">{{ hasFilters ? 'Ninguna infracción coincide con los filtros.' : 'No hay infracciones pendientes.' }}</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Placa</th>
+              <th>Ubicación</th>
+              <th>Infracción</th>
+              <th class="text-end">Multa</th>
+              <th>Estado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of result.content; track i.id) {
+              <tr [class.overdue]="i.overdue">
+                <td>
+                  <div class="code">{{ i.infractionCode }}</div>
+                  <small class="text-body-secondary">{{ i.detectedAt | date: 'dd/MM/yyyy HH:mm' }}</small>
+                </td>
+                <td><span class="plate">{{ i.plateNumber }}</span></td>
+                <td>
+                  <div>{{ i.parkingName }}</div>
+                  @if (i.zoneName) {
+                    <small class="text-body-secondary">{{ i.zoneName }}@if (i.spaceCode) { · espacio {{ i.spaceCode }} }</small>
+                  }
+                </td>
+                <td>
+                  <div><i class="fa-solid {{ typeIcon(i.infractionType) }} me-1 text-body-secondary"></i>{{ typeLabel(i.infractionType) }}</div>
+                  <span class="badge {{ severity(i.severity).badge }}">{{ severity(i.severity).label }}</span>
+                </td>
+                <td class="text-end text-nowrap">
+                  @if (i.fineAmount) {
+                    <strong>S/ {{ i.fineAmount | number: '1.2-2' }}</strong>
+                    @if (i.payable && i.paidAmount > 0) {
+                      <div><small class="text-body-secondary">falta S/ {{ i.amountDue | number: '1.2-2' }}</small></div>
+                    }
+                    @if (i.payable && i.fineDueDate) {
+                      <div><small [class.text-danger]="i.overdue" [class.text-body-secondary]="!i.overdue">
+                        vence {{ i.fineDueDate | date: 'dd/MM' }}</small></div>
+                    }
+                  } @else {
+                    <span class="text-body-secondary">Sin multa</span>
+                  }
+                </td>
+                <td>
+                  <span class="badge {{ statusInfo(i.displayStatus).badge }}">
+                    <i class="fa-solid {{ statusInfo(i.displayStatus).icon }} me-1"></i>{{ statusInfo(i.displayStatus).label }}
+                  </span>
+                </td>
+                <td class="text-end text-nowrap">
+                  <a cButton size="sm" color="info" variant="outline" class="me-1" title="Ver detalle"
+                     [routerLink]="['/infractions', i.id]">
+                    <i class="fa-solid fa-eye"></i>
+                  </a>
+                  @if (canCharge && i.payable) {
+                    <a cButton size="sm" color="success" title="Cobrar multa"
+                       [routerLink]="['/infractions', i.id]" [queryParams]="{ charge: 1 }">
+                      <i class="fa-solid fa-cash-register me-1"></i>Cobrar
+                    </a>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (result.totalPages > 1) {
+        <nav class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+          <small class="text-body-secondary">
+            {{ page * result.pageSize + 1 }}-{{ page * result.pageSize + result.content.length }} de {{ result.totalElements }}
+          </small>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="page === 0">
+              <button class="page-link" (click)="goTo(page - 1)">Anterior</button>
+            </li>
+            @for (n of pages; track n) {
+              <li class="page-item" [class.active]="n === page">
+                <button class="page-link" (click)="goTo(n)">{{ n + 1 }}</button>
+              </li>
+            }
+            <li class="page-item" [class.disabled]="page >= result.totalPages - 1">
+              <button class="page-link" (click)="goTo(page + 1)">Siguiente</button>
+            </li>
+          </ul>
+        </nav>
+      }
+    }
+  </c-card-body>
+</c-card>

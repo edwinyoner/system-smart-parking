@@ -161,7 +161,13 @@ export const navItems: INavDataWithPermissions[] = [
     name: "Infracciones",
     url: "/infractions",
     icon: "fa-solid fa-triangle-exclamation",
-    badge: { color: "danger", text: "3" },
+    requiredPermissions: ["infractions.read"],
+  },
+  {
+    name: "Registrar Infracción",
+    url: "/infractions/create",
+    icon: "fa-solid fa-file-circle-plus",
+    requiredPermissions: ["infractions.create"],
   },
 
   // ==================== GESTIÓN DE PAGOS ====================

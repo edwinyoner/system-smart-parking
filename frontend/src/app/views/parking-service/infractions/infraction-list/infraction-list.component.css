@@ -1,0 +1,79 @@
+/* src/app/views/parking-service/infractions/infraction-list/infraction-list.component.css */
+
+.plate {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.code {
+  font-family: var(--cui-font-monospace);
+  font-size: 0.875rem;
+}
+
+.upper {
+  text-transform: uppercase;
+}
+
+/* Multa vencida: borde rojo a la izquierda */
+tr.overdue td:first-child {
+  box-shadow: inset 4px 0 0 var(--cui-danger);
+}
+
+/* Resumen: seis indicadores que filtran la lista */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: var(--cui-border-radius);
+  background: var(--cui-tertiary-bg);
+  color: var(--cui-body-color);
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+
+button.summary-item:hover {
+  border-color: var(--cui-primary);
+}
+
+.summary-item.active {
+  border-color: var(--cui-primary);
+  box-shadow: inset 0 0 0 1px var(--cui-primary);
+}
+
+.summary-item.static {
+  cursor: default;
+}
+
+.summary-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.summary-label {
+  font-size: 0.8rem;
+  color: var(--cui-secondary-color);
+}
+
+.live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+  background: var(--cui-success);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

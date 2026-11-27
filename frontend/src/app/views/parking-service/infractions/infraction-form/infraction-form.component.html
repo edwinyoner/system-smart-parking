@@ -1,0 +1,204 @@
+<!-- src/app/views/parking-service/infractions/infraction-form/infraction-form.component.html -->
+
+<c-card class="mb-4">
+  <c-card-header class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <strong>
+      <i class="fa-solid {{ isEdit ? 'fa-pen-to-square' : 'fa-triangle-exclamation' }} me-2"></i>
+      {{ isEdit ? 'Editar infracción ' + (infraction?.infractionCode ?? '') : 'Registrar infracción' }}
+    </strong>
+    <a cButton size="sm" color="secondary" variant="outline" [routerLink]="cancelLink()">
+      <i class="fa-solid fa-arrow-left me-1"></i>Volver
+    </a>
+  </c-card-header>
+
+  <c-card-body>
+    @if (errorMessage) {
+      <c-alert color="danger" [dismissible]="true" (visibleChange)="errorMessage = ''">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ errorMessage }}
+      </c-alert>
+    }
+
+    @if (loading) {
+      <div class="text-center py-5"><c-spinner color="primary"></c-spinner></div>
+    } @else if (!isEdit && parkings.length === 0) {
+      <c-alert color="warning">
+        <i class="fa-solid fa-user-clock me-2"></i>
+        No estás de turno en ningún parqueo en este momento: solo se registran infracciones en el parqueo que atiendes.
+      </c-alert>
+    } @else {
+      @if (isEdit && infraction && !infraction.editable) {
+        <c-alert color="warning">
+          <i class="fa-solid fa-lock me-2"></i>
+          Esta infracción ya no se puede editar: {{ infraction.status === 'RESOLVED' ? 'está cerrada' : 'su multa tiene pagos' }}.
+        </c-alert>
+      }
+
+      @if (stay) {
+        <div class="stay-box mb-3">
+          <i class="fa-solid fa-link me-2"></i>
+          Relacionada con la estadía de <strong class="plate">{{ stay.vehicle.plateNumber }}</strong>
+          en {{ stay.parking.name }} · {{ stay.zone.name }} · espacio {{ stay.space.code }}
+          (entrada {{ stay.entryTime | date: 'dd/MM HH:mm' }}).
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <!-- ========================= DÓNDE Y QUIÉN ========================= -->
+        <h6 class="section-title">Lugar y vehículo</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label" for="parkingId">Parqueo <span class="text-danger">*</span></label>
+            @if (isEdit) {
+              <input id="parkingId" class="form-control" [value]="infraction?.parkingName" disabled />
+            } @else {
+              <select id="parkingId" class="form-select" formControlName="parkingId" [class.is-invalid]="invalid('parkingId')">
+                <option [ngValue]="null">Selecciona...</option>
+                @for (p of parkings; track p.id) {
+                  <option [ngValue]="p.id">{{ p.name }}</option>
+                }
+              </select>
+              <div class="invalid-feedback">Selecciona el parqueo.</div>
+            }
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="zoneId">Zona @if (zoneRequired) { <span class="text-danger">*</span> }</label>
+            @if (isEdit) {
+              <input id="zoneId" class="form-control" [value]="infraction?.zoneName ?? 'Sin zona'" disabled />
+            } @else {
+              <select id="zoneId" class="form-select" formControlName="zoneId" [class.is-invalid]="invalid('zoneId')">
+                <option [ngValue]="null">{{ zoneRequired ? 'Selecciona...' : 'Sin indicar' }}</option>
+                @for (z of zones; track z.id) {
+                  <option [ngValue]="z.id">{{ z.name }}</option>
+                }
+              </select>
+              <div class="invalid-feedback">Indica la zona que atiendes.</div>
+            }
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="spaceId">Espacio</label>
+            @if (isEdit) {
+              <input id="spaceId" class="form-control" [value]="infraction?.spaceCode ?? 'Sin espacio'" disabled />
+            } @else {
+              <select id="spaceId" class="form-select" formControlName="spaceId">
+                <option [ngValue]="null">Sin indicar</option>
+                @for (s of spaces; track s.id) {
+                  <option [ngValue]="s.id">{{ s.code }}</option>
+                }
+              </select>
+            }
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="plateNumber">Placa <span class="text-danger">*</span></label>
+            <input id="plateNumber" class="form-control plate-input" formControlName="plateNumber" maxlength="10"
+                   placeholder="ABC-123" autocomplete="off" [class.is-invalid]="invalid('plateNumber')" />
+            <div class="invalid-feedback">Placa peruana: ABC-123 o A1B-234.</div>
+            @if (!isEdit && !stay && platePreview && !invalid('plateNumber')) {
+              <small class="text-body-secondary">Se registrará como <strong>{{ platePreview }}</strong></small>
+            }
+          </div>
+        </div>
+
+        <!-- ========================= QUÉ PASÓ ========================= -->
+        <h6 class="section-title">Infracción</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-5">
+            <label class="form-label" for="infractionType">Tipo <span class="text-danger">*</span></label>
+            <select id="infractionType" class="form-select" formControlName="infractionType"
+                    [class.is-invalid]="invalid('infractionType')">
+              <option [ngValue]="null">Selecciona...</option>
+              @for (t of types; track t.value) {
+                <option [ngValue]="t.value">{{ t.label }}</option>
+              }
+            </select>
+            <div class="invalid-feedback">Selecciona el tipo.</div>
+          </div>
+          <div class="col-md-4">
+            <span class="form-label d-block">Gravedad <span class="text-danger">*</span></span>
+            <div class="btn-group w-100" role="group" aria-label="Gravedad">
+              @for (s of severities; track s.value) {
+                <input type="radio" class="btn-check" [id]="'sev-' + s.value" [value]="s.value" formControlName="severity" />
+                <label class="btn btn-outline-secondary btn-sm" [for]="'sev-' + s.value">{{ s.label }}</label>
+              }
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="detectedAt">Fecha y hora <span class="text-danger">*</span></label>
+            @if (isEdit) {
+              <input id="detectedAt" class="form-control" [value]="infraction?.detectedAt | date: 'dd/MM/yyyy HH:mm'" disabled />
+            } @else {
+              <input id="detectedAt" type="datetime-local" class="form-control" formControlName="detectedAt"
+                     [max]="maxDetectedAt" [class.is-invalid]="invalid('detectedAt')" />
+            }
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="description">Descripción <span class="text-danger">*</span></label>
+            <textarea id="description" class="form-control" rows="3" formControlName="description" maxlength="1000"
+                      placeholder="Qué se observó, por ejemplo: estacionado en el espacio reservado para personas con discapacidad"
+                      [class.is-invalid]="invalid('description')"></textarea>
+            <div class="invalid-feedback">Describe la infracción (entre 5 y 1000 caracteres).</div>
+          </div>
+          <div class="col-md-7">
+            <label class="form-label" for="evidence">Evidencia (enlaces a fotos o video)</label>
+            <textarea id="evidence" class="form-control" rows="2" formControlName="evidence"
+                      placeholder="Un enlace por línea (https://...)" [class.is-invalid]="invalid('evidence')"></textarea>
+            <div class="invalid-feedback">
+              @if (form.controls.evidence.errors?.['evidenceMax']) {
+                Hasta {{ evidenceMax }} enlaces.
+              } @else {
+                Cada línea debe ser un enlace http o https.
+              }
+            </div>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label" for="notes">Observaciones internas</label>
+            <textarea id="notes" class="form-control" rows="2" formControlName="notes" maxlength="500"></textarea>
+          </div>
+        </div>
+
+        <!-- ========================= MULTA (solo al registrar) ========================= -->
+        @if (!isEdit) {
+          <h6 class="section-title">Multa</h6>
+          <div class="row g-3 mb-4 align-items-end">
+            <div class="col-md-4">
+              <div class="form-check form-switch">
+                <input id="hasFine" type="checkbox" class="form-check-input" formControlName="hasFine" />
+                <label class="form-check-label" for="hasFine">Aplicar multa</label>
+              </div>
+              <small class="text-body-secondary">Sin multa, se puede cerrar con una amonestación o asignarla después.</small>
+            </div>
+            @if (form.controls.hasFine.value) {
+              <div class="col-md-3">
+                <label class="form-label" for="fineAmount">Monto (S/) <span class="text-danger">*</span></label>
+                <input id="fineAmount" type="number" class="form-control" formControlName="fineAmount" min="0.01"
+                       [max]="fineMax" step="0.50" [class.is-invalid]="invalid('fineAmount')" />
+                <div class="invalid-feedback">Entre S/ 0.01 y S/ {{ fineMax }}, con hasta 2 decimales.</div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label" for="fineDueDate">Pagar hasta</label>
+                <input id="fineDueDate" type="date" class="form-control" formControlName="fineDueDate" [min]="minDueDate" />
+              </div>
+            }
+          </div>
+        } @else if (infraction) {
+          <p class="text-body-secondary small mb-4">
+            <i class="fa-solid fa-circle-info me-1"></i>La multa se asigna o cambia desde el detalle de la infracción.
+          </p>
+        }
+
+        <div class="d-flex justify-content-end gap-2">
+          <a cButton color="secondary" variant="outline" [routerLink]="cancelLink()">Cancelar</a>
+          @if (!isEdit || infraction?.editable) {
+            <button cButton color="success" type="submit" [disabled]="saving">
+              @if (saving) {
+                <c-spinner size="sm" class="me-1"></c-spinner>
+              } @else {
+                <i class="fa-solid fa-floppy-disk me-1"></i>
+              }
+              {{ isEdit ? 'Guardar cambios' : 'Registrar' }}
+            </button>
+          }
+        </div>
+      </form>
+    }
+  </c-card-body>
+</c-card>

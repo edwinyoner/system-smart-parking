@@ -1,0 +1,65 @@
+/* src/app/views/parking-service/infractions/infraction-detail/infraction-detail.component.css */
+
+.code {
+  font-family: var(--cui-font-monospace);
+}
+
+.plate {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.pre-line {
+  white-space: pre-line;
+}
+
+.data-list dt {
+  color: var(--cui-secondary-color);
+  font-weight: 600;
+}
+
+.data-list dd {
+  margin-bottom: 0.65rem;
+}
+
+.fine-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.fine-label {
+  color: var(--cui-secondary-color);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.fine-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.panel {
+  padding: 0.75rem;
+  border: 1px solid var(--cui-border-color);
+  border-radius: var(--cui-border-radius);
+  background: var(--cui-tertiary-bg);
+}
+
+.evidence-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.evidence-item img {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border: 1px solid var(--cui-border-color);
+  border-radius: var(--cui-border-radius);
+}
+
+.payments .list-group-item {
+  background: transparent;
+}
