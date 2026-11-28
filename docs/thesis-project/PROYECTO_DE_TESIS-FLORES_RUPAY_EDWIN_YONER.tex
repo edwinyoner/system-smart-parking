@@ -1053,6 +1053,12 @@ Según define IBM (s.f.-a), la Inteligencia Artificial (IA) constituye una tecno
 
 Según explica Google Cloud (s.f.), el \textit{Cloud Computing} o computación en la nube se define como la disponibilidad bajo demanda de recursos de computación —tales como almacenamiento de datos, potencia de procesamiento e infraestructura tecnológica— provistos como servicios integrales a través de Internet. Este paradigma de computación distribuida elimina la necesidad técnica de que las organizaciones adquieran, configuren y gestionen sus propios servidores físicos, permitiendo operar bajo un modelo de escalabilidad donde solo se abona por los recursos consumidos. En el desarrollo de sistemas complejos, la nube actúa como el núcleo centralizado encargado de unificar las plataformas periféricas, garantizando que el almacenamiento de registros y el procesamiento de microservicios cuenten con una alta disponibilidad, redundancia y tiempos de respuesta óptimos indispensables para el soporte de aplicaciones web y móviles corporativas.
 
+\subsubsection{Arquitectura de Microservicios}
+
+Según Richardson (2019), la arquitectura de microservicios es un estilo arquitectónico que descompone funcionalmente una aplicación en un conjunto de servicios. Lo que define a cada servicio no es su tamaño, sino que tenga un conjunto de responsabilidades enfocado y cohesivo. Cada servicio expone una API, que funciona como un límite difícil de vulnerar, y se comunica con los demás mediante protocolos ligeros como REST. Una característica clave de este estilo es el bajo acoplamiento, que se consigue cuando cada servicio cuenta con su propia base de datos: así, un servicio puede cambiar su esquema sin coordinarse con los demás y no queda bloqueado por las operaciones de otro. El autor señala, además, que los servicios pueden desplegarse y escalarse de forma independiente, que ofrecen un mejor aislamiento de fallos y que un \textit{API Gateway} puede recibir las peticiones de las aplicaciones móviles y dirigirlas al servicio que corresponde.
+
+De forma complementaria, Barrios Contreras (2018) contrasta este estilo con la arquitectura monolítica, en la que toda la aplicación se construye como una sola unidad y, para crecer, se debe aumentar la capacidad del sistema completo y no solo de la parte que lo necesita. En una arquitectura de microservicios, en cambio, cada servicio es independiente, puede escribirse en un lenguaje distinto y escala por separado. El autor destaca también que cada servicio puede organizarse internamente con una arquitectura hexagonal y elegir el modelo de datos que más le convenga, relacional o NoSQL. En el presente prototipo, estos principios se reflejan en servicios independientes, cada uno con su propia base de datos, que se comunican a través de un \textit{API Gateway}.
+
 \subsubsection{Smart City}
 
 Según exponen Gomstyn y Jonker (s.f.), una \textit{Smart City} o ciudad inteligente constituye un área urbana donde la implementación de la tecnología y la recopilación sistemática de datos operan de manera conjunta para mejorar la calidad de vida de sus habitantes, así como para maximizar la sustentabilidad y la eficiencia de los servicios urbanos. Bajo este paradigma de gestión del entorno público, la infraestructura tecnológica funciona de forma análoga al sistema nervioso del cuerpo humano, capacitando a los gobiernos locales para responder de manera ágil, predictiva y automatizada a las transformaciones y demandas de sus espacios. El núcleo de estas iniciativas se sostiene sobre la captura de información en tiempo real, lo que permite optimizar la planificación urbana e integrar servicios críticos —tales como la gestión de residuos, el suministro energético y las redes de transporte—, transformando las soluciones digitales en motores de crecimiento económico y de mitigación del impacto ambiental.
@@ -1338,6 +1344,12 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	Gerencia de Estudios Económicos y Estadísticas de la AAP.
 	\url{https://aap.org.pe/storage/estadisticas/informes-mensuales/1768240598052.pdf}
 	
+	\bibitem{barrios2018microservicios}
+	Barrios Contreras, D. A. (2018).
+	Arquitectura de microservicios.
+	\textit{Tecnología, Investigación y Academia}, \textit{6}(1), 36--46.
+	\url{https://revistas.udistrital.edu.co/index.php/tia/article/view/9687}
+	
 	\bibitem{burbano2021smartparking}
 	Burbano, L. (17 de agosto de 2021).
 	\textit{What is a smart parking system? Functionalities and benefits}.
@@ -1471,6 +1483,11 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 	Plataforma digital única del Estado Peruano.
 	\url{https://cdn.www.gob.pe/uploads/document/file/4932850/Pol%C3%ADtica%20Nacional%20de%20Transformaci%C3%B3n%20Digital%20al%202030.pdf?v=1691014709}
 	
+	\bibitem{richardson2019microservices}
+	Richardson, C. (2019).
+	\textit{Microservices patterns: With examples in Java}.
+	Manning.
+	
 	\bibitem{romo2022}
 	Romo Quispe, A., \& Benites Romero, F. (2022).
 	\textit{Diseño de un sistema de parqueo inteligente y calidad del aire visualizado en tiempo real en una aplicación Android en el marco de una ciudad inteligente para el distrito de La Punta - Callao}
@@ -1574,7 +1591,7 @@ El presente proyecto de tesis \textbf{no contempla financiamiento a través de f
 
 A continuación, se presentan los instrumentos diseñados para registrar los indicadores técnicos del prototipo y la percepción de los usuarios antes y después de su demostración:
 
-\subsubsection{2.1. Ficha de Registro Técnico (Métricas de la Solución Tecnológica)}
+\subsubsection*{Ficha de Registro Técnico (Métricas de la Solución Tecnológica)}
 Este instrumento se implementa a nivel de código fuente mediante \textit{logs} automáticos en los microservicios y persistencia de datos en la infraestructura en la nube, durante las pruebas en un entorno controlado que reproduce los escenarios de los dos parqueos de la muestra (indicadores 1 a 8 y 11):
 
 \begin{enumerate}
@@ -1584,33 +1601,33 @@ Este instrumento se implementa a nivel de código fuente mediante \textit{logs} 
 	\item \textbf{Capa de gestión:} Registros de ocupación comparados con el estado real de cada espacio en las pruebas, estadías que cuentan con todos sus datos (placa, horas de entrada y salida, y pago) y reportes cotejados con un conteo directo en la base de datos.
 \end{enumerate}
 
-\subsubsection{2.2. Cuestionario de Percepción de la Propuesta Tecnológica}
+\subsubsection*{Cuestionario de Percepción de la Propuesta Tecnológica}
 Instrumento compuesto por doce (12) ítems, uno por cada indicador de la matriz de operacionalización. Los ítems 1 al 9, 11 y 12 se responden en escala de tipo Likert (1: Totalmente en desacuerdo, 5: Totalmente de acuerdo) y el ítem 10 en minutos. Se aplica al mismo grupo de conductores y operadores en dos momentos: en el \textit{pretest}, respecto de la situación actual de los parqueos, y en el \textit{postest}, después de la demostración del prototipo, respecto del sistema:
 
 \begin{enumerate}
-	\item \textbf{[IoT]} La información sobre el estado del parqueo se actualiza sin interrupciones.
+	\item \textbf{IoT:} La información sobre el estado del parqueo se actualiza sin interrupciones.
 	
-	\item \textbf{[IoT]} Cuando un vehículo entra o sale, el cambio se conoce de inmediato.
+	\item \textbf{IoT:} Cuando un vehículo entra o sale, el cambio se conoce de inmediato.
 	
-	\item \textbf{[IA]} La placa de cada vehículo queda registrada correctamente.
+	\item \textbf{IA:} La placa de cada vehículo queda registrada correctamente.
 	
-	\item \textbf{[IA]} El registro de la entrada de un vehículo se realiza con rapidez, sin hacerlo esperar.
+	\item \textbf{IA:} El registro de la entrada de un vehículo se realiza con rapidez, sin hacerlo esperar.
 	
-	\item \textbf{[Cloud]} La información del parqueo está disponible cada vez que se necesita consultarla.
+	\item \textbf{Cloud:} La información del parqueo está disponible cada vez que se necesita consultarla.
 	
-	\item \textbf{[Cloud]} Las consultas sobre el parqueo se responden con rapidez.
+	\item \textbf{Cloud:} Las consultas sobre el parqueo se responden con rapidez.
 	
-	\item \textbf{[Smart Parking]} La disponibilidad de espacios que se informa coincide con la realidad del parqueo.
+	\item \textbf{Smart Parking:} La disponibilidad de espacios que se informa coincide con la realidad del parqueo.
 	
-	\item \textbf{[Smart Parking]} Cada estadía queda registrada con todos sus datos (placa, horas de entrada y salida, y pago).
+	\item \textbf{Smart Parking:} Cada estadía queda registrada con todos sus datos (placa, horas de entrada y salida, y pago).
 	
-	\item \textbf{[Smart Mobility]} Es fácil y rápido identificar un espacio disponible antes de llegar al parqueo.
+	\item \textbf{Smart Mobility:} Es fácil y rápido identificar un espacio disponible antes de llegar al parqueo.
 	
-	\item \textbf{[Smart Mobility]} ¿Cuántos minutos tarda, o estima que tardaría, en encontrar un espacio de estacionamiento? \underline{\hspace{1.5cm}} minutos.
+	\item \textbf{Smart Mobility:} ¿Cuántos minutos tarda, o estima que tardaría, en encontrar un espacio de estacionamiento? \underline{\hspace{1.5cm}} minutos.
 	
-	\item \textbf{[Smart City]} La información que se genera sobre el parqueo sirve para gestionarlo mejor.
+	\item \textbf{Smart City:} La información que se genera sobre el parqueo sirve para gestionarlo mejor.
 	
-	\item \textbf{[Smart City]} La forma de encontrar estacionamiento evita circular innecesariamente y contaminar el aire.
+	\item \textbf{Smart City:} La forma de encontrar estacionamiento evita circular innecesariamente y contaminar el aire.
 \end{enumerate}
 
 
@@ -1651,7 +1668,7 @@ Instrumento compuesto por doce (12) ítems, uno por cada indicador de la matriz 
 \begin{figure}[H]
 	\centering
 	\captionsetup{format=plain, labelformat=simple, labelsep=newline, labelfont=bf, textfont=it, singlelinecheck=off}
-	\caption{Solicitud de autorización presentada a la Municipalidad Provincial de Huaraz}
+	\caption{Solicitud de autorización a la Municipalidad Provincial de Huaraz}
 	\label{fig:anexo-solicitud-mph}
 	\vspace{0.15cm}
 	
