@@ -39,6 +39,23 @@
 \g@addto@macro{\UrlBreaks}{\do\/\do\-\do\.\do\=\do\_\do\?\do\&\do\%}
 \makeatother
 
+% Referencias en formato APA 7: sin numeración, sangría francesa de 1.27 cm
+% y sin el título automático "Referencias" (ya lo pone la sección)
+\makeatletter
+\renewcommand\@biblabel[1]{}
+\renewenvironment{thebibliography}[1]{%
+	\list{}{%
+		\setlength{\leftmargin}{1.27cm}%
+		\setlength{\itemindent}{-1.27cm}%
+		\setlength{\labelwidth}{0pt}%
+		\setlength{\labelsep}{0pt}%
+		\usecounter{enumiv}%
+		\let\p@enumiv\@empty
+		\renewcommand\theenumiv{\@arabic\c@enumiv}}%
+	\sloppy\clubpenalty4000\widowpenalty4000\sfcode`\.\@m}
+	{\endlist}
+\makeatother
+
 \geometry{
 	a4paper,
 	top=2.5cm,
@@ -72,7 +89,7 @@
 	colorlinks=true,
 	linkcolor=black,
 	citecolor=black,
-	urlcolor=blue,
+	urlcolor=black,
 	pdfencoding=auto
 }
 
